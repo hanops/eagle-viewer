@@ -1,0 +1,16 @@
+services:
+  eagle-viewer:
+    image: eagle-viewer:v1.3
+    container_name: eagle-viewer
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - EAGLE_VAULT_ROOT=/vault
+      - VIEWER_PASSWORD=""
+      - VIEWER_SECRET_KEY=""
+    network_mode: bridge
+    volumes:
+      # 将 NAS 上的 Eagle 库挂载到容器内 /vault
+      # 示例：本地路径改为你的实际路径，如 /volume1/eagle/Design.library
+      - ./vault:/vault:ro

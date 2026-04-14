@@ -1,0 +1,11 @@
+{
+  "name": "Eagle Vault Viewer",
+  "short_name": "Eagle Viewer",
+  "description": "只读查看 NAS 上的 Eagle 资源库",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fafafa",
+  "theme_color": "#4f6ef7",
+  "orientation": "any",
+  "icons": []
+}

@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="theme-color" content="#fafafa" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#1c1c1e" media="(prefers-color-scheme: dark)" />
+  <title>Eagle Vault Viewer</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="manifest" href="manifest.json" />
+</head>
+<body>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <div class="toolbar-left">
+      <button type="button" class="menu-btn" id="menuBtn" aria-label="菜单"></button>
+      <span class="toolbar-title">Eagle Vault Viewer</span>
+    </div>
+    <div class="toolbar-center">
+      <div class="search-box">
+        <span id="searchIcon"></span>
+        <input type="search" id="searchInput" placeholder="搜索名称、标签、备注、格式…（#标签 / /文件夹）" autocomplete="off" />
+      </div>
+    </div>
+    <div class="toolbar-right">
+      <select class="tb-select" id="sortSelect">
+        <option value="mtime">修改时间</option>
+        <option value="btime">创建时间</option>
+        <option value="name">名称</option>
+        <option value="size">大小</option>
+        <option value="ext">格式</option>
+      </select>
+      <select class="tb-select" id="sortDirSelect">
+        <option value="desc">降序</option>
+        <option value="asc">升序</option>
+      </select>
+      <select class="tb-select" id="typeSelect">
+        <option value="all">全部</option>
+        <option value="image">图片</option>
+        <option value="video">视频</option>
+        <option value="document">文档</option>
+        <option value="audio">音频</option>
+        <option value="other">其他</option>
+      </select>
+      <button type="button" class="tb-btn" id="viewGrid" title="网格视图"></button>
+      <button type="button" class="tb-btn" id="viewList" title="列表视图"></button>
+      <button type="button" class="tb-btn" id="reloadLibraryBtn" title="刷新资源库"></button>
+      <button type="button" class="tb-btn" id="exportListBtn" title="导出清单（左键CSV/右键JSON）"></button>
+      <button type="button" class="tb-btn" id="themeToggle" title="切换主题"></button>
+      <a href="/logout" class="tb-link">退出</a>
+    </div>
+  </div>
+
+  <!-- Batch action bar -->
+  <div class="batch-bar" id="batchBar">
+    <span class="batch-count" id="selectedCount">已选 0 个</span>
+    <span class="batch-meta" id="selectedMeta">总大小 0 B</span>
+    <span class="batch-breakdown" id="selectedBreakdown">类型分布 -</span>
+    <button type="button" id="selectAllBtn">全选</button>
+    <button type="button" id="invertSelectBtn">反选</button>
+    <button type="button" id="clearSelectBtn">取消</button>
+    <button type="button" id="exportSelectedBtn" title="导出已选项（左键CSV/右键JSON）">导出已选</button>
+    <button type="button" id="batchDownloadBtn" class="primary">打包下载</button>
+  </div>
+
+  <!-- Layout -->
+  <div class="layout">
+    <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+    <div class="sidebar-wrap" id="sidebarWrap">
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-section">
+          <div class="sidebar-section-title">浏览</div>
+          <div class="sidebar-item" id="allItems">
+            <span class="sidebar-item-icon" id="iconAllItems"></span>
+            <span class="sidebar-item-name">全部文件</span>
+          </div>
+        </div>
+        <div class="sidebar-section">
+          <div class="sidebar-section-title">最近添加</div>
+          <div class="sidebar-item" id="recent7" data-days="7">
+            <span class="sidebar-item-icon" id="iconRecent7"></span>
+            <span class="sidebar-item-name">最近 7 天</span>
+          </div>
+          <div class="sidebar-item" id="recent30" data-days="30">
+            <span class="sidebar-item-icon" id="iconRecent30"></span>
+            <span class="sidebar-item-name">最近 30 天</span>
+          </div>
+        </div>
+        <div class="sidebar-section" id="folderSection">
+          <div class="sidebar-section-title">文件夹</div>
+          <div id="folderTree"></div>
+        </div>
+        <div class="sidebar-section" id="tagSection" style="display:none;">
+          <div class="sidebar-section-title">标签</div>
+          <input type="search" id="tagSearchInput" class="tag-search" placeholder="搜索标签…" autocomplete="off" />
+          <div class="tag-list" id="tagList"></div>
+        </div>
+      </aside>
+      <div class="sidebar-resizer" id="sidebarResizer"></div>
+    </div>
+
+    <div class="sidebar-toggle" id="sidebarToggle"></div>
+
+    <main class="main" id="mainArea">
+      <div id="contentToolbar" class="content-toolbar" style="display:none;">
+        <label>排序</label>
+        <select id="ctSortSelect">
+          <option value="mtime">修改时间</option>
+          <option value="btime">创建时间</option>
+          <option value="name">名称</option>
+          <option value="size">大小</option>
+          <option value="ext">格式</option>
+        </select>
+        <select id="ctSortDirSelect">
+          <option value="desc">降序</option>
+          <option value="asc">升序</option>
+        </select>
+        <label>类型</label>
+        <select id="ctTypeSelect">
+          <option value="all">全部</option>
+          <option value="image">图片</option>
+          <option value="video">视频</option>
+          <option value="document">文档</option>
+          <option value="audio">音频</option>
+          <option value="other">其他</option>
+        </select>
+        <div class="quick-filters" id="quickFilters">
+          <button type="button" class="quick-filter" data-type="all">全部</button>
+          <button type="button" class="quick-filter" data-type="image">图片</button>
+          <button type="button" class="quick-filter" data-type="document">文档</button>
+          <button type="button" class="quick-filter" data-type="video">视频</button>
+        </div>
+        <span class="content-title" id="contentTitle"></span>
+      </div>
+      <div class="content-body" id="contentBody">
+        <div class="empty-state" id="emptyState">
+          <span id="emptyIcon"></span>
+          <span>选择左侧文件夹查看素材</span>
+        </div>
+      </div>
+    </main>
+
+    <div class="inspector" id="inspector">
+      <div class="inspector-header">
+        <div class="inspector-header-left">
+          <div class="inspector-nav">
+            <button type="button" class="inspector-nav-btn" id="inspectorPrev" aria-label="上一项"></button>
+            <button type="button" class="inspector-nav-btn" id="inspectorNext" aria-label="下一项"></button>
+          </div>
+          <span class="inspector-header-title">详情</span>
+        </div>
+        <button type="button" class="inspector-close" id="inspectorClose"></button>
+      </div>
+      <div class="inspector-inner" id="inspectorInner"></div>
+      <div class="inspector-actions" id="inspectorActions"></div>
+    </div>
+  </div>
+
+  <script src="core.js"></script>
+  <script src="render.js"></script>
+  <script src="api.js"></script>
+  <script src="interactions.js"></script>
+  <script src="bootstrap.js"></script>
+</body>
+</html>
