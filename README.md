@@ -61,6 +61,8 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 当前前端已从单文件 `index.html` 拆为静态 CSS 与多个职责明确的脚本文件，仍保持原生 HTML/CSS/JS，不引入额外框架。
 
+拆分后的前端静态资源统一通过 `/static/*` 提供，页面入口仍使用 `/`、`/index.html`、`/manifest.json`、`/sw.js`。
+
 - `app/web/index.html`：页面骨架与脚本加载顺序
 - `app/web/styles.css`：全部样式
 - `app/web/core.js`：基础常量、图标、工具函数、全局状态入口 `window.EagleViewer`
@@ -139,6 +141,7 @@ Eagle 库目录应包含：
   - 完善多选模式：补充总大小、类型构成、反选、导出已选，并与单文件详情解耦。
   - 补充快捷类型筛选、标签搜索、`#标签` / `/文件夹` 快速跳转、详情前后切换。
   - 前端从单文件脚本拆分为 `core / api / render / interactions / bootstrap` 模块结构。
+  - 修复前端拆分后 `styles.css` 与各脚本资源未暴露路由导致的静态资源 404 问题，统一改为 `/static/*` 提供。
 
 - **1.2.0**（2025-03-11）
   - 界面重构为 Eagle 风格的瀑布流 + Inspector 布局。
