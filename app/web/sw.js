@@ -1,6 +1,16 @@
 const CACHE_NAME = 'eagle-viewer-v1.4';
 const THUMBNAIL_CACHE = 'eagle-viewer-thumbs-v1';
-const STATIC_URLS = ['/', '/index.html', '/manifest.json'];
+const STATIC_URLS = [
+  '/',
+  '/index.html',
+  '/manifest.json',
+  '/static/styles.css',
+  '/static/core.js',
+  '/static/render.js',
+  '/static/api.js',
+  '/static/interactions.js',
+  '/static/bootstrap.js',
+];
 
 self.addEventListener('install', function(e) {
   e.waitUntil(
@@ -47,7 +57,13 @@ self.addEventListener('fetch', function(e) {
     );
     return;
   }
-  if (url.pathname === '/' || url.pathname === '/index.html' || url.pathname === '/manifest.json' || url.pathname === '/sw.js') {
+  if (
+    url.pathname === '/' ||
+    url.pathname === '/index.html' ||
+    url.pathname === '/manifest.json' ||
+    url.pathname === '/sw.js' ||
+    url.pathname.startsWith('/static/')
+  ) {
     e.respondWith(
       fetch(e.request).then(function(r) { return r; }).catch(function() {
         return caches.match(e.request).then(function(cached) { return cached || caches.match('/'); });

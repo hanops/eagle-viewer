@@ -3,6 +3,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, Request, Form
 from fastapi.responses import FileResponse, Response, RedirectResponse, HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.types import ASGIApp
 
@@ -78,6 +79,8 @@ _login_path = web_dir / "login.html"
 _manifest_path = web_dir / "manifest.json"
 _sw_path = web_dir / "sw.js"
 
+app.mount("/static", StaticFiles(directory=web_dir, html=False), name="static")
+
 
 @app.get("/login", response_class=HTMLResponse)
 def login_page(request: Request, error: str = ""):
@@ -115,6 +118,13 @@ def logout(request: Request):
 
 @app.get("/")
 def index():
+    if _index_path.exists():
+        return FileResponse(_index_path)
+    return {"message": "Eagle Vault Viewer API", "docs": "/docs"}
+
+
+@app.get("/index.html")
+def index_html():
     if _index_path.exists():
         return FileResponse(_index_path)
     return {"message": "Eagle Vault Viewer API", "docs": "/docs"}
