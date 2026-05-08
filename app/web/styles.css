@@ -60,6 +60,20 @@
     }
     .toolbar-left{display:flex;align-items:center;gap:10px;flex-shrink:0;}
     .toolbar-title{font-size:15px;font-weight:600;white-space:nowrap;user-select:none;}
+    .version-badge{
+      display:none;
+      flex-shrink:0;
+      padding:2px 7px;
+      border:1px solid var(--border);
+      border-radius:999px;
+      color:var(--text-muted);
+      background:var(--bg);
+      font-size:11px;
+      line-height:16px;
+      white-space:nowrap;
+      user-select:none;
+    }
+    .version-badge:not(:empty){display:inline-flex;align-items:center;}
     .toolbar-center{flex:1;display:flex;justify-content:flex-start;padding:0 12px;min-width:0;}
     .toolbar-right{display:flex;align-items:center;gap:6px;flex-shrink:0;}
 
@@ -993,6 +1007,7 @@
       .menu-btn{display:flex;}
       .toolbar{padding:0 10px;gap:6px;height:48px;padding-top:max(0px,env(safe-area-inset-top));}
       .toolbar-title{font-size:14px;}
+      .version-badge{padding:1px 6px;font-size:10px;line-height:15px;}
       .toolbar-center{padding:0 6px;}
       .search-box{max-width:none;}
       .toolbar-right{

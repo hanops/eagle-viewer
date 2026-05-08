@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.5.1 - 2026-05-08
+
+### Documentation
+
+- Add MIT license, contribution guide, security policy, release process, issue templates, and pull request template.
+- Clarify the split between public README content and agent-facing repository guidance.
+- Show the current app version in the frontend toolbar.
+- Add an inline favicon to avoid a missing icon request in browsers.
+
+### Testing
+
+- Add pytest coverage for Eagle library parsing and key list API behavior using a minimal fixture library.
+- Use real PNG files in the fixture library instead of text placeholders.
+- Add GitHub Actions CI, Makefile commands, version consistency checks, and local environment examples.
+
 ## 1.5.0 - 2026-05-08
 
 ### Features

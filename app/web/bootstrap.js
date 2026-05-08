@@ -8,6 +8,7 @@ async function init() {
   var interactions = EagleViewer.modules.interactions;
 
   injectIcons();
+  renderVersionBadge();
   interactions.loadLocalData();
   interactions.setViewMode(api.getPreferredViewMode(), true);
 
@@ -49,6 +50,15 @@ async function init() {
     }
   } catch (e) {
     document.getElementById('contentBody').innerHTML = '<div class="empty-state">' + iconFolderOutline() + '<span>无法加载资源库，请确认已挂载 Eagle 库路径。</span></div>';
+  }
+}
+
+function renderVersionBadge() {
+  var badge = document.getElementById('appVersionBadge');
+  if (!badge || !EagleViewer.config || !EagleViewer.config.version) return;
+  badge.textContent = 'v' + EagleViewer.config.version;
+  if (EagleViewer.config.versionDate) {
+    badge.title = '版本 ' + EagleViewer.config.version + ' · ' + EagleViewer.config.versionDate;
   }
 }
 
