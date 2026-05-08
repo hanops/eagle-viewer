@@ -8,6 +8,7 @@ async function init() {
   var interactions = EagleViewer.modules.interactions;
 
   injectIcons();
+  interactions.loadLocalData();
   interactions.setViewMode(api.getPreferredViewMode(), true);
 
   var savedTheme = localStorage.getItem('eagle-viewer-theme') || 'light';

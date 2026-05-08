@@ -19,6 +19,7 @@ _items_by_folder: dict[str, list[ItemInfo]] = {}  # folder_id -> items
 _items_by_tag: dict[str, list[ItemInfo]] = {}
 _tag_summary: list[dict] = []
 _folder_counts: dict[str, int] = {}
+_last_load_stats: dict[str, Any] = {}
 _loaded = False
 _load_lock = threading.RLock()
 
@@ -163,32 +164,46 @@ def _normalize_item_folder_ids(raw_folders: Any) -> list[str]:
     return [str(raw_folders)]
 
 
-def _load_items() -> tuple[dict[str, ItemInfo], dict[str, list[ItemInfo]]]:
+def _load_items() -> tuple[dict[str, ItemInfo], dict[str, list[ItemInfo]], dict[str, int]]:
     images_dir = Path(VAULT_ROOT) / "images"
     by_id: dict[str, ItemInfo] = {}
     by_folder: dict[str, list[ItemInfo]] = {}
+    stats = {
+        "info_dirs": 0,
+        "loaded_items": 0,
+        "skipped_missing_metadata": 0,
+        "skipped_bad_metadata": 0,
+        "skipped_deleted": 0,
+        "skipped_missing_file": 0,
+    }
 
     if not images_dir.exists():
-        return by_id, by_folder
+        return by_id, by_folder, stats
 
     for subdir in images_dir.iterdir():
         if not subdir.is_dir() or not subdir.name.endswith(".info"):
             continue
+        stats["info_dirs"] += 1
         meta_path = subdir / "metadata.json"
         if not meta_path.exists():
+            stats["skipped_missing_metadata"] += 1
             continue
         try:
             with open(meta_path, "r", encoding="utf-8") as f:
                 meta = json.load(f)
         except (json.JSONDecodeError, OSError):
+            stats["skipped_bad_metadata"] += 1
             continue
         if not isinstance(meta, dict) or "id" not in meta:
+            stats["skipped_bad_metadata"] += 1
             continue
         if meta.get("isDeleted"):
+            stats["skipped_deleted"] += 1
             continue
 
         main_path, thumb_path = _find_main_file(subdir, meta)
         if not main_path:
+            stats["skipped_missing_file"] += 1
             continue
 
         raw_folders = meta.get("folders", [])
@@ -210,10 +225,11 @@ def _load_items() -> tuple[dict[str, ItemInfo], dict[str, list[ItemInfo]]]:
             thumbnail_path=thumb_path,
         )
         by_id[item.id] = item
+        stats["loaded_items"] += 1
         for fid in folder_ids:
             by_folder.setdefault(fid, []).append(item)
 
-    return by_id, by_folder
+    return by_id, by_folder, stats
 
 
 def _build_tag_index(items_by_id: dict[str, ItemInfo]) -> tuple[dict[str, list[ItemInfo]], list[dict]]:
@@ -342,15 +358,22 @@ def _compute_folder_counts(
 
 def load_vault() -> None:
     """Load vault from disk and populate global cache."""
-    global _folder_tree, _folder_by_id, _items_by_id, _items_by_folder, _items_by_tag, _tag_summary, _folder_counts, _loaded
+    global _folder_tree, _folder_by_id, _items_by_id, _items_by_folder, _items_by_tag, _tag_summary, _folder_counts, _last_load_stats, _loaded
+    started = time.time()
     lib = _load_library_metadata()
     folders_data = _normalize_folders_data(lib)
     folder_tree = _build_folder_tree(folders_data)
     folder_by_id: dict[str, FolderNode] = {}
     _collect_folder_by_id(folder_tree, folder_by_id)
-    items_by_id, items_by_folder = _load_items()
+    items_by_id, items_by_folder, load_stats = _load_items()
     items_by_tag, tag_summary = _build_tag_index(items_by_id)
     folder_counts = _compute_folder_counts(folder_tree, items_by_folder)
+    elapsed_ms = int((time.time() - started) * 1000)
+    cache_stats = {
+        "folders": len(folder_by_id),
+        "items": len(items_by_id),
+        "tags": len(items_by_tag),
+    }
 
     with _load_lock:
         _folder_tree = folder_tree
@@ -360,6 +383,13 @@ def load_vault() -> None:
         _items_by_tag = items_by_tag
         _tag_summary = tag_summary
         _folder_counts = folder_counts
+        _last_load_stats = {
+            **cache_stats,
+            **load_stats,
+            "loadDurationMs": elapsed_ms,
+            "loadedAt": int(time.time() * 1000),
+            "vaultRoot": str(VAULT_ROOT),
+        }
         _loaded = True
 
 
@@ -373,11 +403,28 @@ def ensure_loaded() -> None:
 
 def get_cache_stats() -> dict[str, int]:
     ensure_loaded()
-    return {
-        "folders": len(_folder_by_id),
-        "items": len(_items_by_id),
-        "tags": len(_items_by_tag),
-    }
+    return dict(_last_load_stats)
+
+
+def get_duplicate_groups(limit: int = 50) -> list[dict]:
+    ensure_loaded()
+    groups: dict[tuple[int, int, int, str], list[ItemInfo]] = {}
+    for item in _items_by_id.values():
+        key = (item.size or 0, item.width or 0, item.height or 0, (item.ext or "").lower())
+        if not key[0]:
+            continue
+        groups.setdefault(key, []).append(item)
+    out = []
+    for key, items in groups.items():
+        if len(items) < 2:
+            continue
+        out.append({
+            "key": {"size": key[0], "width": key[1], "height": key[2], "ext": key[3]},
+            "count": len(items),
+            "items": [item_to_dict(it, include_folder_paths=True) for it in items],
+        })
+    out.sort(key=lambda g: (-g["count"], -g["key"]["size"]))
+    return out[:max(1, min(limit, 200))]
 
 
 def get_folder_tree() -> list[FolderNode]:

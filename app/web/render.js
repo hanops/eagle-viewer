@@ -319,6 +319,8 @@ function openInspector(item) {
     actionsHtml += '<button type="button" class="primary" onclick="window._previewInspectorItem()">' + iconEye() + ' 预览</button>';
   }
   actionsHtml += '<a href="' + escapeHtml(fileUrlDownload) + '" download="' + escapeHtml(downloadName) + '">' + iconDownload() + ' 下载</a>';
+  actionsHtml += '<button type="button" class="btn-collection" data-list="favorite" data-id="' + escapeHtml(item.id) + '">收藏</button>';
+  actionsHtml += '<button type="button" class="btn-collection" data-list="later" data-id="' + escapeHtml(item.id) + '">待整理</button>';
   if (canCopyImage(item.ext)) {
     actionsHtml += '<button type="button" class="btn-copy" data-id="' + escapeHtml(item.id) + '">' + iconCopy() + ' 复制</button>';
   }
@@ -641,7 +643,7 @@ function renderItemsList(subfolders, items, container, emptyMsg) {
 }
 
 function renderLoadMoreStatus(container) {
-  if (state.currentView !== 'all' && state.currentView !== 'recent') return;
+  if (['all', 'recent', 'folder', 'tag', 'search'].indexOf(state.currentView) < 0) return;
   var existing = container.querySelector('.load-more-status');
   if (existing) existing.remove();
   var status = document.createElement('div');
@@ -770,6 +772,29 @@ function renderContent() {
   updateCheckboxesInView();
 }
 
+function renderDuplicates() {
+  var body = document.getElementById('contentBody');
+  document.getElementById('contentToolbar').style.display = 'flex';
+  updateContentTitle();
+  body.innerHTML = '';
+  if (!state.duplicateGroups.length) {
+    body.innerHTML = '<div class="empty-state">' + iconFolderOutline() + '<span>暂无疑似重复素材</span></div>';
+    return;
+  }
+  state.duplicateGroups.forEach(function(group, idx) {
+    var section = document.createElement('div');
+    section.className = 'duplicate-group';
+    var meta = group.key || {};
+    section.innerHTML = '<div class="duplicate-title">重复组 ' + (idx + 1) + ' · ' + group.count + ' 项 · ' + formatSize(meta.size || 0) + '</div>';
+    var masonry = document.createElement('div');
+    masonry.className = 'masonry compact-grid';
+    (group.items || []).forEach(function(item) { renderItemCard(item, masonry); });
+    section.appendChild(masonry);
+    body.appendChild(section);
+  });
+  updateCheckboxesInView();
+}
+
 function showEmptyState() {
   state.currentView = 'none';
   state.currentItems = [];
@@ -815,6 +840,25 @@ function clearPreviewStatus(overlay) {
   if (status) status.remove();
 }
 
+function addImagePreviewTools(overlay, img) {
+  var scale = 1;
+  var toolbar = document.createElement('div');
+  toolbar.className = 'preview-tools';
+  toolbar.innerHTML = '<button type="button">-</button><button type="button">适应</button><button type="button">100%</button><button type="button">+</button>';
+  var buttons = toolbar.querySelectorAll('button');
+  function applyScale() {
+    img.style.maxWidth = scale === 1 ? '100%' : 'none';
+    img.style.maxHeight = scale === 1 ? '100%' : 'none';
+    img.style.width = scale === 1 ? '' : (img.naturalWidth * scale) + 'px';
+    img.style.height = scale === 1 ? '' : (img.naturalHeight * scale) + 'px';
+  }
+  buttons[0].onclick = function(e) { e.stopPropagation(); scale = Math.max(0.2, scale - 0.2); applyScale(); };
+  buttons[1].onclick = function(e) { e.stopPropagation(); scale = 1; applyScale(); };
+  buttons[2].onclick = function(e) { e.stopPropagation(); scale = 1; img.style.maxWidth = 'none'; img.style.maxHeight = 'none'; img.style.width = img.naturalWidth + 'px'; img.style.height = img.naturalHeight + 'px'; };
+  buttons[3].onclick = function(e) { e.stopPropagation(); scale = Math.min(5, scale + 0.2); applyScale(); };
+  overlay.appendChild(toolbar);
+}
+
 async function previewItem(item, fileUrl) {
   var ext = (item.ext || '').toLowerCase();
   var isVideo = PREVIEW_VIDEO_EXTS.indexOf(ext) >= 0;
@@ -839,6 +883,7 @@ async function previewItem(item, fileUrl) {
     el.src = fileUrl;
     el.onload = function() { clearPreviewStatus(overlay); };
     el.onerror = function() { setPreviewStatus(overlay, '图片预览失败，请下载后查看'); };
+    addImagePreviewTools(overlay, el);
   } else if (isPdf) {
     overlay = createPreviewOverlay();
     setPreviewStatus(overlay, 'PDF 加载中…');
@@ -935,6 +980,7 @@ Object.assign(renderModule, {
   openInspector: openInspector,
   closeInspector: closeInspector,
   renderContent: renderContent,
+  renderDuplicates: renderDuplicates,
   showEmptyState: showEmptyState,
   previewItem: previewItem,
   hideHoverPreview: hideHoverPreview,

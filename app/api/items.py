@@ -93,9 +93,11 @@ def api_item_snippet(item_id: str, limit: int = 240):
         raise HTTPException(status_code=404, detail="File not found")
     char_limit = max(40, min(limit, 1000))
     try:
-        text = path.read_text(encoding="utf-8", errors="replace")
+        with path.open("rb") as f:
+            raw = f.read(8192)
     except OSError as exc:
         raise HTTPException(status_code=500, detail="Failed to read file") from exc
+    text = raw.decode("utf-8", errors="replace")
     normalized = " ".join(text.split())
     snippet = normalized[:char_limit]
     if len(normalized) > char_limit:

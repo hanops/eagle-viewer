@@ -1,0 +1,15 @@
+[project]
+name = "eagle-viewer"
+version = "1.5.0"
+description = "Read-only viewer for Eagle libraries"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi==0.115.0",
+  "uvicorn[standard]==0.32.0",
+  "python-multipart==0.0.12",
+  "itsdangerous==2.2.0",
+]
+
+[tool.uv]
+package = false

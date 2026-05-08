@@ -3,8 +3,8 @@
 var EagleViewer = window.EagleViewer = window.EagleViewer || {};
 
 var API = '';
-var VERSION = '1.4.0';
-var VERSION_DATE = '2026-04-13';
+var VERSION = '1.5.0';
+var VERSION_DATE = '2026-05-08';
 var PREVIEW_IMAGE_EXTS = ['jpg','jpeg','png','gif','webp','svg','bmp'];
 var PREVIEW_VIDEO_EXTS = ['mp4','webm','mov','m4v'];
 var PREVIEW_DOCUMENT_EXTS = ['pdf','txt'];
@@ -86,6 +86,18 @@ function iconFolderOutline() {
 function iconCollection() {
   return '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="9" height="9" rx="1.5"/><path d="M5 2.5h7.5A1.5 1.5 0 0114 4v7.5"/></svg>';
 }
+function iconSliders() {
+  return '<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 5h12M3 13h12M6 3v4M12 11v4"/></svg>';
+}
+function iconBookmark() {
+  return '<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 2.5h8a1 1 0 011 1v12l-5-3-5 3v-12a1 1 0 011-1z"/></svg>';
+}
+function iconInfo() {
+  return '<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="9" r="6.5"/><path d="M9 8.5v4M9 5.5h.01"/></svg>';
+}
+function iconCommand() {
+  return '<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6H4.5a2 2 0 110-4A2 2 0 016 4.5V6zm0 0v6m0-6h6m-6 6H4.5a2 2 0 100 4A2 2 0 006 13.5V12zm6-6h1.5a2 2 0 100-4A2 2 0 0012 4.5V6zm0 0v6m0 0h1.5a2 2 0 110 4A2 2 0 0112 13.5V12z"/></svg>';
+}
 
 // ===== Inject icons into DOM =====
 function injectIcons() {
@@ -96,6 +108,11 @@ function injectIcons() {
   el = document.getElementById('viewList'); if (el) el.innerHTML = iconList();
   el = document.getElementById('reloadLibraryBtn'); if (el) el.innerHTML = iconRefresh();
   el = document.getElementById('themeToggle'); if (el) el.innerHTML = iconSun();
+  el = document.getElementById('filterPanelBtn'); if (el) el.innerHTML = iconSliders();
+  el = document.getElementById('savedViewsBtn'); if (el) el.innerHTML = iconBookmark();
+  el = document.getElementById('statsBtn'); if (el) el.innerHTML = iconInfo();
+  el = document.getElementById('duplicatesBtn'); if (el) el.innerHTML = iconCollection();
+  el = document.getElementById('commandBtn'); if (el) el.innerHTML = iconCommand();
   el = document.getElementById('inspectorPrev'); if (el) el.innerHTML = iconChevronLeft();
   el = document.getElementById('inspectorNext'); if (el) el.innerHTML = iconChevronRightSm();
   el = document.getElementById('exportListBtn'); if (el) el.innerHTML = iconExport();
@@ -137,6 +154,12 @@ var reloadInFlight = false;
 var incrementalOffset = 0;
 var incrementalHasMore = false;
 var incrementalLoading = false;
+var activeListRequest = 0;
+var advancedFilters = {};
+var savedViews = [];
+var collectionIds = { favorite: [], later: [], items: {} };
+var indexStats = null;
+var duplicateGroups = [];
 var INCREMENTAL_PAGE_SIZE = 120;
 
 EagleViewer.config = {
@@ -175,14 +198,28 @@ Object.defineProperties(EagleViewer.state, {
   reloadInFlight: { get: function() { return reloadInFlight; }, set: function(v) { reloadInFlight = v; }, enumerable: true },
   incrementalOffset: { get: function() { return incrementalOffset; }, set: function(v) { incrementalOffset = v; }, enumerable: true },
   incrementalHasMore: { get: function() { return incrementalHasMore; }, set: function(v) { incrementalHasMore = v; }, enumerable: true },
-  incrementalLoading: { get: function() { return incrementalLoading; }, set: function(v) { incrementalLoading = v; }, enumerable: true }
+  incrementalLoading: { get: function() { return incrementalLoading; }, set: function(v) { incrementalLoading = v; }, enumerable: true },
+  activeListRequest: { get: function() { return activeListRequest; }, set: function(v) { activeListRequest = v; }, enumerable: true },
+  advancedFilters: { get: function() { return advancedFilters; }, set: function(v) { advancedFilters = v || {}; }, enumerable: true },
+  savedViews: { get: function() { return savedViews; }, set: function(v) { savedViews = v || []; }, enumerable: true },
+  collectionIds: { get: function() { return collectionIds; }, set: function(v) { collectionIds = v || { favorite: [], later: [] }; }, enumerable: true },
+  indexStats: { get: function() { return indexStats; }, set: function(v) { indexStats = v; }, enumerable: true },
+  duplicateGroups: { get: function() { return duplicateGroups; }, set: function(v) { duplicateGroups = v || []; }, enumerable: true }
 });
 EagleViewer.getState = function() {
   return EagleViewer.state;
 };
 
 function buildListQuery() {
-  return 'sort=' + encodeURIComponent(listSort) + '&dir=' + encodeURIComponent(listDir) + '&type=' + encodeURIComponent(listType);
+  var params = new URLSearchParams();
+  params.set('sort', listSort);
+  params.set('dir', listDir);
+  params.set('type', listType);
+  Object.keys(advancedFilters || {}).forEach(function(key) {
+    var val = advancedFilters[key];
+    if (val !== null && val !== undefined && val !== '') params.set(key, val);
+  });
+  return params.toString();
 }
 
 function updateUrlFromState() {

@@ -48,9 +48,87 @@
       <button type="button" class="tb-btn" id="viewGrid" title="网格视图"></button>
       <button type="button" class="tb-btn" id="viewList" title="列表视图"></button>
       <button type="button" class="tb-btn" id="reloadLibraryBtn" title="刷新资源库"></button>
+      <button type="button" class="tb-btn" id="filterPanelBtn" title="高级筛选"></button>
+      <button type="button" class="tb-btn" id="savedViewsBtn" title="保存视图"></button>
+      <button type="button" class="tb-btn" id="statsBtn" title="索引状态"></button>
+      <button type="button" class="tb-btn" id="duplicatesBtn" title="疑似重复"></button>
+      <button type="button" class="tb-btn" id="commandBtn" title="命令面板"></button>
       <button type="button" class="tb-btn" id="exportListBtn" title="导出清单（左键CSV/右键JSON）"></button>
       <button type="button" class="tb-btn" id="themeToggle" title="切换主题"></button>
       <a href="/logout" class="tb-link">退出</a>
+    </div>
+  </div>
+
+  <div class="utility-panel" id="advancedPanel">
+    <div class="utility-panel-head">
+      <strong>高级筛选</strong>
+      <button type="button" data-close-panel="advancedPanel">关闭</button>
+    </div>
+    <div class="filter-grid">
+      <label>最小宽度 <input type="number" id="filterMinWidth" min="0" placeholder="px" /></label>
+      <label>最小高度 <input type="number" id="filterMinHeight" min="0" placeholder="px" /></label>
+      <label>最小大小 <input type="number" id="filterMinSize" min="0" placeholder="MB" /></label>
+      <label>最大大小 <input type="number" id="filterMaxSize" min="0" placeholder="MB" /></label>
+      <label>形状
+        <select id="filterShape">
+          <option value="">不限</option>
+          <option value="landscape">横图</option>
+          <option value="portrait">竖图</option>
+          <option value="square">方图</option>
+        </select>
+      </label>
+      <label>标签
+        <select id="filterTagState">
+          <option value="">不限</option>
+          <option value="tagged">有标签</option>
+          <option value="untagged">无标签</option>
+        </select>
+      </label>
+      <label>备注
+        <select id="filterAnnotationState">
+          <option value="">不限</option>
+          <option value="annotated">有备注</option>
+          <option value="unannotated">无备注</option>
+        </select>
+      </label>
+      <label>来源
+        <select id="filterSourceState">
+          <option value="">不限</option>
+          <option value="sourced">有来源</option>
+          <option value="unsourced">无来源</option>
+        </select>
+      </label>
+    </div>
+    <div class="panel-actions">
+      <button type="button" id="applyFiltersBtn" class="primary">应用筛选</button>
+      <button type="button" id="clearFiltersBtn">清空筛选</button>
+    </div>
+  </div>
+
+  <div class="utility-panel" id="savedViewsPanel">
+    <div class="utility-panel-head">
+      <strong>保存视图</strong>
+      <button type="button" data-close-panel="savedViewsPanel">关闭</button>
+    </div>
+    <div class="save-view-row">
+      <input type="text" id="savedViewName" placeholder="视图名称" />
+      <button type="button" id="saveCurrentViewBtn" class="primary">保存当前</button>
+    </div>
+    <div class="saved-view-list" id="savedViewList"></div>
+  </div>
+
+  <div class="utility-panel" id="statsPanel">
+    <div class="utility-panel-head">
+      <strong>索引状态</strong>
+      <button type="button" data-close-panel="statsPanel">关闭</button>
+    </div>
+    <div class="stats-grid" id="statsGrid">加载中…</div>
+  </div>
+
+  <div class="command-overlay" id="commandOverlay">
+    <div class="command-box">
+      <input type="text" id="commandInput" placeholder="输入命令、文件夹、标签或视图" />
+      <div class="command-list" id="commandList"></div>
     </div>
   </div>
 

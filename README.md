@@ -2,20 +2,27 @@
 
 只读查看 NAS 上同步的 Eagle 资源库：在浏览器中按文件夹浏览、预览、下载素材。无需写权限，不修改库内任何文件。
 
-**版本**：v1.4.0（2026-04-13）
+**版本**：v1.5.0（2026-05-08）
 
 ## 功能
 
 - **浏览**：解析 Eagle 库的文件夹树（`metadata.json`），按文件夹展示素材（各 `*.info/metadata.json`）
 - **视图**：全部文件、最近 7 天 / 30 天、按文件夹、按标签、搜索
-- **增量加载**：`全部文件` 与 `最近` 视图按批次自动续载，滚动到底部时继续加载更多，避免一次性渲染全量结果
+- **增量加载**：全部文件、最近、文件夹、标签与搜索视图按批次自动续载，滚动到底部时继续加载更多，避免一次性渲染全量结果
 - **瀑布流布局**：素材按原始宽高比展示，不裁切缩略图；支持网格（瀑布流）与列表两种视图切换；当结果主要由无缩略图文件构成时，自动切换为左对齐的固定宽度紧凑网格，避免空列、异常放大或纵向错位
 - **Inspector 面板**：点击素材右侧滑出详情面板，展示大图预览、文件名、格式、尺寸、大小、时间、文件夹路径、标签、来源 URL、备注等
 - **左侧导航**：文件夹树可展开/折叠；导航栏宽度可拖拽调节；文件夹右侧显示含子文件夹在内的总文件数；整栏支持隐藏/展开，状态存本地
 - **毛玻璃侧边栏**：现代 frosted glass 视觉风格
 - **排序与筛选**：按修改时间 / 创建时间 / 名称 / 大小 / 格式排序；按类型筛选（图片 / 视频 / 文档 / 音频 / 其他）
+- **高级筛选**：支持按最小尺寸、文件大小范围、横图 / 竖图 / 方图、有无标签、有无备注、有无来源 URL 组合筛选
+- **保存视图**：可将当前视图、排序、类型与高级筛选保存为本地快捷入口
+- **索引状态**：查看最近一次扫描的文件数、文件夹数、标签数、扫描耗时与跳过统计
+- **本地清单**：可将素材加入收藏或待整理清单；清单仅存浏览器本地，不写入 Eagle 库
+- **命令面板**：支持 `Cmd/Ctrl+K` 快速打开视图、标签、文件夹、保存视图与工具入口
+- **疑似重复**：按文件大小、尺寸与格式找出可能重复的素材组
 - **悬停预览**：鼠标悬停缩略图 300ms 后显示大图预览；图片悬停优先使用缩略图链路，`pdf` 支持悬停预览
 - **预览与下载**：图片 / 视频预览；单文件下载为原文件名；多选后「打包下载」为 ZIP（按文件夹名/文件名命名，重名加序号）
+- **图片预览增强**：图片预览支持放大、缩小、适应窗口与原始尺寸
 - **导出**：当前列表导出为 CSV（左键）或 JSON（右键）；多选后可单独导出已选项
 - **多选模式**：多选时自动切换到批量操作语义，显示已选数量、总大小与类型构成；支持反选，避免与单文件详情混淆
 - **详情浏览**：Inspector 支持上一项 / 下一项切换，键盘可用 `← / →`
@@ -50,11 +57,9 @@ docker-compose up -d --build
 
 ```bash
 cd eagle-viewer
-python -m venv .venv
-source .venv/bin/activate   # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
+uv sync
 export EAGLE_VAULT_ROOT=/path/to/your/Design.library
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 ## 前端结构
@@ -89,8 +94,8 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 当前前端重构后的基础验证方式：
 
-- `python -m compileall app`
-- `node --check app/web/core.js app/web/render.js app/web/api.js app/web/interactions.js app/web/bootstrap.js`
+- `uv run python -m compileall app`
+- `node --check app/web/core.js app/web/render.js app/web/api.js app/web/interactions.js app/web/bootstrap.js app/web/sw.js`
 - 在虚拟环境内做一次关键模块导入检查：`app.main`、`app.api.folders`、`app.api.items`、`app.vault.parser`
 - 发版前可按 [docs/regression-checklist.md](/Users/guoyin.han/Projects/eagle-viewer/docs/regression-checklist.md) 做人工回归
 - `v1.4.0` 的一次真实库 API 回归结果见 [docs/regression-results-v1.4.0.md](/Users/guoyin.han/Projects/eagle-viewer/docs/regression-results-v1.4.0.md)
@@ -108,10 +113,12 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 - `GET /api/tree` — 文件夹树（每个节点含 `count`：该文件夹及所有子文件夹内文件总数）
 - `GET /api/items` — 全部文件（支持 `sort`, `dir`, `type`, `offset`, `limit`）
 - `GET /api/recent?days=7|30` — 最近 N 天素材（支持 `sort`, `dir`, `type`, `offset`, `limit`）
-- `GET /api/folders/{folder_id}/items` — 某文件夹下子文件夹与素材（支持 `sort`, `dir`, `type`）
+- `GET /api/folders/{folder_id}/items` — 某文件夹下子文件夹与素材（支持 `sort`, `dir`, `type`, `offset`, `limit`）
 - `GET /api/tags` — 标签及数量
-- `GET /api/tags/{tag}/items` — 某标签下素材（支持 sort/type）
-- `GET /api/search?q=...` — 搜索（支持 sort/type）
+- `GET /api/library/stats` — 最近一次索引状态
+- `GET /api/duplicates?limit=50` — 疑似重复素材组
+- `GET /api/tags/{tag}/items` — 某标签下素材（支持 `sort`, `dir`, `type`, `offset`, `limit`）
+- `GET /api/search?q=...` — 搜索（支持 `sort`, `dir`, `type`, `offset`, `limit`）
 - `GET /api/items/{item_id}` — 素材元数据
 - `GET /api/items/{item_id}/snippet` — 文本文件摘要（目前支持 `txt`）
 - `GET /api/items/{item_id}/thumbnail` — 缩略图（无则返回占位图）
@@ -120,7 +127,7 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 - `POST /api/library/reload` — 重新扫描资源库并刷新内存缓存
 - `POST /api/items/batch-download` — 批量打包为 ZIP（Body: `["id1","id2",...]`）
 
-列表类接口返回：`items`、`total`，以及各端点自有字段（如 `subfolders`、`tag`、`query`、`days`）；`/api/items` 与 `/api/recent` 额外返回 `offset`、`limit`、`nextOffset`、`hasMore`，供前端增量加载使用。
+列表类接口返回：`items`、`total`、`offset`、`limit`、`nextOffset`、`hasMore`，以及各端点自有字段（如 `subfolders`、`tag`、`query`、`days`），供前端增量加载使用。
 
 ## 库结构要求
 
@@ -132,6 +139,13 @@ Eagle 库目录应包含：
 与 Eagle 官方 Mac/Windows 端使用的库格式一致，直接使用同步到 NAS 的库路径即可。
 
 ## 更新记录
+
+- **1.5.0**（2026-05-08）
+  - 文件夹、标签与搜索视图补齐增量加载，避免大结果集一次性返回和渲染。
+  - 列表加载加入请求序号保护，快速切换视图或搜索时会忽略过期响应。
+  - 文本摘要接口改为只读取文件开头片段，减少大文本文件预览摘要的 I/O 成本。
+  - 新增高级筛选、保存视图、索引状态、收藏 / 待整理清单、命令面板、疑似重复检测与图片预览缩放。
+  - 本地开发依赖管理迁移到 `uv`，新增 `pyproject.toml` 与 `uv.lock`；`requirements.txt` 暂保留给 Docker 构建流程。
 
 - **1.4.0**（2026-04-13）
   - 新增手动刷新资源库入口，无需重启服务即可重建索引。

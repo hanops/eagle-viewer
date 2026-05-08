@@ -23,6 +23,15 @@ async function fetchTags() {
   return state.tagData;
 }
 
+async function fetchStats() {
+  var r = await fetch(API + '/api/library/stats');
+  if (handleAuthResponse(r)) return null;
+  if (!r.ok) return null;
+  var data = await r.json();
+  state.indexStats = data.stats || null;
+  return state.indexStats;
+}
+
 async function reloadLibrary() {
   if (state.reloadInFlight) return;
   state.reloadInFlight = true;
@@ -47,37 +56,14 @@ async function reloadLibrary() {
 }
 
 
-// ===== Data loading =====
-async function loadListAndRender(apiPath, subfolders, emptyMsg, getItemsFromData) {
-  var body = document.getElementById('contentBody');
-  body.innerHTML = '<div class="loading-spinner">加载中…</div>';
-  document.getElementById('contentToolbar').style.display = 'flex';
-  try {
-    var r = await fetch(API + apiPath);
-    if (handleAuthResponse(r)) return;
-    if (!r.ok) {
-      body.innerHTML = '<div class="empty-state">' + iconFolderOutline() + '<span>加载失败</span></div>';
-      return;
-    }
-    var data = await r.json();
-    var items = getItemsFromData(data);
-    state.currentTotal = data.total != null ? data.total : items.length;
-    if (subfolders !== null && subfolders !== undefined) state.currentSubfolders = subfolders;
-    state.currentItems = items;
-    state.currentEmptyMsg = emptyMsg;
-    render.renderContent();
-    updateUrlFromState();
-  } catch (err) {
-    body.innerHTML = '<div class="empty-state">' + iconFolderOutline() + '<span>加载失败</span></div>';
-  }
-}
-
 function refreshCurrentView() {
   if (state.currentView === 'all') apiModule.loadAllItems(true);
   else if (state.currentView === 'folder' && state.currentFolderId) apiModule.loadFolderItems(state.currentFolderId);
   else if (state.currentView === 'tag' && state.currentTagName) apiModule.loadTagItems(state.currentTagName);
   else if (state.currentView === 'recent') apiModule.loadRecentItems(state.recentDays);
   else if (state.currentView === 'search') apiModule.doSearch();
+  else if (state.currentView === 'duplicates') apiModule.loadDuplicates();
+  else if (state.currentView === 'collection') render.renderContent();
   else apiModule.loadAllItems(true);
 }
 
@@ -100,14 +86,17 @@ function getPreferredViewMode() {
 async function loadIncrementalView(options) {
   var reset = !!options.reset;
   if (state.incrementalLoading && !reset) return;
+  var requestId = reset ? state.activeListRequest + 1 : state.activeListRequest;
+  if (reset) state.activeListRequest = requestId;
   if (reset) {
     state.incrementalOffset = 0;
     state.incrementalHasMore = false;
     state.incrementalLoading = false;
   }
   state.currentView = options.view;
-  state.currentFolderId = null;
-  state.currentTagName = null;
+  state.currentFolderId = options.folderId || null;
+  state.currentTagName = options.tagName || null;
+  if (options.searchQuery !== undefined) state.searchQuery = options.searchQuery;
   if (options.days) state.recentDays = options.days;
   closeMobileSidebarIfNeeded();
   state.incrementalLoading = true;
@@ -121,8 +110,9 @@ async function loadIncrementalView(options) {
     if (handleAuthResponse(r)) return;
     if (!r.ok) throw new Error('加载失败');
     var data = await r.json();
+    if (requestId !== state.activeListRequest) return;
     state.currentTitle = options.title;
-    state.currentSubfolders = [];
+    if (reset) state.currentSubfolders = options.getSubfolders ? options.getSubfolders(data) : [];
     state.currentEmptyMsg = options.emptyMsg;
     state.currentTotal = data.total != null ? data.total : 0;
     state.incrementalOffset = data.nextOffset != null ? data.nextOffset : ((state.incrementalOffset || 0) + ((data.items || []).length));
@@ -131,13 +121,14 @@ async function loadIncrementalView(options) {
     state.currentItems = reset ? newItems : state.currentItems.concat(newItems);
     state.incrementalLoading = false;
     render.updateContentTitle();
-    if (!reset && state.viewMode === 'grid' && (options.view === 'all' || options.view === 'recent') && render.appendItemsToGrid(newItems)) {
+    if (!reset && state.viewMode === 'grid' && render.appendItemsToGrid(newItems)) {
       updateUrlFromState();
       return;
     }
     render.renderContent();
     updateUrlFromState();
   } catch (err) {
+    if (requestId !== state.activeListRequest) return;
     state.incrementalLoading = false;
     if (reset) {
       document.getElementById('contentBody').innerHTML = '<div class="empty-state">' + iconFolderOutline() + '<span>加载失败</span></div>';
@@ -156,12 +147,15 @@ async function loadAllItems(reset) {
 }
 
 function maybeLoadMoreIncrementalView() {
-  if ((state.currentView !== 'all' && state.currentView !== 'recent') || !state.incrementalHasMore || state.incrementalLoading) return;
+  if (['all', 'recent', 'folder', 'tag', 'search'].indexOf(state.currentView) < 0 || !state.incrementalHasMore || state.incrementalLoading) return;
   var body = document.getElementById('contentBody');
   if (!body) return;
   if (body.scrollHeight - body.scrollTop - body.clientHeight < 600) {
     if (state.currentView === 'all') apiModule.loadAllItems(false);
     else if (state.currentView === 'recent') apiModule.loadRecentItems(state.recentDays, false);
+    else if (state.currentView === 'folder' && state.currentFolderId) apiModule.loadFolderItems(state.currentFolderId, false);
+    else if (state.currentView === 'tag' && state.currentTagName) apiModule.loadTagItems(state.currentTagName, false);
+    else if (state.currentView === 'search') apiModule.doSearch(false);
   }
 }
 
@@ -178,31 +172,34 @@ async function loadRecentItems(days, reset) {
   });
 }
 
-async function loadTagItems(tagName) {
-  state.currentView = 'tag';
-  state.currentTagName = tagName;
-  state.currentFolderId = null;
-  closeMobileSidebarIfNeeded();
-  await loadListAndRender('/api/tags/' + encodeURIComponent(tagName) + '/items?' + buildListQuery(), [], '该标签下暂无素材', function(data) {
-    state.currentTitle = '标签「' + tagName + '」';
-    return data.items || [];
+async function loadTagItems(tagName, reset) {
+  if (reset !== false) reset = true;
+  await loadIncrementalView({
+    view: 'tag',
+    apiPath: '/api/tags/' + encodeURIComponent(tagName) + '/items',
+    title: '标签「' + tagName + '」',
+    emptyMsg: '该标签下暂无素材',
+    reset: reset,
+    tagName: tagName
   });
 }
 
-async function loadFolderItems(folderId) {
-  state.currentView = 'folder';
-  state.currentFolderId = folderId;
-  state.currentTagName = null;
+async function loadFolderItems(folderId, reset) {
+  if (reset !== false) reset = true;
   expandFolderPathTo(folderId, state.treeData);
-  closeMobileSidebarIfNeeded();
-  await loadListAndRender('/api/folders/' + encodeURIComponent(folderId) + '/items?' + buildListQuery(), null, '此文件夹暂无素材', function(data) {
-    state.currentSubfolders = data.subfolders || [];
-    state.currentTitle = '';
-    return data.items || [];
+  await loadIncrementalView({
+    view: 'folder',
+    apiPath: '/api/folders/' + encodeURIComponent(folderId) + '/items',
+    title: '',
+    emptyMsg: '此文件夹暂无素材',
+    reset: reset,
+    folderId: folderId,
+    getSubfolders: function(data) { return data.subfolders || []; }
   });
 }
 
-async function doSearch() {
+async function doSearch(reset) {
+  if (reset !== false) reset = true;
   var q = document.getElementById('searchInput').value.trim();
   state.searchQuery = q;
   if (!q) {
@@ -247,16 +244,46 @@ async function doSearch() {
       }
     }
   }
-  state.currentView = 'search';
-  await loadListAndRender('/api/search?q=' + encodeURIComponent(q) + '&' + buildListQuery(), [], '无匹配结果', function(data) {
-    state.currentTitle = '搜索「' + q + '」';
-    return data.items || [];
+  await loadIncrementalView({
+    view: 'search',
+    apiPath: '/api/search?q=' + encodeURIComponent(q),
+    title: '搜索「' + q + '」',
+    emptyMsg: '无匹配结果',
+    reset: reset,
+    searchQuery: q
   });
+}
+
+async function loadDuplicates() {
+  state.currentView = 'duplicates';
+  state.currentFolderId = null;
+  state.currentTagName = null;
+  closeMobileSidebarIfNeeded();
+  var body = document.getElementById('contentBody');
+  body.innerHTML = '<div class="loading-spinner">加载中…</div>';
+  document.getElementById('contentToolbar').style.display = 'flex';
+  try {
+    var r = await fetch(API + '/api/duplicates?limit=80');
+    if (handleAuthResponse(r)) return;
+    if (!r.ok) throw new Error('加载失败');
+    var data = await r.json();
+    state.duplicateGroups = data.groups || [];
+    state.currentSubfolders = [];
+    state.currentItems = [];
+    state.currentTotal = state.duplicateGroups.reduce(function(sum, group) { return sum + (group.items || []).length; }, 0);
+    state.currentTitle = '疑似重复 · ' + state.duplicateGroups.length + ' 组';
+    state.currentEmptyMsg = '暂无疑似重复素材';
+    render.renderDuplicates();
+    updateUrlFromState();
+  } catch (err) {
+    body.innerHTML = '<div class="empty-state">' + iconFolderOutline() + '<span>加载失败</span></div>';
+  }
 }
 
 Object.assign(apiModule, {
   fetchTree: fetchTree,
   fetchTags: fetchTags,
+  fetchStats: fetchStats,
   reloadLibrary: reloadLibrary,
   refreshCurrentView: refreshCurrentView,
   getPreferredViewMode: getPreferredViewMode,
@@ -265,5 +292,6 @@ Object.assign(apiModule, {
   loadTagItems: loadTagItems,
   loadFolderItems: loadFolderItems,
   doSearch: doSearch,
+  loadDuplicates: loadDuplicates,
   maybeLoadMoreIncrementalView: maybeLoadMoreIncrementalView
 });

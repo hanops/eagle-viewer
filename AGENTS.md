@@ -16,12 +16,11 @@ There is no dedicated automated test directory yet. Treat `docs/regression-check
 
 ## Build, Test, and Development Commands
 
-- `source ~/Envs/eagle-viewer/bin/activate`: activate the expected local virtualenv.
-- `pip install -r requirements.txt`: install backend dependencies.
+- `uv sync`: create/update the project-local `.venv` from `pyproject.toml` and `uv.lock`.
 - `export EAGLE_VAULT_ROOT=/path/to/Design.library`: point the app at an Eagle library.
-- `uvicorn app.main:app --reload --host 0.0.0.0 --port 8000`: run locally.
-- `python -m compileall app`: quick backend syntax check.
-- `node --check app/web/core.js app/web/render.js app/web/api.js app/web/interactions.js app/web/bootstrap.js`: quick frontend syntax check.
+- `uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000`: run locally.
+- `uv run python -m compileall app`: quick backend syntax check.
+- `node --check app/web/core.js app/web/render.js app/web/api.js app/web/interactions.js app/web/bootstrap.js app/web/sw.js`: quick frontend syntax check.
 
 ## Coding Style & Naming Conventions
 
@@ -33,7 +32,7 @@ There is no dedicated automated test directory yet. Treat `docs/regression-check
 
 ## Testing Guidelines
 
-- Run `python -m compileall app` and the `node --check ...` command before finishing changes.
+- Run `uv run python -m compileall app` and the `node --check ...` command before finishing changes.
 - For UI changes, walk the relevant paths in `docs/regression-checklist.md`.
 - If you add a bug fix, include the affected user flow in your manual verification notes.
 

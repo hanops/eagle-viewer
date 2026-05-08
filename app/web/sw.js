@@ -1,4 +1,4 @@
-const CACHE_NAME = 'eagle-viewer-v1.4';
+const CACHE_NAME = 'eagle-viewer-v1.5';
 const THUMBNAIL_CACHE = 'eagle-viewer-thumbs-v1';
 const STATIC_URLS = [
   '/',

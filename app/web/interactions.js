@@ -36,7 +36,10 @@ function exportRows(rows, format, filenameBase) {
 }
 
 function exportList(format) {
-  exportRows(buildExportRows(state.currentItems), format, 'eagle-list');
+  var items = state.currentView === 'duplicates'
+    ? state.duplicateGroups.reduce(function(out, group) { return out.concat(group.items || []); }, [])
+    : state.currentItems;
+  exportRows(buildExportRows(items), format, 'eagle-list');
 }
 
 function exportSelected(format) {
@@ -135,6 +138,224 @@ function setTheme(theme) {
   try { localStorage.setItem('eagle-viewer-theme', theme); } catch (e) {}
 }
 
+// ===== Local app data =====
+function loadLocalData() {
+  try { state.savedViews = JSON.parse(localStorage.getItem('eagle-viewer-saved-views') || '[]'); } catch (e) { state.savedViews = []; }
+  try { state.collectionIds = JSON.parse(localStorage.getItem('eagle-viewer-collections') || '{"favorite":[],"later":[]}'); } catch (e2) { state.collectionIds = { favorite: [], later: [] }; }
+  if (!state.collectionIds.favorite) state.collectionIds.favorite = [];
+  if (!state.collectionIds.later) state.collectionIds.later = [];
+  if (!state.collectionIds.items) state.collectionIds.items = {};
+}
+
+function saveLocalData() {
+  try { localStorage.setItem('eagle-viewer-saved-views', JSON.stringify(state.savedViews)); } catch (e) {}
+  try { localStorage.setItem('eagle-viewer-collections', JSON.stringify(state.collectionIds)); } catch (e2) {}
+}
+
+function openPanel(id) {
+  document.querySelectorAll('.utility-panel.open').forEach(function(panel) {
+    if (panel.id !== id) panel.classList.remove('open');
+  });
+  var panel = document.getElementById(id);
+  if (panel) panel.classList.toggle('open');
+}
+
+function closePanel(id) {
+  var panel = document.getElementById(id);
+  if (panel) panel.classList.remove('open');
+}
+
+function readFiltersFromForm() {
+  var mb = 1024 * 1024;
+  var out = {};
+  function num(id) {
+    var val = parseFloat((document.getElementById(id) || {}).value || '');
+    return isNaN(val) ? null : val;
+  }
+  var minWidth = num('filterMinWidth');
+  var minHeight = num('filterMinHeight');
+  var minSize = num('filterMinSize');
+  var maxSize = num('filterMaxSize');
+  if (minWidth !== null) out.min_width = Math.round(minWidth);
+  if (minHeight !== null) out.min_height = Math.round(minHeight);
+  if (minSize !== null) out.min_size = Math.round(minSize * mb);
+  if (maxSize !== null) out.max_size = Math.round(maxSize * mb);
+  ['Shape', 'TagState', 'AnnotationState', 'SourceState'].forEach(function(name) {
+    var el = document.getElementById('filter' + name);
+    if (!el || !el.value) return;
+    var key = name === 'Shape' ? 'shape' : name === 'TagState' ? 'tag_state' : name === 'AnnotationState' ? 'annotation_state' : 'source_state';
+    out[key] = el.value;
+  });
+  return out;
+}
+
+function syncFilterForm() {
+  var f = state.advancedFilters || {};
+  function setVal(id, val) {
+    var el = document.getElementById(id);
+    if (el) el.value = val || '';
+  }
+  setVal('filterMinWidth', f.min_width);
+  setVal('filterMinHeight', f.min_height);
+  setVal('filterMinSize', f.min_size ? Math.round(f.min_size / 1024 / 1024) : '');
+  setVal('filterMaxSize', f.max_size ? Math.round(f.max_size / 1024 / 1024) : '');
+  setVal('filterShape', f.shape);
+  setVal('filterTagState', f.tag_state);
+  setVal('filterAnnotationState', f.annotation_state);
+  setVal('filterSourceState', f.source_state);
+}
+
+function renderSavedViews() {
+  var list = document.getElementById('savedViewList');
+  if (!list) return;
+  list.innerHTML = '';
+  if (!state.savedViews.length) {
+    list.innerHTML = '<span class="stat-pill">暂无保存视图</span>';
+    return;
+  }
+  state.savedViews.forEach(function(view, idx) {
+    var pill = document.createElement('span');
+    pill.className = 'saved-view-pill';
+    pill.innerHTML = '<span>' + escapeHtml(view.name) + '</span><button type="button">打开</button><button type="button">删除</button>';
+    pill.querySelectorAll('button')[0].onclick = function() { applySavedView(view); };
+    pill.querySelectorAll('button')[1].onclick = function() {
+      state.savedViews.splice(idx, 1);
+      saveLocalData();
+      renderSavedViews();
+    };
+    list.appendChild(pill);
+  });
+}
+
+function captureCurrentView(name) {
+  return {
+    name: name,
+    view: state.currentView,
+    folderId: state.currentFolderId,
+    tagName: state.currentTagName,
+    recentDays: state.recentDays,
+    searchQuery: state.searchQuery,
+    sort: state.listSort,
+    dir: state.listDir,
+    type: state.listType,
+    filters: state.advancedFilters || {}
+  };
+}
+
+function applySavedView(view) {
+  state.listSort = view.sort || 'mtime';
+  state.listDir = view.dir || 'desc';
+  state.listType = view.type || 'all';
+  state.advancedFilters = view.filters || {};
+  syncToolbarSelects();
+  syncFilterForm();
+  if (view.view === 'folder' && view.folderId) api.loadFolderItems(view.folderId);
+  else if (view.view === 'tag' && view.tagName) api.loadTagItems(view.tagName);
+  else if (view.view === 'recent') api.loadRecentItems(view.recentDays || 7);
+  else if (view.view === 'search') {
+    document.getElementById('searchInput').value = view.searchQuery || '';
+    api.doSearch();
+  } else api.loadAllItems(true);
+}
+
+function renderStatsPanel(stats) {
+  var grid = document.getElementById('statsGrid');
+  if (!grid) return;
+  if (!stats) {
+    grid.textContent = '暂无索引状态';
+    return;
+  }
+  var parts = [
+    ['文件', stats.items],
+    ['文件夹', stats.folders],
+    ['标签', stats.tags],
+    ['扫描耗时', (stats.loadDurationMs || 0) + ' ms'],
+    ['目录', stats.info_dirs],
+    ['跳过', (stats.skipped_missing_metadata || 0) + (stats.skipped_bad_metadata || 0) + (stats.skipped_deleted || 0) + (stats.skipped_missing_file || 0)]
+  ];
+  grid.innerHTML = parts.map(function(p) { return '<span class="stat-pill"><strong>' + escapeHtml(p[0]) + '</strong> ' + escapeHtml(String(p[1] == null ? '-' : p[1])) + '</span>'; }).join('');
+}
+
+function toggleCollection(listName, id) {
+  var list = state.collectionIds[listName] || [];
+  var idx = list.indexOf(id);
+  if (idx >= 0) list.splice(idx, 1);
+  else {
+    list.push(id);
+    var item = state.currentItems.find(function(it) { return it.id === id; }) || state.inspectorItem;
+    if (item && item.id === id) state.collectionIds.items[id] = item;
+  }
+  state.collectionIds[listName] = list;
+  saveLocalData();
+}
+
+function showCollection(listName) {
+  var ids = state.collectionIds[listName] || [];
+  var itemMap = state.collectionIds.items || {};
+  state.currentView = 'collection';
+  state.currentTitle = listName === 'favorite' ? '收藏' : '待整理';
+  state.currentSubfolders = [];
+  state.currentItems = ids.map(function(id) { return itemMap[id]; }).filter(Boolean);
+  state.currentTotal = state.currentItems.length;
+  state.currentEmptyMsg = '当前清单暂无素材';
+  render.renderContent();
+}
+
+function buildCommandItems(query) {
+  var q = (query || '').toLowerCase();
+  var folderMatches = [];
+  var items = [
+    { title: '全部文件', hint: '视图', run: function() { api.loadAllItems(true); } },
+    { title: '最近 7 天', hint: '视图', run: function() { api.loadRecentItems(7); } },
+    { title: '最近 30 天', hint: '视图', run: function() { api.loadRecentItems(30); } },
+    { title: '疑似重复', hint: '工具', run: function() { api.loadDuplicates(); } },
+    { title: '索引状态', hint: '工具', run: function() { openPanel('statsPanel'); api.fetchStats().then(renderStatsPanel); } },
+    { title: '高级筛选', hint: '工具', run: function() { openPanel('advancedPanel'); } },
+    { title: '收藏清单', hint: '本地清单', run: function() { showCollection('favorite'); } },
+    { title: '待整理清单', hint: '本地清单', run: function() { showCollection('later'); } }
+  ];
+  state.savedViews.forEach(function(view) { items.push({ title: view.name, hint: '保存视图', run: function() { applySavedView(view); } }); });
+  state.tagData.slice(0, 100).forEach(function(tag) { items.push({ title: tag.name, hint: '标签', run: function() { api.loadTagItems(tag.name); } }); });
+  if (q) getFolderPathMatches(q, state.treeData, [], folderMatches);
+  folderMatches.forEach(function(match) {
+    items.push({ title: match.path, hint: '文件夹', run: function() { api.loadFolderItems(match.id); } });
+  });
+  return items.filter(function(item) { return !q || item.title.toLowerCase().indexOf(q) >= 0 || item.hint.toLowerCase().indexOf(q) >= 0; }).slice(0, 30);
+}
+
+function renderCommandList() {
+  var input = document.getElementById('commandInput');
+  var list = document.getElementById('commandList');
+  if (!input || !list) return;
+  var commands = buildCommandItems(input.value);
+  list.innerHTML = '';
+  commands.forEach(function(cmd) {
+    var row = document.createElement('div');
+    row.className = 'command-item';
+    row.innerHTML = '<span>' + escapeHtml(cmd.title) + '</span><small>' + escapeHtml(cmd.hint) + '</small>';
+    row.onclick = function() {
+      closeCommandPalette();
+      cmd.run();
+    };
+    list.appendChild(row);
+  });
+}
+
+function openCommandPalette() {
+  var overlay = document.getElementById('commandOverlay');
+  var input = document.getElementById('commandInput');
+  if (!overlay || !input) return;
+  overlay.classList.add('open');
+  input.value = '';
+  renderCommandList();
+  setTimeout(function() { input.focus(); }, 0);
+}
+
+function closeCommandPalette() {
+  var overlay = document.getElementById('commandOverlay');
+  if (overlay) overlay.classList.remove('open');
+}
+
 // ===== View mode =====
 function setViewMode(mode, skipPersist) {
   state.viewMode = mode;
@@ -155,6 +376,17 @@ function setViewMode(mode, skipPersist) {
 // ===== Keyboard shortcuts =====
 function setupKeyboard() {
   document.addEventListener('keydown', function(e) {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+      openCommandPalette();
+      e.preventDefault();
+      return;
+    }
+    var commandOverlay = document.getElementById('commandOverlay');
+    if (commandOverlay && commandOverlay.classList.contains('open') && e.key === 'Escape') {
+      closeCommandPalette();
+      e.preventDefault();
+      return;
+    }
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
     var overlay = document.querySelector('.preview-overlay');
     if (overlay) {
@@ -426,6 +658,47 @@ function bindEvents() {
     exportSelected('json');
   };
   document.getElementById('reloadLibraryBtn').onclick = function() { api.reloadLibrary(); };
+  document.getElementById('filterPanelBtn').onclick = function() { syncFilterForm(); openPanel('advancedPanel'); };
+  document.getElementById('savedViewsBtn').onclick = function() { renderSavedViews(); openPanel('savedViewsPanel'); };
+  document.getElementById('statsBtn').onclick = function() { openPanel('statsPanel'); api.fetchStats().then(renderStatsPanel); };
+  document.getElementById('duplicatesBtn').onclick = function() { api.loadDuplicates(); };
+  document.getElementById('commandBtn').onclick = openCommandPalette;
+  document.querySelectorAll('[data-close-panel]').forEach(function(btn) {
+    btn.onclick = function() { closePanel(btn.dataset.closePanel); };
+  });
+  document.getElementById('applyFiltersBtn').onclick = function() {
+    state.advancedFilters = readFiltersFromForm();
+    api.refreshCurrentView();
+  };
+  document.getElementById('clearFiltersBtn').onclick = function() {
+    state.advancedFilters = {};
+    syncFilterForm();
+    api.refreshCurrentView();
+  };
+  document.getElementById('saveCurrentViewBtn').onclick = function() {
+    var input = document.getElementById('savedViewName');
+    var name = (input.value || '').trim();
+    if (!name) return;
+    state.savedViews.push(captureCurrentView(name));
+    input.value = '';
+    saveLocalData();
+    renderSavedViews();
+  };
+  document.getElementById('commandOverlay').onclick = function(e) {
+    if (e.target.id === 'commandOverlay') closeCommandPalette();
+  };
+  document.getElementById('commandInput').oninput = renderCommandList;
+  document.getElementById('commandInput').onkeydown = function(e) {
+    if (e.key === 'Escape') {
+      closeCommandPalette();
+      e.preventDefault();
+    }
+  };
+  document.body.addEventListener('click', function(e) {
+    var btn = e.target.closest('.btn-collection');
+    if (!btn) return;
+    toggleCollection(btn.dataset.list, btn.dataset.id);
+  });
 
   // Batch actions
   document.getElementById('selectAllBtn').onclick = function() {
@@ -486,6 +759,7 @@ function bindEvents() {
 
 Object.assign(interactionModule, {
   setTheme: setTheme,
+  loadLocalData: loadLocalData,
   setViewMode: setViewMode,
   setupKeyboard: setupKeyboard,
   setupSidebarResize: setupSidebarResize,
