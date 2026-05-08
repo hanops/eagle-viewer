@@ -1,0 +1,17 @@
+{
+  "folders": [
+    {
+      "id": "root",
+      "name": "Root",
+      "description": "Sample root",
+      "children": [
+        {
+          "id": "screens",
+          "name": "Screens",
+          "description": "",
+          "children": []
+        }
+      ]
+    }
+  ]
+}

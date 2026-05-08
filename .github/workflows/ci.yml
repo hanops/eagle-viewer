@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Version consistency
+        run: uv run python scripts/check_versions.py
+
+      - name: Python lint
+        run: uv run ruff check app tests scripts
+
+      - name: Python tests
+        run: uv run pytest
+
+      - name: Python syntax
+        run: uv run python -m compileall app
+
+      - name: JavaScript syntax
+        run: node --check app/web/core.js app/web/render.js app/web/api.js app/web/interactions.js app/web/bootstrap.js app/web/sw.js

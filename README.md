@@ -4,6 +4,8 @@
 
 **版本**：v1.5.0（2026-05-08）
 
+**License**：MIT
+
 ## 功能
 
 - **浏览**：解析 Eagle 库的文件夹树（`metadata.json`），按文件夹展示素材（各 `*.info/metadata.json`）
@@ -58,47 +60,23 @@ docker-compose up -d --build
 ```bash
 cd eagle-viewer
 uv sync
+cp .env.example .env
 export EAGLE_VAULT_ROOT=/path/to/your/Design.library
-uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+make dev
 ```
 
-## 前端结构
+## 开发与贡献
 
-当前前端已从单文件 `index.html` 拆为静态 CSS 与多个职责明确的脚本文件，仍保持原生 HTML/CSS/JS，不引入额外框架。
+- `make setup` — 安装 / 同步本地开发环境
+- `make dev` — 启动开发服务
+- `make check` — 运行版本一致性、lint、pytest、Python/JS 语法检查
+- `make test` — 运行自动测试
+- `CHANGELOG.md` — 更新记录
+- `docs/release.md` — 发布流程
+- `CONTRIBUTING.md` — 贡献指南
+- `SECURITY.md` — 安全报告方式
 
-拆分后的前端静态资源统一通过 `/static/*` 提供，页面入口仍使用 `/`、`/index.html`、`/manifest.json`、`/sw.js`。
-
-- `app/web/index.html`：页面骨架与脚本加载顺序
-- `app/web/styles.css`：全部样式
-- `app/web/core.js`：基础常量、图标、工具函数、全局状态入口 `window.EagleViewer`
-- `app/web/api.js`：资源加载、搜索、增量加载、刷新索引
-- `app/web/render.js`：侧栏、列表、网格、Inspector、预览与 hover 预览渲染
-- `app/web/interactions.js`：键盘、筛选、主题、批量操作、侧栏与移动端交互
-- `app/web/bootstrap.js`：启动入口、初始化流程、Service Worker 注册
-
-当前模块约定：
-
-- 统一状态入口：`EagleViewer.state`
-- 模块出口：`EagleViewer.modules.api`、`EagleViewer.modules.render`、`EagleViewer.modules.interactions`
-- 启动入口：`EagleViewer.init()` / `EagleViewer.bootstrap.init()`
-
-脚本加载顺序必须保持：
-
-1. `core.js`
-2. `render.js`
-3. `api.js`
-4. `interactions.js`
-5. `bootstrap.js`
-
-这样可以保证状态对象、模块出口和初始化入口都在预期时机可用。
-
-当前前端重构后的基础验证方式：
-
-- `uv run python -m compileall app`
-- `node --check app/web/core.js app/web/render.js app/web/api.js app/web/interactions.js app/web/bootstrap.js app/web/sw.js`
-- 在虚拟环境内做一次关键模块导入检查：`app.main`、`app.api.folders`、`app.api.items`、`app.vault.parser`
-- 发版前可按 [docs/regression-checklist.md](/Users/guoyin.han/Projects/eagle-viewer/docs/regression-checklist.md) 做人工回归
-- `v1.4.0` 的一次真实库 API 回归结果见 [docs/regression-results-v1.4.0.md](/Users/guoyin.han/Projects/eagle-viewer/docs/regression-results-v1.4.0.md)
+前端保持原生 HTML/CSS/JS，不引入框架；后端使用 FastAPI。更细的仓库协作约定见 `AGENTS.md`。
 
 ## 配置
 
@@ -140,32 +118,4 @@ Eagle 库目录应包含：
 
 ## 更新记录
 
-- **1.5.0**（2026-05-08）
-  - 文件夹、标签与搜索视图补齐增量加载，避免大结果集一次性返回和渲染。
-  - 列表加载加入请求序号保护，快速切换视图或搜索时会忽略过期响应。
-  - 文本摘要接口改为只读取文件开头片段，减少大文本文件预览摘要的 I/O 成本。
-  - 新增高级筛选、保存视图、索引状态、收藏 / 待整理清单、命令面板、疑似重复检测与图片预览缩放。
-  - 本地开发依赖管理迁移到 `uv`，新增 `pyproject.toml` 与 `uv.lock`；`requirements.txt` 暂保留给 Docker 构建流程。
-
-- **1.4.0**（2026-04-13）
-  - 新增手动刷新资源库入口，无需重启服务即可重建索引。
-  - `全部文件` 与 `最近` 视图改为增量加载，并优化续载时的追加渲染。
-  - 批量下载改为临时文件输出，降低大批量 ZIP 的内存占用。
-  - 增强 `pdf / txt` 预览、悬停预览、无缩略图文件封面卡与 `txt` 摘要展示。
-  - 完善多选模式：补充总大小、类型构成、反选、导出已选，并与单文件详情解耦。
-  - 补充快捷类型筛选、标签搜索、`#标签` / `/文件夹` 快速跳转、详情前后切换。
-  - 前端从单文件脚本拆分为 `core / api / render / interactions / bootstrap` 模块结构。
-  - 修复前端拆分后 `styles.css` 与各脚本资源未暴露路由导致的静态资源 404 问题，统一改为 `/static/*` 提供。
-
-- **1.2.0**（2025-03-11）
-  - 界面重构为 Eagle 风格的瀑布流 + Inspector 布局。
-  - 新增悬停大图预览，并统一替换为 SVG 图标体系。
-  - 完成移动端抽屉侧栏、底部 Inspector 与响应式列数适配。
-
-- **1.1.0**（2025-02-06）
-  - 新增侧边栏拖拽宽度、折叠与文件夹计数显示。
-  - 新增访问密码认证。
-  - 调整默认主题与若干基础交互、性能细节。
-
-- **1.0.0**
-  - 首个可用版本，提供文件夹 / 标签 / 最近 / 搜索、网格 / 列表视图、文件预览、下载与 PWA 支持。
+完整更新记录见 [CHANGELOG.md](CHANGELOG.md)。

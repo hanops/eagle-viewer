@@ -1,0 +1,14 @@
+{
+  "id": "item-one",
+  "name": "Alpha landscape",
+  "ext": "png",
+  "folders": ["root"],
+  "width": 1600,
+  "height": 900,
+  "size": 12,
+  "tags": ["Screenshot"],
+  "url": "https://example.com/alpha",
+  "annotation": "First sample",
+  "btime": 1700000000000,
+  "modificationTime": 1700000100000
+}

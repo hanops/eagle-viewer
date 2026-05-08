@@ -1,0 +1,14 @@
+{
+  "id": "item-three",
+  "name": "Gamma text",
+  "ext": "txt",
+  "folders": ["screens"],
+  "width": 0,
+  "height": 0,
+  "size": 64,
+  "tags": ["Docs"],
+  "url": "",
+  "annotation": "Text note",
+  "btime": 1700000300000,
+  "modificationTime": 1700000300000
+}

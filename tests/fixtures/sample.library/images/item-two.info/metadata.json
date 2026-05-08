@@ -1,0 +1,14 @@
+{
+  "id": "item-two",
+  "name": "Beta duplicate",
+  "ext": "png",
+  "folders": ["screens"],
+  "width": 1600,
+  "height": 900,
+  "size": 12,
+  "tags": [],
+  "url": "",
+  "annotation": "",
+  "btime": 1700000200000,
+  "modificationTime": 1700000200000
+}

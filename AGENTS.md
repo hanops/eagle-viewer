@@ -9,16 +9,19 @@
   - `index.html`: page shell
   - `styles.css`: all styles
   - `core.js`, `api.js`, `render.js`, `interactions.js`, `bootstrap.js`: frontend modules
-- `docs/`: project notes and manual regression checklist.
+- `tests/`: pytest coverage and a minimal fake Eagle library fixture.
+- `docs/`: project notes, release process, and manual regression checklist/results.
 - `README.md`: user-facing setup and API documentation.
 
-There is no dedicated automated test directory yet. Treat `docs/regression-checklist.md` as the current manual verification baseline.
+Automated tests live in `tests/`. Treat `docs/regression-checklist.md` as the manual verification baseline for UI-visible changes.
 
 ## Build, Test, and Development Commands
 
 - `uv sync`: create/update the project-local `.venv` from `pyproject.toml` and `uv.lock`.
 - `export EAGLE_VAULT_ROOT=/path/to/Design.library`: point the app at an Eagle library.
-- `uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000`: run locally.
+- `make dev`: run locally.
+- `make check`: run version consistency, lint, pytest, and Python/JS syntax checks.
+- `make test`: run pytest only.
 - `uv run python -m compileall app`: quick backend syntax check.
 - `node --check app/web/core.js app/web/render.js app/web/api.js app/web/interactions.js app/web/bootstrap.js app/web/sw.js`: quick frontend syntax check.
 
@@ -32,13 +35,14 @@ There is no dedicated automated test directory yet. Treat `docs/regression-check
 
 ## Testing Guidelines
 
-- Run `uv run python -m compileall app` and the `node --check ...` command before finishing changes.
+- Run `make check` before finishing changes.
+- Tests use `tests/fixtures/sample.library`; do not depend on a private local Eagle library for automated tests.
 - For UI changes, walk the relevant paths in `docs/regression-checklist.md`.
 - If you add a bug fix, include the affected user flow in your manual verification notes.
 
 ## Commit & Pull Request Guidelines
 
-- No stable commit convention is documented in this repository; use short, imperative commit messages, e.g. `Refactor frontend bootstrap flow`.
+- Use short, imperative commit messages. Conventional prefixes are welcome when helpful, e.g. `feat: add saved views` or `docs: update release notes`.
 - PRs should include:
   - a brief problem/solution summary
   - touched areas (`app/api`, `app/web`, etc.)
