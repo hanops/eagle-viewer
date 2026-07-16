@@ -9,6 +9,9 @@
   "tags": [],
   "url": "",
   "annotation": "",
+  "palettes": [
+    {"color": [50, 80, 230], "ratio": 80}
+  ],
   "btime": 1700000200000,
   "modificationTime": 1700000200000
 }

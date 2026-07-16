@@ -9,7 +9,18 @@ class FolderNode:
     name: str
     description: str = ""
     parent: Optional[str] = None
+    locked: bool = False
     children: list["FolderNode"] = field(default_factory=list)
+
+
+@dataclass
+class SmartFolderNode:
+    """Read-only Eagle smart folder definition from library metadata.json."""
+    id: str
+    name: str
+    description: str = ""
+    conditions: list[dict] = field(default_factory=list)
+    children: list["SmartFolderNode"] = field(default_factory=list)
 
 
 @dataclass
@@ -25,6 +36,9 @@ class ItemInfo:
     tags: list[str] = field(default_factory=list)
     url: str = ""
     annotation: str = ""
+    palettes: list[dict] = field(default_factory=list)
+    duration: float = 0
+    bpm: float = 0
     btime: int = 0   # creation time (timestamp ms)
     mtime: int = 0   # modification time (timestamp ms)
     # Paths (resolved by parser)

@@ -9,8 +9,11 @@ services:
       - EAGLE_VAULT_ROOT=/vault
       - VIEWER_PASSWORD=""
       - VIEWER_SECRET_KEY=""
+      - VIEWER_API_TOKEN=""
+      - VIEWER_STATE_PATH=/data/eagle-viewer-state.json
     network_mode: bridge
     volumes:
       # 将 NAS 上的 Eagle 库挂载到容器内 /vault
       # 示例：本地路径改为你的实际路径，如 /volume1/eagle/Design.library
       - ./vault:/vault:ro
+      - ./data:/data

@@ -1,11 +1,37 @@
 {
   "name": "Eagle Vault Viewer",
-  "short_name": "Eagle Viewer",
-  "description": "只读查看 NAS 上的 Eagle 资源库",
+  "short_name": "Eagle Vault",
+  "description": "远程浏览已挂载的 Eagle 资源库",
+  "id": "/",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#fafafa",
-  "theme_color": "#4f6ef7",
+  "display_override": ["standalone", "minimal-ui"],
+  "background_color": "#191a1d",
+  "theme_color": "#191a1d",
   "orientation": "any",
-  "icons": []
+  "categories": ["productivity", "utilities"],
+  "icons": [
+    {
+      "src": "/static/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {"name": "全部素材", "url": "/#view=all", "icons": [{"src": "/static/icon-192.png", "sizes": "192x192", "type": "image/png"}]},
+    {"name": "搜索 Vault", "short_name": "搜索", "description": "直接打开远程 Vault 搜索", "url": "/#view=all&action=search", "icons": [{"src": "/static/icon-192.png", "sizes": "192x192", "type": "image/png"}]},
+    {"name": "最近查看", "short_name": "最近", "description": "继续浏览最近打开的素材", "url": "/#view=collection&collection=recentViewed&action=recent", "icons": [{"src": "/static/icon-192.png", "sizes": "192x192", "type": "image/png"}]},
+    {"name": "收藏", "url": "/#view=collection&collection=favorite", "icons": [{"src": "/static/icon-192.png", "sizes": "192x192", "type": "image/png"}]},
+    {"name": "待整理", "url": "/#view=smart&smart=待整理队列", "icons": [{"src": "/static/icon-192.png", "sizes": "192x192", "type": "image/png"}]},
+    {"name": "继续审片", "url": "/#view=smart&smart=未处理队列&action=review", "icons": [{"src": "/static/icon-192.png", "sizes": "192x192", "type": "image/png"}]},
+    {"name": "成果池", "url": "/#view=smart&smart=已处理成果池", "icons": [{"src": "/static/icon-192.png", "sizes": "192x192", "type": "image/png"}]}
+  ]
 }

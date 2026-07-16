@@ -1,4 +1,6 @@
 import logging
+import hmac
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Request, Form
@@ -7,12 +9,56 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.types import ASGIApp
 
-from app.config import VIEWER_PASSWORD, VIEWER_SECRET_KEY
+from app.config import VIEWER_API_TOKEN, VIEWER_PASSWORD, VIEWER_SECRET_KEY
 from app.api.folders import router as folders_router
 from app.api.items import router as items_router
-from app.vault import load_vault, get_cache_stats
+from app.api.state import router as state_router
+from app.vault import load_vault, get_cache_stats, get_library_status
 
 logger = logging.getLogger(__name__)
+
+_LOGOUT_CLEANUP_HTML = """<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta http-equiv="refresh" content="3;url=__TARGET__" />
+  <title>正在退出 Eagle Vault Viewer</title>
+</head>
+<body>
+  <p>正在清除本机离线 Vault 数据…</p>
+  <script>
+    (async function() {
+      try {
+        if ('caches' in window) {
+          await Promise.all([
+            caches.delete('eagle-viewer-thumbs-v1'),
+            caches.delete('eagle-viewer-api-v1')
+          ]);
+        }
+        try {
+          Object.keys(localStorage).forEach(function(key) {
+            if (key.indexOf('eagle-viewer-') === 0 && key !== 'eagle-viewer-theme') {
+              localStorage.removeItem(key);
+            }
+          });
+        } catch (error) {}
+      } finally {
+        window.location.replace('__TARGET__');
+      }
+    })();
+  </script>
+</body>
+</html>
+"""
+
+
+def has_valid_api_token(headers: list[tuple[bytes, bytes]], token: str) -> bool:
+    """Constant-time validation for an optional API-client Bearer token."""
+    if not token:
+        return False
+    authorization = dict(headers).get(b"authorization", b"").decode("latin-1")
+    return authorization.startswith("Bearer ") and hmac.compare_digest(authorization[7:], token)
 
 
 class AuthMiddleware:
@@ -25,10 +71,21 @@ class AuthMiddleware:
         if scope["type"] != "http":
             await self.app(scope, receive, send)
             return
-        if not VIEWER_PASSWORD:
+        path = scope.get("path", "")
+        if path == "/health":
             await self.app(scope, receive, send)
             return
-        path = scope.get("path", "")
+        if path.startswith("/api/") and has_valid_api_token(scope.get("headers") or [], VIEWER_API_TOKEN):
+            await self.app(scope, receive, send)
+            return
+        if not VIEWER_PASSWORD:
+            if path.startswith("/api/") and VIEWER_API_TOKEN:
+                from starlette.responses import Response
+                response = Response(status_code=401, content="Unauthorized")
+                await response(scope, receive, send)
+                return
+            await self.app(scope, receive, send)
+            return
         if path == "/login" or path == "/logout":
             await self.app(scope, receive, send)
             return
@@ -48,29 +105,51 @@ class AuthMiddleware:
         return
 
 
-app = FastAPI(title="Eagle Vault Viewer", description="Read-only viewer for Eagle library on NAS")
-
-# 先加 Session，后加 Auth：请求时先执行 Session（解码 cookie 写入 scope），再执行 Auth（校验）
-if VIEWER_PASSWORD:
-    app.add_middleware(AuthMiddleware)
-    app.add_middleware(SessionMiddleware, secret_key=VIEWER_SECRET_KEY or "eagle-viewer-session")
-
-app.include_router(folders_router)
-app.include_router(items_router)
-
-# Load vault on startup (so first request is fast)
-@app.on_event("startup")
-def startup():
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
     try:
         load_vault()
     except Exception:
         logger.exception("Failed to preload Eagle vault on startup")
+    yield
 
+
+app = FastAPI(title="Eagle Vault Viewer", description="Read-only viewer for Eagle library on NAS", lifespan=lifespan)
+
+# 先加 Session，后加 Auth：请求时先执行 Session（解码 cookie 写入 scope），再执行 Auth（校验）
+if VIEWER_PASSWORD or VIEWER_API_TOKEN:
+    app.add_middleware(AuthMiddleware)
+if VIEWER_PASSWORD:
+    app.add_middleware(SessionMiddleware, secret_key=VIEWER_SECRET_KEY or "eagle-viewer-session")
+
+app.include_router(folders_router)
+app.include_router(items_router)
+app.include_router(state_router)
+
+
+@app.get("/health")
+def health():
+    return {"ok": True}
+
+
+@app.get("/api/info")
+def api_info():
+    return {
+        "name": "Eagle Vault Viewer",
+        "apiVersion": 1,
+        "features": ["browse", "search", "preview", "download", "sharedState", "bearerAuth", "paletteFilter", "colorAtlas", "randomWalk", "reviewMarkers", "mediaMetadata", "similarity", "eagleSmartFolders", "fontPreview", "officePreview", "legacyDocPreview", "xmindPreview", "cachedAssetPreview", "protectedFolders"],
+        "auth": {"session": bool(VIEWER_PASSWORD), "bearer": bool(VIEWER_API_TOKEN)},
+    }
 
 @app.post("/api/library/reload")
 def reload_library():
     load_vault()
-    return {"ok": True, "stats": get_cache_stats()}
+    return {"ok": True, "stats": get_cache_stats(), "status": get_library_status(deep=False)}
+
+
+@app.get("/api/library/status")
+def library_status(deep: bool = False):
+    return get_library_status(deep=deep)
 
 # Serve frontend at / (API routes under /api take precedence)
 web_dir = Path(__file__).parent / "web"
@@ -111,9 +190,14 @@ def login_submit(request: Request, password: str = Form(default="")):
 @app.get("/logout")
 @app.post("/logout")
 def logout(request: Request):
-    """清除 session 并跳转登录页。"""
-    request.session.clear()
-    return RedirectResponse(url="/login", status_code=302)
+    """Clear the server session and private browser-side offline data."""
+    target = "/login" if VIEWER_PASSWORD else "/"
+    if VIEWER_PASSWORD:
+        request.session.clear()
+    return HTMLResponse(
+        _LOGOUT_CLEANUP_HTML.replace("__TARGET__", target),
+        headers={"Cache-Control": "no-store"},
+    )
 
 
 @app.get("/")

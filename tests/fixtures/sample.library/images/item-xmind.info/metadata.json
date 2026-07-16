@@ -1,0 +1,14 @@
+{
+  "id": "item-xmind",
+  "name": "Remote product map",
+  "ext": "xmind",
+  "folders": ["root"],
+  "width": 0,
+  "height": 0,
+  "size": 2048,
+  "tags": ["Planning"],
+  "url": "",
+  "annotation": "XMind Quick Look fixture",
+  "btime": 1700000400000,
+  "modificationTime": 1700000400000
+}

@@ -1,0 +1,14 @@
+{
+  "id": "item-doc",
+  "name": "Legacy remote brief",
+  "ext": "doc",
+  "folders": ["root"],
+  "width": 0,
+  "height": 0,
+  "size": 20480,
+  "tags": ["Legacy"],
+  "url": "",
+  "annotation": "Legacy Word Quick Look fixture",
+  "btime": 1700000500000,
+  "modificationTime": 1700000500000
+}

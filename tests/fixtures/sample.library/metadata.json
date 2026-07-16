@@ -10,8 +10,64 @@
           "name": "Screens",
           "description": "",
           "children": []
+        },
+        {
+          "id": "protected",
+          "name": "Protected",
+          "description": "Eagle password folder",
+          "password": "fixture-lock",
+          "children": [
+            {
+              "id": "protected-child",
+              "name": "Private child",
+              "description": "",
+              "children": []
+            }
+          ]
         }
       ]
     }
-  ]
+  ],
+  "smartFolders": [
+    {
+      "id": "smart-reference",
+      "name": "Eagle 自动分类",
+      "description": "Fixture smart folder group",
+      "conditions": [],
+      "children": [
+        {
+          "id": "smart-png",
+          "name": "PNG 素材",
+          "description": "Native Eagle type rule",
+          "conditions": [
+            {
+              "match": "OR",
+              "boolean": "TRUE",
+              "rules": [
+                {"property": "type", "method": "equal", "value": "png"}
+              ]
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "smart-docs",
+          "name": "Docs 标签",
+          "description": "Native Eagle tag rule",
+          "conditions": [
+            {
+              "match": "AND",
+              "boolean": "TRUE",
+              "rules": [
+                {"property": "tags", "method": "equal", "value": "Docs"}
+              ]
+            }
+          ],
+          "children": []
+        }
+      ]
+    }
+  ],
+  "quickAccess": [],
+  "tagsGroups": []
 }

@@ -1,0 +1,14 @@
+{
+  "id": "item-graffle",
+  "name": "Remote review workflow",
+  "ext": "graffle",
+  "folders": ["root"],
+  "width": 1280,
+  "height": 800,
+  "size": 145,
+  "tags": ["Diagram"],
+  "url": "",
+  "annotation": "Eagle cached Quick Look fixture",
+  "btime": 1700000600000,
+  "modificationTime": 1700000600000
+}

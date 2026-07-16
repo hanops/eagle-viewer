@@ -1,0 +1,11 @@
+{
+  "id": "item-locked",
+  "name": "Protected note",
+  "ext": "txt",
+  "folders": ["protected-child"],
+  "size": 53,
+  "tags": ["PrivateTag"],
+  "annotation": "must stay private",
+  "btime": 1700000300000,
+  "modificationTime": 1700000300000
+}

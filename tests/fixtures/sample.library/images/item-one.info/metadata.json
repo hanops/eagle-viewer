@@ -9,6 +9,10 @@
   "tags": ["Screenshot"],
   "url": "https://example.com/alpha",
   "annotation": "First sample",
+  "palettes": [
+    {"color": [240, 50, 50], "ratio": 75},
+    {"color": [30, 30, 35], "ratio": 25}
+  ],
   "btime": 1700000000000,
   "modificationTime": 1700000100000
 }
