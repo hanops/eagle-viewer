@@ -397,10 +397,10 @@ def test_pwa_shell_uses_one_atomic_asset_revision():
     service_worker = (ROOT / "app" / "web" / "sw.js").read_text(encoding="utf-8")
 
     for asset in ("styles.css", "core.js", "render.js", "api.js", "interactions.js", "bootstrap.js"):
-        path = f"/static/{asset}?v=1.86"
+        path = f"/static/{asset}?v=1.87"
         assert path in index
         assert f"'{path}'" in service_worker
-    assert "const CACHE_NAME = 'eagle-viewer-shell-v32';" in service_worker
+    assert "const CACHE_NAME = 'eagle-viewer-shell-v33';" in service_worker
 
 
 def test_inspector_similarity_uses_local_ranked_metadata():

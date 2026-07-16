@@ -56,7 +56,7 @@ wheels = [
 
 [[package]]
 name = "eagle-viewer"
-version = "1.5.1"
+version = "1.6.0"
 source = { virtual = "." }
 dependencies = [
     { name = "fastapi" },
