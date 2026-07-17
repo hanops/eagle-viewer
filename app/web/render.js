@@ -335,7 +335,7 @@ function updateBatchBar() {
     scopeEl.textContent = loadedTotal ? ('当前视图 ' + selectedInView + '/' + loadedTotal + ' 已载入') : '当前视图';
   }
   if (hintEl && !(bar && bar.dataset.batchFeedback === 'true')) {
-    hintEl.textContent = window.innerWidth <= 768 ? '移动整理模式 · 点素材继续选择' : '⌘/Ctrl+A 全选 · Shift 范围 · Esc 取消';
+    hintEl.textContent = window.innerWidth <= 768 ? '移动选择模式 · 点素材继续选择' : '⌘/Ctrl+A 全选 · Shift 范围 · Esc 取消';
   }
   if (previewRail) {
     var visibleItems = selectedItems.slice(0, 12);
@@ -841,8 +841,6 @@ function getViewMediaKind(item) {
   if (PREVIEW_IMAGE_EXTS.indexOf(ext) >= 0) return 'image';
   if (PREVIEW_VIDEO_EXTS.indexOf(ext) >= 0) return 'video';
   if (PREVIEW_DOCUMENT_EXTS.indexOf(ext) >= 0) return 'document';
-  if (isStructuredDocumentExt(ext)) return 'document';
-  if (isFontExt(ext)) return 'document';
   if (['mp3','wav','flac','aac','m4a','ogg'].indexOf(ext) >= 0) return 'audio';
   if (getItemKind(ext) === 'document') return 'document';
   return 'other';
@@ -856,8 +854,6 @@ function getInspectorTypeLabel(item) {
   if (kind === 'audio') return '音频素材';
   if (ext === 'pdf') return 'PDF 文档';
   if (ext === 'txt') return '文本素材';
-  if (isFontExt(ext)) return '字体素材';
-  if (isCachedPreviewOnly(item)) return '专有格式素材';
   if (kind === 'document') return '文档素材';
   return '通用文件';
 }
@@ -875,15 +871,9 @@ function renderItemRatingControl(item, extraClass) {
 function renderInspectorStatusPills(item) {
   var pills = [];
   var inFavorite = (state.collectionIds.favorite || []).indexOf(item.id) >= 0;
-  var inLater = (state.collectionIds.later || []).indexOf(item.id) >= 0;
-  var inDone = (state.collectionIds.done || []).indexOf(item.id) >= 0;
   if (inFavorite) pills.push('<span class="inspector-status-pill favorite">' + iconBookmark() + ' 收藏</span>');
-  if (inLater) pills.push('<span class="inspector-status-pill later">' + iconClock() + ' 待整理</span>');
-  if (inDone) pills.push('<span class="inspector-status-pill done">' + iconCheck() + ' 已处理</span>');
   if (item.tags && item.tags.length) pills.push('<span class="inspector-status-pill"># ' + escapeHtml(item.tags.length + ' 标签') + '</span>');
   if (item.url) pills.push('<span class="inspector-status-pill sourced">' + iconExternalLink() + ' 有来源</span>');
-  var markerCount = ((state.reviewMarkers || {})[item.id] || []).length;
-  if (markerCount) pills.push('<span class="inspector-status-pill markers">◎ ' + markerCount + ' 标记</span>');
   return pills.join('');
 }
 
@@ -1133,70 +1123,35 @@ function openInspector(item) {
   specHtml += renderInspectorSpec('修改', escapeHtml(formatDate(item.mtime)));
   html += renderInspectorSection('规格', '<div class="inspector-spec-grid">' + specHtml + '</div>');
 
-  if (item.palettes && item.palettes.length) {
-    html += renderInspectorSection('色板', '<div class="palette-strip inspector-palette">' + renderPaletteSwatches(item.palettes) + '</div>');
-  }
-
   var paths = item.folderPaths || [];
-  var organizeHtml = '';
-  organizeHtml += renderInspectorField('评分', renderItemRatingControl(item, 'inspector-rating'));
-  organizeHtml += renderInspectorField('文件夹', paths.length ? '<div class="inspector-path-list">' + renderInspectorFolderLinks(item) + '</div>' : '<span class="inspector-muted">未归档</span>');
-  organizeHtml += renderInspectorField('标签', (item.tags && item.tags.length) ? '<div class="inspector-tags">' + renderInspectorTagLinks(item.tags) + '</div>' : '<span class="inspector-muted">未添加标签</span>');
-  html += renderInspectorSection('组织', organizeHtml);
+  var locationHtml = '';
+  locationHtml += renderInspectorField('文件夹', paths.length ? '<div class="inspector-path-list">' + renderInspectorFolderLinks(item) + '</div>' : '<span class="inspector-muted">未归档</span>');
+  locationHtml += renderInspectorField('标签', (item.tags && item.tags.length) ? '<div class="inspector-tags">' + renderInspectorTagLinks(item.tags) + '</div>' : '<span class="inspector-muted">未添加标签</span>');
+  html += renderInspectorSection('位置', locationHtml);
 
   var contextHtml = '';
-  var inspectorSourceDomain = getItemSourceDomain(item);
   var sourceHtml = '<span class="inspector-muted">未记录来源</span>';
   if (item.url) {
-    sourceHtml = (inspectorSourceDomain ? '<button type="button" class="inspector-source-domain" data-source-domain="' + escapeHtml(inspectorSourceDomain) + '" title="筛选来源站点：' + escapeHtml(inspectorSourceDomain) + '">' + iconExternalLink() + escapeHtml(inspectorSourceDomain) + '</button>' : '') +
-      '<a class="inspector-source-link" href="' + escapeHtml(item.url) + '" target="_blank" rel="noopener">' + escapeHtml(item.url.length > 80 ? item.url.substring(0, 80) + '…' : item.url) + ' ' + iconExternalLink() + '</a>';
+    sourceHtml = '<a class="inspector-source-link" href="' + escapeHtml(item.url) + '" target="_blank" rel="noopener">' + escapeHtml(item.url.length > 80 ? item.url.substring(0, 80) + '…' : item.url) + ' ' + iconExternalLink() + '</a>';
   }
   contextHtml += renderInspectorField('来源', sourceHtml);
   contextHtml += renderInspectorField('Eagle 备注', item.annotation ? '<div class="inspector-note">' + escapeHtml(item.annotation) + '</div>' : '<span class="inspector-muted">暂无 Eagle 备注</span>');
-  var viewerNote = String((state.viewerNotes || {})[item.id] || '');
-  contextHtml += renderInspectorField('Viewer 笔记', '<div class="viewer-note-compose" data-viewer-note-compose="' + escapeHtml(item.id) + '">' +
-    '<textarea class="viewer-note-editor" data-id="' + escapeHtml(item.id) + '" maxlength="4000" placeholder="记录审片意见、用途、交付说明…">' + escapeHtml(viewerNote) + '</textarea>' +
-    '<div class="viewer-note-meta"><span class="viewer-note-status">' + (viewerNote ? '已保存到 Viewer' : '独立于 Eagle Vault') + '</span><span class="viewer-note-count">' + viewerNote.length + ' / 4000</span></div>' +
-  '</div>');
   html += renderInspectorSection('上下文', contextHtml);
-
-  html += renderInspectorSection('审片标记', renderInspectorReviewMarkers(item), 'review-markers');
-
-  html += renderInspectorSection('相似素材', renderInspectorSimilarPlaceholder(item), 'similar-assets');
-  html += renderInspectorSection('快速筛选', renderInspectorRelatedLinks(item), 'related');
-
-  var techHtml = '';
-  techHtml += renderInspectorField('素材 ID', '<code>' + escapeHtml(item.id || '—') + '</code>');
-  techHtml += renderInspectorField('文件端点', '<code>/api/items/' + escapeHtml(item.id) + '/file</code>');
-  html += renderInspectorSection('技术信息', techHtml, 'technical');
 
   html += '</div>';
   inner.innerHTML = html;
   renderInspectorMobileSummary(item);
   renderInspectorPreview(document.getElementById('inspectorPreview'), item, thumbUrl, fileUrl);
-  if (isStructuredDocumentExt(item.ext)) loadInspectorDocumentPreview(item);
-  renderInspectorReviewMarkerOverlay(item);
   bindInspectorPreviewAction(item, fileUrl);
-  loadInspectorSimilarItems(item);
 
   var actionsHtml = '';
   if (isItemPreviewable(item)) {
     actionsHtml += '<button type="button" class="primary inspector-action-main" onclick="window._previewInspectorItem()">' + iconEye() + ' 预览</button>';
   }
-  actionsHtml += '<button type="button" class="btn-copy-reference inspector-action-output" data-ref-format="markdown" data-id="' + escapeHtml(item.id) + '">' + iconCopy() + ' Markdown</button>';
-  actionsHtml += '<button type="button" class="btn-copy-info inspector-action-output" data-id="' + escapeHtml(item.id) + '">' + iconInfo() + ' 信息</button>';
-  var inLater = (state.collectionIds.later || []).indexOf(item.id) >= 0;
-  actionsHtml += '<button type="button" class="btn-collection organize-action inspector-action-organize" data-list="later" data-id="' + escapeHtml(item.id) + '">' + (inLater ? '已待整理' : '待整理') + '</button>';
-  var inDone = (state.collectionIds.done || []).indexOf(item.id) >= 0;
-  actionsHtml += '<button type="button" class="btn-collection organize-action inspector-action-organize" data-list="done" data-id="' + escapeHtml(item.id) + '">' + (inDone ? '已处理' : '标记处理') + '</button>';
-  actionsHtml += '<button type="button" class="btn-workspace organize-action inspector-action-organize" data-id="' + escapeHtml(item.id) + '">' + iconCollection() + ' 工作集</button>';
   actionsHtml += '<details class="inspector-more inspector-action-more"><summary aria-label="更多操作">更多</summary><div class="inspector-more-menu">';
   var downloadDisabled = isRemoteAccessUnavailableForRender();
   actionsHtml += '<button type="button" class="btn-download-original' + (downloadDisabled ? ' requires-remote' : '') + '" data-id="' + escapeHtml(item.id) + '"' + (downloadDisabled ? ' disabled title="下载原文件需要连接远程 Vault"' : '') + '>' + iconDownload() + ' ' + (downloadDisabled ? '需联网' : '下载') + '</button>';
-  actionsHtml += '<button type="button" class="btn-share-file' + (downloadDisabled ? ' requires-remote' : '') + '" data-id="' + escapeHtml(item.id) + '"' + (downloadDisabled ? ' disabled title="分享原文件需要连接远程 Vault"' : '') + '>' + iconExport() + ' ' + (downloadDisabled ? '需联网' : '分享原文件') + '</button>';
   actionsHtml += '<button type="button" class="btn-share-link" data-id="' + escapeHtml(item.id) + '">' + iconExternalLink() + ' 分享链接</button>';
-  actionsHtml += '<button type="button" class="btn-copy-reference" data-ref-format="html" data-id="' + escapeHtml(item.id) + '">' + iconCopy() + ' HTML 引用</button>';
-  actionsHtml += '<button type="button" class="btn-copy-reference" data-ref-format="text" data-id="' + escapeHtml(item.id) + '">' + iconCopy() + ' 文本引用</button>';
   actionsHtml += '<button type="button" class="btn-collection" data-list="favorite" data-id="' + escapeHtml(item.id) + '">收藏</button>';
   if (canCopyImage(item.ext)) actionsHtml += '<button type="button" class="btn-copy" data-id="' + escapeHtml(item.id) + '">' + iconCopy() + ' 复制</button>';
   actionsHtml += '</div></details>';
@@ -1248,36 +1203,15 @@ function renderCollectionMarkerIcons(itemId) {
   if (isInCollection('favorite', itemId)) {
     html += '<span class="collection-marker favorite" title="收藏" aria-label="已收藏">' + iconBookmark() + '<span>收藏</span></span>';
   }
-  if (isInCollection('later', itemId)) {
-    html += '<span class="collection-marker later" title="待整理" aria-label="待整理">' + iconClock() + '<span>待整理</span></span>';
-  }
-  if (isInCollection('done', itemId)) {
-    html += '<span class="collection-marker done" title="已处理" aria-label="已处理">' + iconCheck() + '<span>已处理</span></span>';
-  }
-  if (String((state.viewerNotes || {})[itemId] || '').trim()) {
-    html += '<span class="collection-marker note" title="有 Viewer 笔记" aria-label="有 Viewer 笔记">✎<span>Viewer 笔记</span></span>';
-  }
-  var reviewMarkerCount = ((state.reviewMarkers || {})[itemId] || []).length;
-  if (reviewMarkerCount) {
-    html += '<span class="collection-marker review-marker" title="' + reviewMarkerCount + ' 个审片标记" aria-label="' + reviewMarkerCount + ' 个审片标记">◎<span>' + reviewMarkerCount + ' 标记</span></span>';
-  }
-  var workspace = (state.workspaces || []).find(function(entry) { return (entry.itemIds || []).indexOf(itemId) >= 0; });
-  if (workspace) {
-    html += '<span class="collection-marker workspace" style="--workspace-color:' + escapeHtml(workspace.color) + '" title="工作集：' + escapeHtml(workspace.name) + '" aria-label="工作集：' + escapeHtml(workspace.name) + '"><i></i><span>' + escapeHtml(workspace.name) + '</span></span>';
-  }
   return html;
 }
 
 function renderCardQuickActions(item) {
   var favoriteActive = isInCollection('favorite', item.id) ? ' active' : '';
-  var laterActive = isInCollection('later', item.id) ? ' active' : '';
-  var doneActive = isInCollection('done', item.id) ? ' active' : '';
   return '<div class="card-quick-actions" aria-label="卡片快捷操作">' +
-    '<button type="button" class="card-quick-action" data-card-action="preview" data-id="' + escapeHtml(item.id) + '" title="预览" aria-label="预览">' + iconEye() + '</button>' +
+    '<button type="button" class="card-quick-action" data-card-action="preview" data-id="' + escapeHtml(item.id) + '" title="' + (isItemPreviewable(item) ? '预览' : '打开') + '" aria-label="' + (isItemPreviewable(item) ? '预览' : '打开') + '">' + iconEye() + '</button>' +
     '<button type="button" class="card-quick-action" data-card-action="inspect" data-id="' + escapeHtml(item.id) + '" title="详情" aria-label="详情">' + iconInfo() + '</button>' +
     '<button type="button" class="card-quick-action favorite' + favoriteActive + '" data-card-action="favorite" data-id="' + escapeHtml(item.id) + '" title="收藏" aria-label="收藏">' + iconBookmark() + '</button>' +
-    '<button type="button" class="card-quick-action later' + laterActive + '" data-card-action="later" data-id="' + escapeHtml(item.id) + '" title="待整理" aria-label="待整理">' + iconClock() + '</button>' +
-    '<button type="button" class="card-quick-action done' + doneActive + '" data-card-action="done" data-id="' + escapeHtml(item.id) + '" title="已处理" aria-label="已处理">' + iconCheck() + '</button>' +
   '</div>';
 }
 
@@ -1309,7 +1243,7 @@ function renderItemCard(item, container) {
   cb.dataset.id = item.id;
   cb.setAttribute('aria-label', '选择 ' + (item.name || '素材'));
   cb.checked = state.selectedIds.has(item.id);
-  cb.onclick = function(e) { e.stopPropagation(); toggleSelect(item.id, { range: e.shiftKey }); };
+  cb.onclick = function(e) { e.stopPropagation(); toggleSelect(item.id); };
   card.appendChild(cb);
 
   var thumb = document.createElement('div');
@@ -1324,10 +1258,7 @@ function renderItemCard(item, container) {
   var thumbUrl = API + '/api/items/' + item.id + '/thumbnail';
   var fileUrl = API + '/api/items/' + item.id + '/file';
 
-  if (isFontExt(item.ext)) {
-    thumb.appendChild(createFontSpecimen(item, fileUrl, 'card'));
-    thumb.style.aspectRatio = '4/3';
-  } else if (item.hasThumbnail || isImageExt(item.ext)) {
+  if (item.hasThumbnail || isImageExt(item.ext)) {
     var img = document.createElement('img');
     img.loading = 'lazy';
     img.decoding = 'async';
@@ -1364,24 +1295,13 @@ function renderItemCard(item, container) {
   collectionMarkers.classList.toggle('has-markers', !!collectionMarkers.innerHTML);
   thumb.appendChild(collectionMarkers);
 
-  var ratingControl = document.createElement('div');
-  ratingControl.innerHTML = renderItemRatingControl(item, 'card-rating');
-  thumb.appendChild(ratingControl.firstChild);
-
-  if (item.palettes && item.palettes.length) {
-    var palette = document.createElement('div');
-    palette.className = 'card-palette-strip';
-    palette.innerHTML = renderPaletteSwatches(item.palettes, 5);
-    thumb.appendChild(palette);
-  }
-
   var quickActions = document.createElement('div');
   quickActions.innerHTML = renderCardQuickActions(item);
   thumb.appendChild(quickActions.firstChild);
 
   card.appendChild(thumb);
 
-  if (item.hasThumbnail || isImageExt(item.ext) || isFontExt(item.ext) || isStructuredDocumentExt(item.ext)) {
+  if (item.hasThumbnail || isImageExt(item.ext)) {
     var details = document.createElement('div');
     details.className = 'card-details';
     var meta = [];
@@ -1396,15 +1316,15 @@ function renderItemCard(item, container) {
         (folderLink && folderLink.id ? '<button type="button" class="card-details-folder" data-item-folder="' + escapeHtml(folderLink.id) + '" data-item-focus-id="' + escapeHtml(item.id) + '" title="打开文件夹：' + escapeHtml(folderLink.path || folderLink.label) + '">' + iconFolder() + escapeHtml(folderLink.label) + '</button>' : '') +
         (item.ext ? '<button type="button" class="card-details-ext" data-item-ext="' + escapeHtml(item.ext) + '" title="筛选格式：.' + escapeHtml(item.ext) + '">.' + escapeHtml(String(item.ext).toUpperCase()) + '</button>' : '') +
         ((item.tags && item.tags.length) ? '<button type="button" class="card-details-tag" data-item-tag="' + escapeHtml(item.tags[0]) + '" title="打开标签：' + escapeHtml(item.tags[0]) + '"># ' + escapeHtml(item.tags[0]) + '</button>' : '') +
-        (sourceDomain ? '<button type="button" class="card-details-source" data-source-domain="' + escapeHtml(sourceDomain) + '" title="筛选来源站点：' + escapeHtml(sourceDomain) + '">' + iconExternalLink() + escapeHtml(sourceDomain) + '</button>' : '') +
+        (sourceDomain ? '<span class="card-details-source">' + iconExternalLink() + escapeHtml(sourceDomain) + '</span>' : '') +
       '</div>';
     card.appendChild(details);
   }
 
   card.onclick = function(e) {
     if (e.target.closest('.card-checkbox, [data-item-rating], [data-inspector-color], [data-item-folder], [data-item-ext], [data-item-tag], [data-source-domain], .card-quick-action')) return;
-    if (e.shiftKey || isBatchSelectionMode()) {
-      toggleSelect(item.id, { range: e.shiftKey });
+    if (isBatchSelectionMode()) {
+      toggleSelect(item.id);
       return;
     }
     renderModule.openInspector(item);
@@ -1475,7 +1395,7 @@ function renderListRow(item, tbody) {
   cb.dataset.id = item.id;
   cb.setAttribute('aria-label', '选择 ' + (item.name || '素材'));
   cb.checked = state.selectedIds.has(item.id);
-  cb.onclick = function(e) { e.stopPropagation(); toggleSelect(item.id, { range: e.shiftKey }); };
+  cb.onclick = function(e) { e.stopPropagation(); toggleSelect(item.id); };
   checkCell.appendChild(cb);
   tr.appendChild(checkCell);
 
@@ -1508,7 +1428,6 @@ function renderListRow(item, tbody) {
   nameCell.innerHTML = '<div class="list-name-wrap">' +
     '<span class="list-name-text" title="' + escapeHtml(item.name) + '">' + escapeHtml(item.name) + '</span>' +
     '<span class="list-collection-markers" data-collection-markers-for="' + escapeHtml(item.id) + '">' + renderCollectionMarkerIcons(item.id) + '</span>' +
-    renderItemRatingControl(item, 'list-rating') +
     '</div>' +
     (mobileMeta.length ? '<div class="list-mobile-meta">' + mobileMeta.map(function(part) { return '<span>' + escapeHtml(part) + '</span>'; }).join('') + '</div>' : '') +
     '<div class="list-mobile-actions">' +
@@ -1516,14 +1435,14 @@ function renderListRow(item, tbody) {
       '<button type="button" data-list-mobile-action="inspect" data-id="' + escapeHtml(item.id) + '">详情</button>' +
       '<button type="button" data-list-mobile-action="select" data-id="' + escapeHtml(item.id) + '" aria-pressed="' + (state.selectedIds.has(item.id) ? 'true' : 'false') + '" class="' + (state.selectedIds.has(item.id) ? 'is-selected' : '') + '">' + (state.selectedIds.has(item.id) ? '取消选择' : '选择') + '</button>' +
     '</div>' +
-    (sourceDomain ? '<button type="button" class="list-source-domain" data-source-domain="' + escapeHtml(sourceDomain) + '" title="筛选来源站点：' + escapeHtml(sourceDomain) + '">' + iconExternalLink() + '<span>' + escapeHtml(sourceDomain) + '</span></button>' : '');
+    (sourceDomain ? '<span class="list-source-domain">' + iconExternalLink() + '<span>' + escapeHtml(sourceDomain) + '</span></span>' : '');
   var listMarkers = nameCell.querySelector('.list-collection-markers');
   if (listMarkers) listMarkers.classList.toggle('has-markers', !!listMarkers.innerHTML);
   nameCell.style.cursor = 'pointer';
   nameCell.onclick = function(e) {
     if (e.target.closest('[data-item-rating], [data-source-domain], [data-list-mobile-action]')) return;
-    if (e.shiftKey || isBatchSelectionMode()) {
-      toggleSelect(item.id, { range: e.shiftKey });
+    if (isBatchSelectionMode()) {
+      toggleSelect(item.id);
       return;
     }
     renderModule.openInspector(item);
@@ -1590,8 +1509,8 @@ function renderListRow(item, tbody) {
 
   thumbCell.style.cursor = 'pointer';
   thumbCell.onclick = function(e) {
-    if (e.shiftKey || isBatchSelectionMode()) {
-      toggleSelect(item.id, { range: e.shiftKey });
+    if (isBatchSelectionMode()) {
+      toggleSelect(item.id);
       return;
     }
     if (isItemPreviewable(item)) renderModule.previewItem(item, fileUrl);
@@ -1770,12 +1689,6 @@ function renderViewSummary() {
   var html = parts.map(function(part) {
     return '<span class="view-summary-pill"><strong>' + escapeHtml(part[0]) + '</strong>' + escapeHtml(String(part[1])) + '</span>';
   }).join('');
-  var topDomains = Object.keys(domains).sort(function(a, b) { return domains[b] - domains[a]; }).slice(0, 4);
-  if (topDomains.length) {
-    html += topDomains.map(function(domain) {
-      return '<button type="button" class="view-summary-pill view-summary-domain" data-source-domain="' + escapeHtml(domain) + '" title="筛选来源站点：' + escapeHtml(domain) + '"><strong>来源</strong>' + escapeHtml(domain) + ' · ' + domains[domain] + '</button>';
-    }).join('');
-  }
   el.innerHTML = html;
   el.hidden = false;
 }
@@ -1874,17 +1787,11 @@ function updateMobileContinueRail() {
   var rail = document.getElementById('mobileContinueRail');
   if (!rail) return;
   var recent = (state.collectionIds && state.collectionIds.recentViewed) || [];
-  var later = (state.collectionIds && state.collectionIds.later) || [];
-  var done = (state.collectionIds && state.collectionIds.done) || [];
   var remote = getMobileWorkbarRemoteState();
   var snapshotLabel = getMobileSnapshotLabel();
   var lastViewed = getLastViewedItemForMobile();
   var resumeLabel = lastViewed && lastViewed.name ? lastViewed.name : ((recent.length || 0) + ' 项');
   var previewLabel = lastViewed && isItemPreviewable(lastViewed) ? (lastViewed.ext || '预览').toUpperCase() : '详情';
-  var filterCount = Object.keys(state.advancedFilters || {}).filter(function(key) {
-    return state.advancedFilters[key] !== undefined && state.advancedFilters[key] !== null && state.advancedFilters[key] !== '';
-  }).length;
-  var filtersLabel = filterCount ? (filterCount + ' 筛选') : '无筛选';
   var loaded = (state.currentItems || []).length;
   var total = Number(state.currentTotal || 0);
   var countLabel = total > 0 && loaded && loaded < total ? (loaded + '/' + total) : ((total || loaded || 0) + ' 项');
@@ -1903,12 +1810,9 @@ function updateMobileContinueRail() {
     '<div class="mobile-continue-status" aria-label="移动端 Vault 状态">' +
       '<span data-state="' + escapeHtml(remote.state) + '"><i></i>' + escapeHtml(remote.label) + '</span>' +
       '<span><i></i>快照 ' + escapeHtml(snapshotLabel) + '</span>' +
-      '<span><i></i>' + escapeHtml(filtersLabel) + '</span>' +
     '</div>' +
     '<div class="mobile-continue-actions">' +
       '<button type="button" data-mobile-continue-action="resume"><span>上次</span><strong>' + escapeHtml(resumeLabel) + '</strong></button>' +
-      '<button type="button" data-mobile-continue-action="review"><span>审片</span><strong>' + escapeHtml(done.length ? ('已处理 ' + done.length) : '未处理队列') + '</strong></button>' +
-      '<button type="button" data-mobile-continue-action="later"><span>待整理</span><strong>' + escapeHtml(String(later.length || 0)) + ' 项</strong></button>' +
       '<button type="button" data-mobile-continue-action="snapshot"><span>离线</span><strong>' + escapeHtml(snapshotLabel) + '</strong></button>' +
     '</div>';
 }
@@ -1944,7 +1848,6 @@ function updateMobileWorkbar() {
       '<span></span>' + escapeHtml(remote.label) +
     '</div>' +
     '<div class="mobile-workbar-actions">' +
-      '<button type="button" data-mobile-workbar-action="share" aria-label="分享当前视图">' + iconExternalLink() + '</button>' +
       '<button type="button" data-mobile-workbar-action="search" aria-label="打开搜索">' + iconSearch() + '</button>' +
       '<button type="button" data-mobile-workbar-action="more" aria-label="打开更多">' + iconSliders() + '</button>' +
     '</div>' +
@@ -1993,9 +1896,6 @@ function updateSidebarCounts() {
   var laterTotal = (state.collectionIds.later || []).length;
   var doneTotal = (state.collectionIds.done || []).length;
   var recentViewedTotal = (state.collectionIds.recentViewed || []).length;
-  var activeFilterTotal = Object.keys(state.advancedFilters || {}).filter(function(key) {
-    return state.advancedFilters[key] !== undefined && state.advancedFilters[key] !== null && state.advancedFilters[key] !== '';
-  }).length;
   if (allCount && state.currentView === 'all') allCount.textContent = state.currentTotal || '';
   if (favoriteCount) favoriteCount.textContent = favoriteTotal || '';
   if (laterCount) laterCount.textContent = laterTotal || '';
@@ -2011,9 +1911,9 @@ function updateSidebarCounts() {
     mobileLaterBadge.hidden = !laterTotal;
   }
   if (mobileMoreBadge) {
-    mobileMoreBadge.textContent = activeFilterTotal ? String(activeFilterTotal) : '';
-    mobileMoreBadge.hidden = !activeFilterTotal;
-    mobileMoreBadge.title = activeFilterTotal ? ('已启用 ' + activeFilterTotal + ' 个筛选条件') : '';
+    mobileMoreBadge.textContent = '';
+    mobileMoreBadge.hidden = true;
+    mobileMoreBadge.title = '';
   }
 }
 
@@ -2440,22 +2340,6 @@ function showEmptyState() {
 }
 
 // ===== Preview overlay =====
-var previewSlideshow = {
-  active: false,
-  delay: 5000,
-  timer: 0
-};
-
-function clearPreviewSlideshowTimer() {
-  if (previewSlideshow.timer) window.clearTimeout(previewSlideshow.timer);
-  previewSlideshow.timer = 0;
-}
-
-function stopPreviewSlideshow() {
-  clearPreviewSlideshowTimer();
-  previewSlideshow.active = false;
-}
-
 function suppressBackgroundForPreview(overlay) {
   var records = [];
   Array.prototype.forEach.call(document.body.children, function(el) {
@@ -2504,7 +2388,6 @@ function closePreviewOverlay(overlay) {
   var focusItemId = overlay.dataset ? overlay.dataset.previewItemId : '';
   var suppressReturnFocus = overlay.dataset && overlay.dataset.suppressReturnFocus === '1';
   var isPreviewTransition = overlay.dataset && overlay.dataset.previewTransition === '1';
-  if (!isPreviewTransition) stopPreviewSlideshow();
   (overlay._cleanup || []).forEach(function(cleanup) { cleanup(); });
   overlay.remove();
   if (!document.querySelector('.preview-overlay')) document.body.classList.remove('preview-open');
@@ -3067,40 +2950,6 @@ function advancePreviewAfterDone(overlay, nextItem) {
   if (api && api.refreshCurrentView) api.refreshCurrentView();
 }
 
-function addPreviewFilmstrip(overlay, item, items, idx) {
-  if (!overlay || !item || !items || items.length < 2 || idx < 0) return;
-  overlay.classList.add('has-filmstrip');
-  var strip = document.createElement('div');
-  strip.className = 'preview-filmstrip';
-  var start = Math.max(0, idx - 10);
-  var end = Math.min(items.length, start + 21);
-  start = Math.max(0, end - 21);
-  strip.innerHTML = items.slice(start, end).map(function(entry, relIdx) {
-    var absoluteIdx = start + relIdx;
-    var active = entry.id === item.id ? ' active' : '';
-    var label = (absoluteIdx + 1) + ' / ' + items.length + ' · ' + (entry.name || entry.id || '素材');
-    var thumbHtml = (entry.hasThumbnail || isImageExt(entry.ext)) ?
-      '<img src="' + API + '/api/items/' + escapeHtml(entry.id) + '/thumbnail" alt="" loading="lazy" decoding="async" />' :
-      '<span>' + escapeHtml((entry.ext || '?').slice(0, 4).toUpperCase()) + '</span>';
-    return '<button type="button" class="preview-filmstrip-item' + active + '" data-preview-jump="' + escapeHtml(entry.id) + '" title="' + escapeHtml(label) + '" aria-label="预览 ' + escapeHtml(label) + '">' + thumbHtml + '</button>';
-  }).join('');
-  strip.onclick = function(e) {
-    var btn = e.target.closest('[data-preview-jump]');
-    if (!btn) return;
-    e.preventDefault();
-    e.stopPropagation();
-    var target = items.find(function(entry) { return entry.id === btn.dataset.previewJump; });
-    if (target) transitionToPreviewItem(target);
-  };
-  overlay.appendChild(strip);
-  requestAnimationFrame(function() {
-    var active = strip.querySelector('.preview-filmstrip-item.active');
-    if (active && active.scrollIntoView) {
-      try { active.scrollIntoView({ inline: 'center', block: 'nearest' }); } catch (e) {}
-    }
-  });
-}
-
 function addPreviewNavigation(overlay, item) {
   var items = getPreviewableItems();
   var idx = getPreviewIndex(item, items);
@@ -3115,9 +2964,6 @@ function addPreviewNavigation(overlay, item) {
     counter.textContent = (idx + 1) + ' / ' + items.length;
     sequence.appendChild(counter);
     overlay.appendChild(sequence);
-    addPreviewSlideshowControls(sequence, overlay, item, items, idx);
-    addPreviewFilmstrip(overlay, item, items, idx);
-
     var prev = document.createElement('button');
     prev.type = 'button';
     prev.className = 'preview-nav preview-prev';
@@ -3153,10 +2999,6 @@ function addPreviewNavigation(overlay, item) {
       e.preventDefault();
       e.stopPropagation();
       previewSibling(item, 1);
-    } else if (hasSiblingNav && (e.key === 'p' || e.key === 'P' || (e.code === 'Space' && !e.target.closest('button, input, textarea, [contenteditable], video, audio')))) {
-      e.preventDefault();
-      e.stopPropagation();
-      togglePreviewSlideshow(overlay, item, items, idx);
     } else if (e.key === 'Escape') {
       e.preventDefault();
       e.stopPropagation();
@@ -3172,7 +3014,7 @@ function addPreviewNavigation(overlay, item) {
   var lastY = 0;
   var tracking = false;
   var gestureMode = '';
-  var canVerticalDismiss = ['pdf', 'txt'].concat(PREVIEW_FONT_EXTS, PREVIEW_STRUCTURED_EXTS).indexOf(String(item.ext || '').toLowerCase()) < 0;
+  var canVerticalDismiss = ['pdf', 'txt'].indexOf(String(item.ext || '').toLowerCase()) < 0;
   function shouldIgnore(target) {
     return !!(target && target.closest('button, input, [contenteditable], .preview-tools, .preview-font-studio, .ooxml-preview-stage, video, iframe, pre, audio'));
   }
@@ -3266,98 +3108,6 @@ function addPreviewNavigation(overlay, item) {
   });
 }
 
-function previewSlideshowIcon(active) {
-  return active
-    ? '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6 5h3v10H6zM11 5h3v10h-3z"/></svg>'
-    : iconPlay();
-}
-
-function updatePreviewSlideshowControl(overlay) {
-  var button = overlay && overlay.querySelector('[data-preview-slideshow]');
-  if (!button) return;
-  button.classList.toggle('active', previewSlideshow.active);
-  button.setAttribute('aria-pressed', previewSlideshow.active ? 'true' : 'false');
-  button.setAttribute('aria-label', previewSlideshow.active ? '暂停自动播放' : '开始自动播放');
-  button.title = previewSlideshow.active ? '暂停自动播放（空格）' : '自动播放当前视图（空格）';
-  button.innerHTML = previewSlideshowIcon(previewSlideshow.active) + '<span>' + (previewSlideshow.active ? '暂停' : '播放') + '</span><i></i>';
-  button.style.setProperty('--preview-slide-delay', previewSlideshow.delay + 'ms');
-  var pace = overlay.querySelector('[data-preview-slideshow-pace]');
-  if (pace) {
-    var paceSeconds = Math.round(previewSlideshow.delay / 1000);
-    pace.textContent = paceSeconds + '秒';
-    pace.setAttribute('aria-label', '切换自动播放间隔，当前 ' + paceSeconds + ' 秒');
-  }
-}
-
-async function advancePreviewSlideshow(overlay, item) {
-  if (!previewSlideshow.active || !document.body.contains(overlay)) return;
-  if (document.visibilityState !== 'visible') {
-    schedulePreviewSlideshow(overlay, item);
-    return;
-  }
-  var items = getPreviewableItems();
-  var idx = getPreviewIndex(item, items);
-  if (idx >= items.length - 1 && state.incrementalHasMore && api && api.loadNextIncrementalPage) {
-    await api.loadNextIncrementalPage();
-    items = getPreviewableItems();
-    idx = getPreviewIndex(item, items);
-  }
-  if (!previewSlideshow.active || !document.body.contains(overlay)) return;
-  var nextItem = items[idx + 1] || items[0];
-  if (!nextItem || nextItem.id === item.id) {
-    stopPreviewSlideshow();
-    updatePreviewSlideshowControl(overlay);
-    return;
-  }
-  transitionToPreviewItem(nextItem);
-}
-
-function schedulePreviewSlideshow(overlay, item) {
-  clearPreviewSlideshowTimer();
-  if (!previewSlideshow.active || !overlay || !document.body.contains(overlay)) return;
-  previewSlideshow.timer = window.setTimeout(function() {
-    previewSlideshow.timer = 0;
-    advancePreviewSlideshow(overlay, item);
-  }, previewSlideshow.delay);
-}
-
-function togglePreviewSlideshow(overlay, item) {
-  previewSlideshow.active = !previewSlideshow.active;
-  updatePreviewSlideshowControl(overlay);
-  if (previewSlideshow.active) schedulePreviewSlideshow(overlay, item);
-  else clearPreviewSlideshowTimer();
-}
-
-function addPreviewSlideshowControls(sequence, overlay, item) {
-  var play = document.createElement('button');
-  play.type = 'button';
-  play.className = 'preview-slideshow-toggle';
-  play.dataset.previewSlideshow = '1';
-  play.onclick = function(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    togglePreviewSlideshow(overlay, item);
-  };
-  var pace = document.createElement('button');
-  pace.type = 'button';
-  pace.className = 'preview-slideshow-pace';
-  pace.dataset.previewSlideshowPace = '1';
-  pace.title = '切换播放间隔';
-  pace.onclick = function(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    var delays = [3000, 5000, 8000];
-    var index = delays.indexOf(previewSlideshow.delay);
-    previewSlideshow.delay = delays[(index + 1) % delays.length];
-    updatePreviewSlideshowControl(overlay);
-    if (previewSlideshow.active) schedulePreviewSlideshow(overlay, item);
-  };
-  sequence.appendChild(play);
-  sequence.appendChild(pace);
-  updatePreviewSlideshowControl(overlay);
-  if (previewSlideshow.active) schedulePreviewSlideshow(overlay, item);
-}
-
 function addPreviewInfoHud(overlay, item) {
   if (!overlay || !item) return;
   var meta = [];
@@ -3374,10 +3124,6 @@ function addPreviewInfoHud(overlay, item) {
   if (favorite) meta.push(pill(iconBookmark() + '<span>收藏</span>', ' class="preview-state-pill favorite"'));
   if (later) meta.push(pill(iconClock() + '<span>待整理</span>', ' class="preview-state-pill later"'));
   if (done) meta.push(pill(iconCheck() + '<span>已处理</span>', ' class="preview-state-pill done"'));
-  var sourceDomain = typeof getItemSourceDomain === 'function' ? getItemSourceDomain(item) : '';
-  if (sourceDomain) {
-    meta.push('<button type="button" class="preview-source-domain" data-preview-source-domain="' + escapeHtml(sourceDomain) + '" title="筛选来源站点：' + escapeHtml(sourceDomain) + '">' + iconExternalLink() + '<span>' + escapeHtml(sourceDomain) + '</span></button>');
-  }
   var folderLabel = '未归档';
   var folderId = '';
   if (item.folderPaths && item.folderPaths.length) {
@@ -3399,7 +3145,6 @@ function addPreviewInfoHud(overlay, item) {
   var hud = document.createElement('div');
   hud.className = 'preview-info-hud';
   hud.innerHTML = '<strong title="' + escapeHtml(item.name || '未命名素材') + '">' + escapeHtml(item.name || '未命名素材') + '</strong>' +
-    renderItemRatingControl(item, 'preview-rating') +
     '<div class="preview-info-meta">' + meta.join('') + '</div>';
   overlay.appendChild(hud);
 }
@@ -3477,39 +3222,18 @@ function refreshPreviewRemoteNotice(overlay) {
 function refreshPreviewMobileActions(bar, item) {
   if (!bar || !item) return;
   var favorite = (state.collectionIds.favorite || []).indexOf(item.id) >= 0;
-  var later = (state.collectionIds.later || []).indexOf(item.id) >= 0;
-  var done = (state.collectionIds.done || []).indexOf(item.id) >= 0;
   var offline = isRemoteAccessUnavailableForRender();
   var favBtn = bar.querySelector('[data-preview-action="favorite"]');
-  var laterBtn = bar.querySelector('[data-preview-action="later"]');
-  var doneBtn = bar.querySelector('[data-preview-action="done"]');
   var downloadBtn = bar.querySelector('[data-preview-more-action="download"]');
-  var shareFileBtn = bar.querySelector('[data-preview-more-action="share-file"]');
   if (favBtn) {
     favBtn.classList.toggle('active', favorite);
     favBtn.querySelector('span').textContent = favorite ? '已收藏' : '收藏';
-  }
-  if (laterBtn) {
-    laterBtn.classList.toggle('active', later);
-    laterBtn.querySelector('span').textContent = later ? '已整理' : '待整理';
-  }
-  if (doneBtn) {
-    var reviewMode = shouldAdvancePreviewAfterDone(item, done);
-    doneBtn.classList.toggle('active', done);
-    doneBtn.classList.toggle('review-next', reviewMode);
-    doneBtn.querySelector('span').textContent = done ? '已处理' : (reviewMode ? '处理→' : '处理');
   }
   if (downloadBtn) {
     downloadBtn.classList.toggle('requires-remote', offline);
     downloadBtn.disabled = offline;
     downloadBtn.title = offline ? '下载原文件需要连接远程 Vault' : '';
     downloadBtn.querySelector('span').textContent = offline ? '需联网' : '下载原文件';
-  }
-  if (shareFileBtn) {
-    shareFileBtn.classList.toggle('requires-remote', offline);
-    shareFileBtn.disabled = offline;
-    shareFileBtn.title = offline ? '分享原文件需要连接远程 Vault' : '';
-    shareFileBtn.querySelector('span').textContent = offline ? '需联网' : '分享原文件';
   }
 }
 
@@ -3549,16 +3273,9 @@ function addPreviewMobileActions(overlay, item) {
   bar.innerHTML =
     '<button type="button" data-preview-action="inspect">' + iconInfo() + '<span>详情</span></button>' +
     '<button type="button" data-preview-action="favorite">' + iconBookmark() + '<span>收藏</span></button>' +
-    '<button type="button" data-preview-action="later">' + iconClock() + '<span>待整理</span></button>' +
-    '<button type="button" data-preview-action="done">' + iconCheck() + '<span>处理</span></button>' +
     '<button type="button" data-preview-action="more" aria-expanded="false" aria-controls="previewMobileMoreMenu">' + iconMenu() + '<span>更多</span></button>' +
     '<div class="preview-mobile-more" id="previewMobileMoreMenu" role="menu" aria-label="预览更多操作" hidden>' +
-      '<button type="button" data-preview-more-action="share-file">' + iconExport() + '<span>分享原文件</span></button>' +
       '<button type="button" data-preview-more-action="share">' + iconExternalLink() + '<span>分享页面链接</span></button>' +
-      '<button type="button" data-preview-more-action="copy-info">' + iconInfo() + '<span>复制信息</span></button>' +
-      '<button type="button" data-preview-more-action="copy-md">' + iconCopy() + '<span>Markdown</span></button>' +
-      '<button type="button" data-preview-more-action="workspace">' + iconCollection() + '<span>加入工作集</span></button>' +
-      '<button type="button" data-preview-more-action="note">' + iconInfo() + '<span>编辑 Viewer 笔记</span></button>' +
       '<button type="button" data-preview-more-action="download">' + iconDownload() + '<span>下载原文件</span></button>' +
     '</div>';
   refreshPreviewMobileActions(bar, item);
@@ -3725,133 +3442,49 @@ function getDocumentPreviewSummary(preview) {
   return '只读结构预览';
 }
 
-function loadInspectorDocumentPreview(item) {
-  var container = document.getElementById('inspectorPreview');
-  if (!container) return;
-  container.dataset.documentState = 'loading';
-  fetchDocumentPreview(item).then(function(preview) {
-    if (!container.isConnected || !state.inspectorItem || state.inspectorItem.id !== item.id) return;
-    container.classList.add('ooxml-inspector-preview');
-    container.dataset.documentState = 'ready';
-    container.innerHTML = '<div class="ooxml-inspector-head"><span>' + escapeHtml(String(item.ext || '').toUpperCase()) + ' QUICK LOOK</span><small>' + escapeHtml(getDocumentPreviewSummary(preview)) + '</small></div>' +
-      '<div class="ooxml-inspector-body">' + renderDocumentPreviewContent(preview, true) + '</div>' +
-      '<span class="inspector-preview-hint">' + iconEye() + ' 点按打开文档舞台</span>';
-  }).catch(function() {
-    if (!container.isConnected || !state.inspectorItem || state.inspectorItem.id !== item.id) return;
-    container.dataset.documentState = 'error';
-    var hint = container.querySelector('.inspector-preview-hint');
-    if (hint) hint.innerHTML = iconEye() + ' 快速预览不可用 · 可下载原文件';
-  });
-}
+// Keep the remote preview deliberately small: fit, zoom out, and zoom in.
+function addImagePreviewTools(overlay, img) {
+  var scale = 1;
+  var toolbar = document.createElement('div');
+  toolbar.className = 'preview-tools preview-image-tools';
+  toolbar.setAttribute('aria-label', '图片预览工具');
+  toolbar.innerHTML =
+    '<button type="button" data-preview-tool="zoom-out" aria-label="缩小">−</button>' +
+    '<button type="button" data-preview-tool="fit">适应</button>' +
+    '<button type="button" data-preview-tool="zoom-in" aria-label="放大">＋</button>';
 
-function createDocumentPreviewStage(item, overlay) {
-  var stage = document.createElement('section');
-  var ext = String(item.ext || '').toLowerCase();
-  var isMindMap = ext === 'xmind';
-  stage.className = 'ooxml-preview-stage ' + ext + (isMindMap ? ' mindmap-preview-stage' : '');
-  stage.dataset.documentState = 'loading';
-  stage.innerHTML = '<header><div><span>' + (isMindMap ? 'REMOTE MINDMAP QUICK LOOK' : 'REMOTE OFFICE QUICK LOOK') + '</span><strong>' + escapeHtml(item.name || '未命名文档') + '</strong></div><small>' + escapeHtml(ext.toUpperCase()) + ' · 只读解析</small></header>' +
-    '<div class="ooxml-preview-body"><div class="ooxml-stage-loading"><i></i><strong>' + (isMindMap ? '正在展开导图结构' : '正在解析文档结构') + '</strong><small>' + (isMindMap ? '只读取主题，不运行链接与附件' : '不执行宏，不调用 Office') + '</small></div></div>' +
-    '<footer><span data-document-summary>安全预览 · 原文件保持不变</span><small>' + (isMindMap ? '节点过多时仅显示前部结构' : '布局可能与 Office 略有差异') + '</small></footer>';
-  fetchDocumentPreview(item).then(function(preview) {
-    if (!stage.isConnected) return;
-    stage.dataset.documentState = 'ready';
-    stage.querySelector('.ooxml-preview-body').innerHTML = renderDocumentPreviewContent(preview, false);
-    stage.querySelector('[data-document-summary]').textContent = getDocumentPreviewSummary(preview) + (preview.truncated ? ' · 已显示前部内容' : ' · 浏览器只读渲染');
-    clearPreviewStatus(overlay);
-  }).catch(function(error) {
-    if (!stage.isConnected) return;
-    stage.dataset.documentState = 'error';
-    stage.querySelector('.ooxml-preview-body').innerHTML = '<div class="ooxml-stage-error"><strong>无法生成快速预览</strong><span>' + escapeHtml((error && error.message) || '请下载原文件后查看') + '</span></div>';
-    stage.querySelector('[data-document-summary]').textContent = '原文件仍可下载';
-    setPreviewStatus(overlay, '文档快速预览不可用');
-  });
-  return stage;
-}
+  function applyScale() {
+    if (scale === 1) {
+      img.style.maxWidth = '100%';
+      img.style.maxHeight = '100%';
+      img.style.width = '';
+      img.style.height = '';
+      img.classList.remove('is-zoomed');
+      return;
+    }
+    img.style.maxWidth = 'none';
+    img.style.maxHeight = 'none';
+    img.style.width = Math.max(1, img.naturalWidth * scale) + 'px';
+    img.style.height = Math.max(1, img.naturalHeight * scale) + 'px';
+    img.classList.add('is-zoomed');
+  }
 
-function createCachedAssetPreview(item, overlay) {
-  var stage = document.createElement('section');
-  var ext = String(item.ext || 'file').toUpperCase();
-  var thumbnailUrl = API + '/api/items/' + encodeURIComponent(item.id || '') + '/thumbnail';
-  stage.className = 'cached-asset-preview';
-  stage.dataset.cachedPreviewState = 'loading';
-  stage.innerHTML = '<header><div><span>EAGLE CACHE QUICK LOOK</span><strong>' + escapeHtml(item.name || '未命名素材') + '</strong></div><small>' + escapeHtml(ext) + ' · PROPRIETARY ASSET</small></header>' +
-    '<div class="cached-preview-canvas"><div class="cached-preview-matte"></div></div>' +
-    '<footer><span data-cached-preview-meta>正在读取 Eagle 缓存预览</span><small>只读显示 · 下载原文件可查看完整内容</small></footer>';
-  var matte = stage.querySelector('.cached-preview-matte');
-  var img = document.createElement('img');
-  img.alt = item.name || '';
-  img.draggable = false;
-  img.dataset.previewSource = 'eagle-cache';
-  img.onload = function() {
-    if (!stage.isConnected) return;
-    stage.dataset.cachedPreviewState = 'ready';
-    stage.querySelector('[data-cached-preview-meta]').textContent = 'Eagle 缓存预览 · ' + img.naturalWidth + ' × ' + img.naturalHeight;
-    clearPreviewStatus(overlay);
+  toolbar.querySelector('[data-preview-tool="zoom-out"]').onclick = function(event) {
+    event.stopPropagation();
+    scale = Math.max(0.25, scale - 0.25);
+    applyScale();
   };
-  img.onerror = function() {
-    if (!stage.isConnected) return;
-    stage.dataset.cachedPreviewState = 'error';
-    matte.innerHTML = '<div class="cached-preview-error"><strong>缓存预览不可用</strong><span>原文件仍可下载到兼容应用中打开</span></div>';
-    stage.querySelector('[data-cached-preview-meta]').textContent = '未找到可用的 Eagle 缓存图';
-    setPreviewStatus(overlay, '缓存预览加载失败');
+  toolbar.querySelector('[data-preview-tool="fit"]').onclick = function(event) {
+    event.stopPropagation();
+    scale = 1;
+    applyScale();
   };
-  matte.appendChild(img);
-  img.src = thumbnailUrl;
-  addImagePreviewTools(overlay, img);
-  return stage;
-}
-
-function createFontPreviewStudio(item, fileUrl, overlay) {
-  var studio = document.createElement('section');
-  studio.className = 'preview-font-studio';
-  studio.dataset.fontState = 'loading';
-  studio.innerHTML =
-    '<header><div><span>REMOTE FONT SPECIMEN</span><strong>' + escapeHtml(item.name || '未命名字体') + '</strong></div><small>无需安装 · 不写入 Vault</small></header>' +
-    '<div class="preview-font-controls">' +
-      '<div class="preview-font-presets" role="group" aria-label="样张文字">' +
-        '<button type="button" data-font-preset="中">中文</button>' +
-        '<button type="button" data-font-preset="英">Latin</button>' +
-        '<button type="button" data-font-preset="数">数字</button>' +
-      '</div>' +
-      '<label>字号 <input type="range" min="20" max="132" step="2" value="64" data-font-size><output>64</output></label>' +
-    '</div>' +
-    '<div class="preview-font-canvas" contenteditable="true" role="textbox" aria-label="可编辑字体样张" spellcheck="false">远程设计，自由浏览。<br>Design anywhere.<br>0123456789</div>' +
-    '<footer><span data-font-load-status>正在从只读 Vault 载入字体…</span><small>点击样张即可输入自己的文字</small></footer>';
-  var canvas = studio.querySelector('.preview-font-canvas');
-  var range = studio.querySelector('[data-font-size]');
-  var output = studio.querySelector('output');
-  var presets = {
-    '中': '远程设计，自由浏览。\n字体让信息拥有性格。',
-    '英': 'Sphinx of black quartz, judge my vow.\nABCDEFGHIJKLMNOPQRSTUVWXYZ\nabcdefghijklmnopqrstuvwxyz',
-    '数': '0123456789\n€ $ ¥ £ % # @ &\n12:34 — 2026/07/15'
+  toolbar.querySelector('[data-preview-tool="zoom-in"]').onclick = function(event) {
+    event.stopPropagation();
+    scale = Math.min(4, scale + 0.25);
+    applyScale();
   };
-  range.oninput = function() {
-    canvas.style.fontSize = range.value + 'px';
-    output.value = range.value;
-  };
-  studio.querySelector('.preview-font-presets').onclick = function(e) {
-    var btn = e.target.closest('[data-font-preset]');
-    if (!btn) return;
-    e.preventDefault();
-    e.stopPropagation();
-    canvas.textContent = presets[btn.dataset.fontPreset] || presets['中'];
-    studio.querySelectorAll('[data-font-preset]').forEach(function(entry) { entry.classList.toggle('active', entry === btn); });
-    canvas.focus();
-  };
-  loadRemoteFontFace(item, fileUrl).then(function(family) {
-    if (!studio.isConnected) return;
-    studio.style.setProperty('--preview-font-family', '"' + family + '"');
-    studio.dataset.fontState = 'ready';
-    studio.querySelector('[data-font-load-status]').textContent = String(item.ext || 'FONT').toUpperCase() + ' · 浏览器实时渲染';
-    clearPreviewStatus(overlay);
-  }).catch(function() {
-    if (!studio.isConnected) return;
-    studio.dataset.fontState = 'error';
-    studio.querySelector('[data-font-load-status]').textContent = '字体载入失败，请下载原文件后查看';
-    setPreviewStatus(overlay, '当前浏览器无法渲染此字体格式');
-  });
-  return studio;
+  overlay.appendChild(toolbar);
 }
 
 async function previewItem(item, fileUrl) {
@@ -3865,9 +3498,6 @@ async function previewItem(item, fileUrl) {
   var isImage = PREVIEW_IMAGE_EXTS.indexOf(ext) >= 0;
   var isPdf = ext === 'pdf';
   var isText = ext === 'txt';
-  var isFont = isFontExt(ext);
-  var isStructuredDocument = isStructuredDocumentExt(ext);
-  var isCachedAsset = isCachedPreviewOnly(item);
   var el;
   var overlay;
   if (isVideo) {
@@ -3883,7 +3513,6 @@ async function previewItem(item, fileUrl) {
     el.src = fileUrl;
     el.onloadeddata = function() { clearPreviewStatus(overlay); };
     el.onerror = function() { setPreviewStatus(overlay, '视频预览失败，请下载后查看'); };
-    addVideoPreviewTools(overlay, el);
   } else if (isAudio) {
     overlay = createPreviewOverlay();
     overlay.dataset.previewItemId = item.id || '';
@@ -3951,31 +3580,6 @@ async function previewItem(item, fileUrl) {
       pre.textContent = '文本预览失败：' + (err && err.message ? err.message : '请下载后查看');
     }
     return;
-  } else if (isFont) {
-    overlay = createPreviewOverlay();
-    overlay.dataset.previewItemId = item.id || '';
-    addPreviewInfoHud(overlay, item);
-    addPreviewNavigation(overlay, item);
-    addPreviewMobileActions(overlay, item);
-    setPreviewStatus(overlay, '字体样张加载中…');
-    el = createFontPreviewStudio(item, fileUrl, overlay);
-  } else if (isStructuredDocument) {
-    overlay = createPreviewOverlay();
-    overlay.dataset.previewItemId = item.id || '';
-    addPreviewInfoHud(overlay, item);
-    addPreviewNavigation(overlay, item);
-    addPreviewMobileActions(overlay, item);
-    setPreviewStatus(overlay, '文档结构解析中…');
-    el = createDocumentPreviewStage(item, overlay);
-  } else if (isCachedAsset) {
-    overlay = createPreviewOverlay();
-    overlay.dataset.previewItemId = item.id || '';
-    overlay.dataset.previewSource = 'eagle-cache';
-    addPreviewInfoHud(overlay, item);
-    addPreviewNavigation(overlay, item);
-    addPreviewMobileActions(overlay, item);
-    setPreviewStatus(overlay, 'Eagle 缓存预览加载中…');
-    el = createCachedAssetPreview(item, overlay);
   } else {
     window.open(fileUrl, '_blank');
     return;

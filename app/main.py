@@ -137,7 +137,7 @@ def api_info():
     return {
         "name": "Eagle Vault Viewer",
         "apiVersion": 1,
-        "features": ["browse", "search", "preview", "download", "sharedState", "bearerAuth", "paletteFilter", "colorAtlas", "randomWalk", "reviewMarkers", "mediaMetadata", "similarity", "eagleSmartFolders", "fontPreview", "officePreview", "legacyDocPreview", "xmindPreview", "cachedAssetPreview", "protectedFolders"],
+        "features": ["browse", "search", "preview", "download", "favorites", "recentViewed", "batchDownload", "bearerAuth", "protectedFolders"],
         "auth": {"session": bool(VIEWER_PASSWORD), "bearer": bool(VIEWER_API_TOKEN)},
     }
 

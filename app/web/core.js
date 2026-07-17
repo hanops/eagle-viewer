@@ -9,8 +9,6 @@ var PREVIEW_IMAGE_EXTS = ['jpg','jpeg','png','gif','webp','svg','bmp'];
 var PREVIEW_VIDEO_EXTS = ['mp4','webm','mov','m4v'];
 var PREVIEW_AUDIO_EXTS = ['mp3','wav','m4a','aac','flac','ogg'];
 var PREVIEW_DOCUMENT_EXTS = ['pdf','txt'];
-var PREVIEW_FONT_EXTS = ['ttf','otf','woff','woff2'];
-var PREVIEW_STRUCTURED_EXTS = ['doc','docx','xlsx','pptx','xmind'];
 var COPY_IMAGE_EXTS = ['jpg','jpeg','png','gif','webp','bmp'];
 
 // ===== SVG Icons =====
@@ -159,12 +157,7 @@ function injectIcons() {
   el = document.getElementById('iconMobileMoreCanvas'); if (el) el.innerHTML = iconJustified();
   el = document.getElementById('iconMobileMoreEagleSmart'); if (el) el.innerHTML = iconSliders();
   el = document.getElementById('iconMobileMoreSmart'); if (el) el.innerHTML = iconSliders();
-  el = document.getElementById('iconMobileMoreUntagged'); if (el) el.innerHTML = iconTag();
-  el = document.getElementById('iconMobileMoreUnsourced'); if (el) el.innerHTML = iconExternalLink();
   el = document.getElementById('iconMobileMoreReview'); if (el) el.innerHTML = iconEye();
-  el = document.getElementById('iconMobileMoreLaterQueue'); if (el) el.innerHTML = iconClock();
-  el = document.getElementById('iconMobileMoreUndone'); if (el) el.innerHTML = iconSliders();
-  el = document.getElementById('iconMobileMoreDone'); if (el) el.innerHTML = iconCheck();
   el = document.getElementById('iconMobileMoreViewed'); if (el) el.innerHTML = iconEye();
   el = document.getElementById('iconMobileMoreFilter'); if (el) el.innerHTML = iconSliders();
   el = document.getElementById('iconMobileMoreShareView'); if (el) el.innerHTML = iconExternalLink();
@@ -501,19 +494,10 @@ function escapeHtml(s) {
 
 function isPreviewable(ext) {
   var e = (ext || '').toLowerCase();
-  return PREVIEW_IMAGE_EXTS.indexOf(e) >= 0 || PREVIEW_VIDEO_EXTS.indexOf(e) >= 0 || PREVIEW_AUDIO_EXTS.indexOf(e) >= 0 || PREVIEW_DOCUMENT_EXTS.indexOf(e) >= 0 || PREVIEW_FONT_EXTS.indexOf(e) >= 0 || PREVIEW_STRUCTURED_EXTS.indexOf(e) >= 0;
+  return PREVIEW_IMAGE_EXTS.indexOf(e) >= 0 || PREVIEW_VIDEO_EXTS.indexOf(e) >= 0 || PREVIEW_AUDIO_EXTS.indexOf(e) >= 0 || PREVIEW_DOCUMENT_EXTS.indexOf(e) >= 0;
 }
 function isItemPreviewable(item) {
-  return !!item && (isPreviewable(item.ext) || !!item.hasThumbnail);
-}
-function isCachedPreviewOnly(item) {
-  return !!item && !!item.hasThumbnail && !isPreviewable(item.ext);
-}
-function isFontExt(ext) {
-  return PREVIEW_FONT_EXTS.indexOf((ext || '').toLowerCase()) >= 0;
-}
-function isStructuredDocumentExt(ext) {
-  return PREVIEW_STRUCTURED_EXTS.indexOf((ext || '').toLowerCase()) >= 0;
+  return !!item && isPreviewable(item.ext);
 }
 function isImageExt(ext) {
   return ext && PREVIEW_IMAGE_EXTS.indexOf((ext || '').toLowerCase()) >= 0;
@@ -532,35 +516,27 @@ function getItemKind(ext) {
   if (PREVIEW_AUDIO_EXTS.indexOf(e) >= 0) return 'audio';
   if (e === 'pdf') return 'pdf';
   if (e === 'txt') return 'text';
-  if (PREVIEW_FONT_EXTS.indexOf(e) >= 0) return 'font';
   if (['doc','docx','xls','xlsx','ppt','pptx','xmind','mindnode','graffle','numbers','psd','ai','sketch','fig','xd'].indexOf(e) >= 0) return 'document';
   return 'other';
 }
 
 function renderFilePlaceholder(item, large) {
   var kind = getItemKind(item.ext);
-  var kindClass = (kind === 'pdf' || kind === 'text' || kind === 'document' || kind === 'font') ? kind : 'other';
+  var kindClass = (kind === 'pdf' || kind === 'text' || kind === 'document') ? kind : 'other';
   var typeLabel = (item.ext || kind || 'file').toUpperCase();
   var meta = [];
   if (item.width && item.height) meta.push(item.width + ' × ' + item.height);
   if (item.size) meta.push(formatSize(item.size));
-  if (!meta.length) meta.push(kind === 'pdf' ? 'PDF 文档' : kind === 'text' ? '文本文件' : kind === 'font' ? '字体文件' : kind === 'document' ? '文档文件' : '文件预览');
+  if (!meta.length) meta.push(kind === 'pdf' ? 'PDF 文档' : kind === 'text' ? '文本文件' : kind === 'document' ? '下载后查看' : '文件');
   var icon = large ? iconFileLarge() : iconFile();
-  var documentPreview = isStructuredDocumentExt(item.ext);
-  var previewExt = String(item.ext || '').toLowerCase();
-  var isXmind = previewExt === 'xmind';
   var excerptHtml = kind === 'text'
     ? '<div class="file-cover-excerpt" data-snippet-for="' + escapeHtml(item.id) + '">正在加载摘要…</div>'
-    : (documentPreview ? (isXmind
-      ? '<div class="xmind-cover-preview" aria-hidden="true"><i></i><span><b></b><b></b><b></b></span></div>'
-      : '<div class="office-cover-preview" aria-hidden="true"><i></i><i></i><i></i><i></i></div>') : '');
-  var documentMarks = { doc: 'W', docx: 'W', xlsx: 'X', pptx: 'P', xmind: 'M' };
-  var documentMark = documentPreview ? '<span class="office-cover-mark">' + documentMarks[previewExt] + '</span>' : '';
+    : '';
   return (
-    '<div class="placeholder"><div class="file-cover ' + kindClass + (documentPreview ? ' office ' + escapeHtml(previewExt) : '') + '">' +
+    '<div class="placeholder"><div class="file-cover ' + kindClass + '">' +
       '<div class="file-cover-head">' +
         '<span class="file-cover-type">' + escapeHtml(typeLabel) + '</span>' +
-        (documentMark || '<span class="file-cover-icon">' + icon + '</span>') +
+        '<span class="file-cover-icon">' + icon + '</span>' +
       '</div>' +
       '<div class="file-cover-body">' +
         '<div class="file-cover-name">' + escapeHtml(item.name || '未命名文件') + '</div>' +
@@ -571,71 +547,6 @@ function renderFilePlaceholder(item, large) {
   );
 }
 
-var documentPreviewPromises = {};
-
-function fetchDocumentPreview(item) {
-  var key = String((item && item.id) || 'document');
-  if (documentPreviewPromises[key]) return documentPreviewPromises[key];
-  documentPreviewPromises[key] = fetch(API + '/api/items/' + encodeURIComponent(key) + '/document-preview')
-    .then(function(response) {
-      if (handleAuthResponse(response)) throw new Error('unauthorized');
-      if (!response.ok) return response.json().catch(function() { return {}; }).then(function(data) {
-        throw new Error((data && data.detail) || 'document-preview');
-      });
-      return response.json();
-    })
-    .then(function(data) { return data && data.preview ? data.preview : data; })
-    .catch(function(error) {
-      delete documentPreviewPromises[key];
-      throw error;
-    });
-  return documentPreviewPromises[key];
-}
-
-var fontFacePromises = {};
-
-function getRemoteFontFamily(item) {
-  return 'EagleRemoteFont_' + String((item && item.id) || 'preview').replace(/[^a-z0-9_-]/gi, '_');
-}
-
-function loadRemoteFontFace(item, fileUrl) {
-  var key = String((item && item.id) || fileUrl || 'font');
-  if (fontFacePromises[key]) return fontFacePromises[key];
-  if (typeof FontFace === 'undefined' || !document.fonts) return Promise.reject(new Error('fontface'));
-  var family = getRemoteFontFamily(item);
-  var face = new FontFace(family, 'url("' + String(fileUrl || '').replace(/"/g, '%22') + '")');
-  fontFacePromises[key] = face.load().then(function(loaded) {
-    document.fonts.add(loaded);
-    return family;
-  }).catch(function(error) {
-    delete fontFacePromises[key];
-    throw error;
-  });
-  return fontFacePromises[key];
-}
-
-function createFontSpecimen(item, fileUrl, variant) {
-  var specimen = document.createElement('div');
-  specimen.className = 'font-specimen font-specimen-' + (variant || 'card');
-  specimen.dataset.fontState = 'loading';
-  specimen.innerHTML = '<div class="font-specimen-head"><span>' + escapeHtml(String(item.ext || 'FONT').toUpperCase()) + '</span><small>REMOTE TYPE</small></div>' +
-    '<div class="font-specimen-sample">Aa 字体</div>' +
-    '<div class="font-specimen-alphabet">ABCDEFGHIJKLMNOPQRSTUVWXYZ<br>abcdefghijklmnopqrstuvwxyz<br>0123456789</div>' +
-    '<div class="font-specimen-status">正在载入只读字体…</div>';
-  loadRemoteFontFace(item, fileUrl).then(function(family) {
-    if (!specimen.isConnected) return;
-    specimen.style.setProperty('--preview-font-family', '"' + family + '"');
-    specimen.dataset.fontState = 'ready';
-    var status = specimen.querySelector('.font-specimen-status');
-    if (status) status.textContent = '浏览器实时渲染 · 无需安装';
-  }).catch(function() {
-    if (!specimen.isConnected) return;
-    specimen.dataset.fontState = 'error';
-    var status = specimen.querySelector('.font-specimen-status');
-    if (status) status.textContent = '字体载入失败，可下载后查看';
-  });
-  return specimen;
-}
 
 function loadTextSnippet(item, container) {
   if (getItemKind(item.ext) !== 'text') return;
@@ -672,9 +583,7 @@ function setImageFallback(img, fallbackUrl, onFail) {
 function renderInspectorPreview(container, item, thumbUrl, fileUrl) {
   container.innerHTML = '';
   var itemPreviewable = isItemPreviewable(item);
-  var cachedOnly = isCachedPreviewOnly(item);
   container.classList.toggle('is-actionable', itemPreviewable);
-  container.classList.toggle('is-cached-preview', cachedOnly);
   if (itemPreviewable) {
     container.setAttribute('role', 'button');
     container.setAttribute('tabindex', '0');
@@ -683,11 +592,6 @@ function renderInspectorPreview(container, item, thumbUrl, fileUrl) {
     container.removeAttribute('role');
     container.removeAttribute('tabindex');
     container.removeAttribute('aria-label');
-  }
-  if (isFontExt(item.ext)) {
-    container.appendChild(createFontSpecimen(item, fileUrl, 'inspector'));
-    container.insertAdjacentHTML('beforeend', '<span class="inspector-preview-hint">' + iconEye() + ' 点按打开字体样张</span>');
-    return;
   }
   if (!(item.hasThumbnail || isImageExt(item.ext))) {
     container.innerHTML = renderFilePlaceholder(item, true);
@@ -702,7 +606,7 @@ function renderInspectorPreview(container, item, thumbUrl, fileUrl) {
   img.src = thumbUrl;
   container.appendChild(img);
   if (itemPreviewable) {
-    container.insertAdjacentHTML('beforeend', '<span class="inspector-preview-hint">' + iconEye() + (cachedOnly ? ' 点按打开 Eagle 缓存预览' : ' 点按预览') + '</span>');
+    container.insertAdjacentHTML('beforeend', '<span class="inspector-preview-hint">' + iconEye() + ' 点按预览</span>');
   }
 }
 

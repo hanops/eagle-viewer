@@ -239,9 +239,27 @@ function setupListMarquee(wrap) {
 
 // ===== Theme =====
 function setTheme(theme) {
+  theme = theme === 'light' ? 'light' : 'dark';
   document.documentElement.setAttribute('data-theme', theme);
+  document.documentElement.style.colorScheme = theme;
   var themeBtn = document.getElementById('themeToggle');
-  if (themeBtn) themeBtn.innerHTML = theme === 'dark' ? iconMoon() : iconSun();
+  var nextThemeLabel = theme === 'dark' ? '切换到浅色主题' : '切换到深色主题';
+  if (themeBtn) {
+    themeBtn.innerHTML = theme === 'dark' ? iconSun() : iconMoon();
+    themeBtn.title = nextThemeLabel;
+    themeBtn.setAttribute('aria-label', nextThemeLabel);
+    themeBtn.dataset.theme = theme;
+  }
+  var mobileThemeIcon = document.getElementById('iconMobileMoreTheme');
+  if (mobileThemeIcon) mobileThemeIcon.innerHTML = theme === 'dark' ? iconSun() : iconMoon();
+  var mobileThemeButton = mobileThemeIcon && mobileThemeIcon.closest('[data-mobile-more-action="theme"]');
+  if (mobileThemeButton) {
+    var mobileThemeCopy = mobileThemeButton.querySelector('small');
+    if (mobileThemeCopy) mobileThemeCopy.textContent = nextThemeLabel.replace('主题', '');
+    mobileThemeButton.setAttribute('aria-label', nextThemeLabel);
+  }
+  var themeMeta = document.querySelector('meta[name="theme-color"]');
+  if (themeMeta) themeMeta.content = theme === 'dark' ? '#191a1d' : '#f4f4f1';
   try { localStorage.setItem('eagle-viewer-theme', theme); } catch (e) {}
 }
 
@@ -936,24 +954,6 @@ function getPresetViews() {
   });
 }
 
-function renderPresetViews() {
-  var grid = document.getElementById('presetViewGrid');
-  if (!grid) return;
-  grid.innerHTML = getPresetViews().map(function(view) {
-    return '<button type="button" class="preset-view-card" data-preset-view="' + escapeHtml(view.name) + '">' +
-      '<strong>' + escapeHtml(view.name) + '</strong>' +
-      '<span>' + escapeHtml(view.description || getSavedViewSummary(view)) + '</span>' +
-      '<small>' + escapeHtml(getSavedViewSummary(view)) + '</small>' +
-    '</button>';
-  }).join('');
-  grid.querySelectorAll('[data-preset-view]').forEach(function(btn) {
-    btn.onclick = function() {
-      openPresetViewByName(btn.dataset.presetView);
-      closePanel('savedViewsPanel');
-    };
-  });
-}
-
 function openPresetViewByName(name) {
   var preset = getPresetViews().find(function(view) { return view.name === name; });
   if (!preset) return;
@@ -973,20 +973,6 @@ function renderSmartViewsSidebar() {
   if (!list) return;
   var views = state.savedViews || [];
   list.innerHTML = '';
-  var presetLabel = document.createElement('div');
-  presetLabel.className = 'smart-view-subtitle';
-  presetLabel.textContent = '整理队列';
-  list.appendChild(presetLabel);
-  getPresetViews().forEach(function(view) {
-    var btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'smart-view-item smart-view-preset';
-    btn.dataset.smartViewName = view.name || '';
-    btn.innerHTML = '<span class="sidebar-item-icon">' + iconSliders() + '</span>' +
-      '<span class="smart-view-copy"><strong>' + escapeHtml(view.name || '未命名视图') + '</strong><small>' + escapeHtml(view.description || getSavedViewSummary(view)) + '</small></span>';
-    btn.onclick = function() { openPresetViewByName(view.name); };
-    list.appendChild(btn);
-  });
   var savedLabel = document.createElement('div');
   savedLabel.className = 'smart-view-subtitle';
   savedLabel.textContent = '我的智能视图';
@@ -1161,7 +1147,6 @@ function openWorkspacesPanel(itemIds) {
 function renderSavedViews() {
   var list = document.getElementById('savedViewList');
   if (!list) return;
-  renderPresetViews();
   list.innerHTML = '';
   if (!state.savedViews.length) {
     list.innerHTML = '<div class="saved-view-empty"><strong>还没有智能视图</strong><span>先设置排序、格式或高级筛选，然后把当前结果保存成一个侧栏入口。</span></div>';
@@ -1539,10 +1524,6 @@ async function runPendingLaunchAction() {
   var action = state.pendingLaunchAction || '';
   if (!action) return false;
   state.pendingLaunchAction = '';
-  if (action === 'review' || action === 'review-undone') {
-    await startUndoneReview();
-    return true;
-  }
   if (action === 'search') {
     if (window._openMobileSearchSheet) {
       window._openMobileSearchSheet();
@@ -1857,9 +1838,6 @@ function buildCommandItems(query) {
     { title: '已处理清单', hint: '整理完成', run: function() { showCollection('done'); } },
     { title: '最近查看', hint: '继续浏览', run: function() { showCollection('recentViewed'); } }
   ];
-  getPresetViews().forEach(function(view) {
-    items.push({ title: view.name, hint: '整理预设 · ' + view.description, run: function() { openPresetViewByName(view.name); } });
-  });
   getEagleSmartFolderQuickItems(80).forEach(function(item) {
     items.push({ title: item.title, hint: 'Eagle 智能文件夹 · ' + item.hint, run: item.run });
   });
@@ -1874,46 +1852,11 @@ function buildCommandItems(query) {
 }
 
 function getSearchSuggestItems(query) {
-  var raw = query || '';
-  var q = raw.trim();
-  var lower = q.toLowerCase();
-  var items = [];
-  var folderMatches = [];
+  var q = String(query || '').trim();
   if (!q) {
-    return [
-      { title: '输入 #标签名', hint: '跳转到标签', type: 'hint' },
-      { title: '输入 /文件夹名', hint: '跳转到文件夹', type: 'hint' },
-      { title: '输入关键词', hint: '搜索名称、标签、备注和格式', type: 'hint' }
-    ];
+    return [{ title: '输入关键词', hint: '搜索名称、标签或备注', type: 'hint' }];
   }
-  if (q.charAt(0) === '#') {
-    var tagQuery = lower.slice(1);
-    state.tagData.forEach(function(tag) {
-      var name = String(tag.name || '');
-      if (!tagQuery || name.toLowerCase().indexOf(tagQuery) >= 0) {
-        items.push({ title: name, hint: (tag.count || 0) + ' 项 · 标签', type: 'tag', value: name });
-      }
-    });
-  } else if (q.charAt(0) === '/') {
-    var folderQuery = lower.slice(1);
-    getFolderPathMatches(folderQuery, state.treeData, [], folderMatches);
-    folderMatches.slice(0, 8).forEach(function(match) {
-      items.push({ title: match.path, hint: match.locked ? '受保护 · 文件夹' : '文件夹', type: 'folder', value: match.id });
-    });
-  } else {
-    state.tagData.forEach(function(tag) {
-      var name = String(tag.name || '');
-      if (name.toLowerCase().indexOf(lower) >= 0) {
-        items.push({ title: name, hint: (tag.count || 0) + ' 项 · 标签', type: 'tag', value: name });
-      }
-    });
-    getFolderPathMatches(lower, state.treeData, [], folderMatches);
-    folderMatches.slice(0, 5).forEach(function(match) {
-      items.push({ title: match.path, hint: match.locked ? '受保护 · 文件夹' : '文件夹', type: 'folder', value: match.id });
-    });
-    items.unshift({ title: q, hint: '搜索关键词', type: 'search', value: q });
-  }
-  return items.slice(0, 8);
+  return [{ title: q, hint: '搜索关键词', type: 'search', value: q }];
 }
 
 function closeSearchSuggest() {
@@ -2009,7 +1952,7 @@ function closeCommandPalette() {
 
 // ===== View mode =====
 function setViewMode(mode, skipPersist) {
-  if (['grid', 'justified', 'list'].indexOf(mode) < 0) mode = 'grid';
+  if (['grid', 'list'].indexOf(mode) < 0) mode = 'grid';
   state.viewMode = mode;
   if (!skipPersist) {
     try { localStorage.setItem(getViewModeStorageKey(), mode); } catch (e) {}
@@ -2026,26 +1969,7 @@ function setViewMode(mode, skipPersist) {
 // ===== Keyboard shortcuts =====
 function setupKeyboard() {
   document.addEventListener('keydown', function(e) {
-    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
-      openCommandPalette();
-      e.preventDefault();
-      return;
-    }
-    var commandOverlay = document.getElementById('commandOverlay');
-    if (commandOverlay && commandOverlay.classList.contains('open') && e.key === 'Escape') {
-      closeCommandPalette();
-      e.preventDefault();
-      return;
-    }
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
-    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'a') {
-      e.preventDefault();
-      state.currentItems.forEach(function(item) { state.selectedIds.add(item.id); });
-      if (state.currentItems.length) state.lastSelectedId = state.currentItems[state.currentItems.length - 1].id;
-      updateBatchBar();
-      updateCheckboxesInView();
-      return;
-    }
     var overlay = document.querySelector('.preview-overlay');
     if (overlay) {
       if (e.key === 'Escape') render.closePreviewOverlay(overlay);
@@ -2075,35 +1999,6 @@ function setupKeyboard() {
         navigateInspector(1);
         e.preventDefault();
         return;
-      }
-    }
-    var key = e.key;
-    if (key === 'j' || key === 'ArrowDown') {
-      navigateItems(1);
-      e.preventDefault();
-    } else if (key === 'k' || key === 'ArrowUp') {
-      navigateItems(-1);
-      e.preventDefault();
-    } else if (key === 'Enter') {
-      var focused = document.querySelector('.keyboard-focus');
-      if (focused) {
-        var cb = focused.querySelector('.item-cb');
-        if (cb && cb.dataset.id) {
-          var item = state.currentItems.find(function(it) { return it.id === cb.dataset.id; });
-          if (item) {
-            var fileUrl = API + '/api/items/' + item.id + '/file';
-            if (isItemPreviewable(item)) render.previewItem(item, fileUrl);
-            else window.open(fileUrl, '_blank');
-          }
-        }
-      }
-      e.preventDefault();
-    } else if (key === ' ') {
-      e.preventDefault();
-      var focused = document.querySelector('.keyboard-focus');
-      if (focused) {
-        var cb = focused.querySelector('.item-cb');
-        if (cb && cb.dataset.id) toggleSelect(cb.dataset.id, { range: e.shiftKey });
       }
     }
   });
@@ -2365,34 +2260,20 @@ function getEagleSmartFolderQuickItems(limit) {
 }
 
 function getMobileSearchQuickItems() {
-  var snapshot = getOfflineSnapshotMeta();
-  var doneCount = (state.collectionIds.done || []).length || 0;
   var recentCount = (state.collectionIds.recentViewed || []).length || 0;
-  var laterCount = (state.collectionIds.later || []).length || 0;
   var favoriteCount = (state.collectionIds.favorite || []).length || 0;
   return [
-    { key: 'undone', group: 'continue', title: '继续审片', hint: doneCount ? ('已处理 ' + doneCount + ' 项') : '未处理队列', meta: 'Review', tone: 'primary', run: function() { openPresetViewByName('未处理队列'); } },
     { key: 'recentViewed', group: 'continue', title: '最近查看', hint: recentCount + ' 项', meta: recentCount ? '继续' : '空', run: function() { showCollection('recentViewed'); } },
-    { key: 'later', group: 'continue', title: '待整理', hint: laterCount + ' 项', meta: laterCount ? 'Later' : '清爽', run: function() { showCollection('later'); } },
-    { key: 'offlineSnapshot', group: 'continue', title: '离线快照', hint: snapshot ? (formatSnapshotAge(snapshot.savedAt) + ' · ' + (snapshot.ok || 0) + ' 项') : '未保存', meta: snapshot ? 'Ready' : '保存', run: function() { api.warmCurrentOfflineSnapshot(); } },
-    { key: 'untagged', group: 'organize', title: '未标签', hint: '整理标签', run: function() { openPresetViewByName('未标签素材'); } },
-    { key: 'unsourced', group: 'organize', title: '未来源', hint: '补引用', run: function() { openPresetViewByName('未来源素材'); } },
-    { key: 'done', group: 'organize', title: '成果池', hint: (state.collectionIds.done || []).length + ' 项', run: function() { openPresetViewByName('已处理成果池'); } },
     { key: 'favorite', group: 'browse', title: '收藏', hint: favoriteCount + ' 项', run: function() { showCollection('favorite'); } },
     { key: 'recent7', group: 'browse', title: '最近 7 天', hint: '新增素材', run: function() { api.loadRecentItems(7); } }
-  ].concat(getEagleSmartFolderQuickItems(6), getSavedViewQuickItems(4), getTopPaletteQuickItems(5), getTopSourceDomainQuickItems(4));
+  ];
 }
 
 function renderMobileSearchQuick() {
   var quick = document.getElementById('mobileSearchQuick');
   if (!quick) return;
   var groups = [
-    { key: 'continue', title: '继续工作', hint: '回到刚才的整理流' },
-    { key: 'eagle-smart', title: 'Eagle 智能文件夹', hint: '同步 Mac 端自动分类' },
-    { key: 'saved', title: '我的智能视图', hint: '常用筛选一键打开' },
-    { key: 'organize', title: '整理队列', hint: '补标签、来源和处理状态' },
-    { key: 'color', title: '主色浏览', hint: '当前视图 Top 色板' },
-    { key: 'source', title: '来源站点', hint: '当前视图 Top 来源' },
+    { key: 'continue', title: '继续浏览', hint: '回到最近内容' },
     { key: 'browse', title: '快速浏览', hint: '常用入口' }
   ];
   var items = getMobileSearchQuickItems();
@@ -2524,10 +2405,8 @@ function renderMobileSearchResults() {
     list.innerHTML =
       '<div class="mobile-search-empty">' +
         '<strong>没有匹配项</strong>' +
-        '<span>试试素材名称、#标签 或 /文件夹。</span>' +
+        '<span>试试素材名称、标签或备注。</span>' +
         '<div class="mobile-search-empty-actions">' +
-          '<button type="button" data-mobile-search-template="#"># 标签</button>' +
-          '<button type="button" data-mobile-search-template="/">/ 文件夹</button>' +
           '<button type="button" data-mobile-search-template="">关键词</button>' +
         '</div>' +
       '</div>';
@@ -3236,18 +3115,8 @@ function setupMobileMoreSheet() {
       openPanel('savedViewsPanel');
     } else if (action === 'workspaces') {
       openWorkspacesPanel([]);
-    } else if (action === 'preset-untagged') {
-      openPresetViewByName('未标签素材');
-    } else if (action === 'preset-unsourced') {
-      openPresetViewByName('未来源素材');
     } else if (action === 'review-undone') {
       startUndoneReview();
-    } else if (action === 'preset-later') {
-      openPresetViewByName('待整理队列');
-    } else if (action === 'preset-undone') {
-      openPresetViewByName('未处理队列');
-    } else if (action === 'preset-done') {
-      openPresetViewByName('已处理成果池');
     } else if (action === 'recent-viewed') {
       showCollection('recentViewed');
     } else if (action === 'filter') {
@@ -4224,15 +4093,10 @@ function renderQuickActionStatePills(item) {
 function updateQuickActionSheetState(sheet, item) {
   var select = sheet.querySelector('[data-quick-action="select"]');
   var fav = sheet.querySelector('[data-quick-action="favorite"]');
-  var later = sheet.querySelector('[data-quick-action="later"]');
-  var done = sheet.querySelector('[data-quick-action="done"]');
   var download = sheet.querySelector('[data-quick-action="download"]');
-  var shareFile = sheet.querySelector('[data-quick-action="share-file"]');
   var status = sheet.querySelector('.quick-action-state');
   var selected = state.selectedIds.has(item.id);
   var favorite = (state.collectionIds.favorite || []).indexOf(item.id) >= 0;
-  var laterOn = (state.collectionIds.later || []).indexOf(item.id) >= 0;
-  var doneOn = (state.collectionIds.done || []).indexOf(item.id) >= 0;
   if (status) status.innerHTML = renderQuickActionStatePills(item);
   if (select) {
     select.classList.toggle('active', selected);
@@ -4242,14 +4106,6 @@ function updateQuickActionSheetState(sheet, item) {
     fav.classList.toggle('active', favorite);
     fav.querySelector('span').textContent = favorite ? '取消收藏' : '收藏';
   }
-  if (later) {
-    later.classList.toggle('active', laterOn);
-    later.querySelector('span').textContent = laterOn ? '移出待整理' : '待整理';
-  }
-  if (done) {
-    done.classList.toggle('active', doneOn);
-    done.querySelector('span').textContent = doneOn ? '移出已处理' : '已处理';
-  }
   if (download) {
     var offline = isRemoteAccessUnavailable();
     download.classList.toggle('requires-remote', offline);
@@ -4257,26 +4113,14 @@ function updateQuickActionSheetState(sheet, item) {
     download.title = offline ? '下载原文件需要连接远程 Vault' : '';
     download.querySelector('span').textContent = offline ? '需联网' : '下载';
   }
-  if (shareFile) {
-    var shareOffline = isRemoteAccessUnavailable();
-    shareFile.classList.toggle('requires-remote', shareOffline);
-    shareFile.disabled = shareOffline;
-    shareFile.title = shareOffline ? '分享原文件需要连接远程 Vault' : '';
-    shareFile.querySelector('span').textContent = shareOffline ? '需联网' : '原文件';
-  }
 }
 
 function updateDesktopContextMenuState(menu, item) {
   var select = menu.querySelector('[data-context-action="select"] span');
   var fav = menu.querySelector('[data-context-action="favorite"] span');
-  var later = menu.querySelector('[data-context-action="later"] span');
-  var done = menu.querySelector('[data-context-action="done"] span');
   var download = menu.querySelector('[data-context-action="download"]');
-  var shareFile = menu.querySelector('[data-context-action="share-file"]');
   if (select) select.textContent = state.selectedIds.has(item.id) ? '取消选择' : '加入选择';
   if (fav) fav.textContent = (state.collectionIds.favorite || []).indexOf(item.id) >= 0 ? '取消收藏' : '加入收藏';
-  if (later) later.textContent = (state.collectionIds.later || []).indexOf(item.id) >= 0 ? '移出待整理' : '加入待整理';
-  if (done) done.textContent = (state.collectionIds.done || []).indexOf(item.id) >= 0 ? '移出已处理' : '标记已处理';
   if (download) {
     var offline = isRemoteAccessUnavailable();
     download.classList.toggle('requires-remote', offline);
@@ -4284,14 +4128,6 @@ function updateDesktopContextMenuState(menu, item) {
     download.title = offline ? '下载原文件需要连接远程 Vault' : '';
     var label = download.querySelector('span');
     if (label) label.textContent = offline ? '需联网' : '下载原文件';
-  }
-  if (shareFile) {
-    var shareOffline = isRemoteAccessUnavailable();
-    shareFile.classList.toggle('requires-remote', shareOffline);
-    shareFile.disabled = shareOffline;
-    shareFile.title = shareOffline ? '分享原文件需要连接远程 Vault' : '';
-    var shareLabel = shareFile.querySelector('span');
-    if (shareLabel) shareLabel.textContent = shareOffline ? '需联网' : '系统分享原文件';
   }
 }
 
@@ -4303,8 +4139,6 @@ function openDesktopContextMenu(item, x, y, sourceEl) {
   if (item.width && item.height) meta.push(item.width + ' × ' + item.height);
   else if (item.size) meta.push(formatSize(item.size));
   var primaryFolder = getPrimaryItemFolder(item);
-  var sourceDomain = getItemSourceDomain(item);
-  var primaryColor = getItemPrimaryPaletteColor(item);
   var menu = document.createElement('div');
   menu.id = 'itemContextMenu';
   menu.className = 'item-context-menu';
@@ -4319,20 +4153,10 @@ function openDesktopContextMenu(item, x, y, sourceEl) {
     '<button type="button" role="menuitem" data-context-action="preview">' + iconEye() + '<span>预览</span><kbd>Enter</kbd></button>' +
     '<button type="button" role="menuitem" data-context-action="inspect">' + iconInfo() + '<span>查看详情</span></button>' +
     (primaryFolder ? '<button type="button" role="menuitem" data-context-action="folder">' + iconFolder() + '<span>打开文件夹</span></button>' : '') +
-    (sourceDomain ? '<button type="button" role="menuitem" data-context-action="source">' + iconExternalLink() + '<span>同来源站点</span></button>' : '') +
-    (primaryColor ? '<button type="button" role="menuitem" data-context-action="palette" style="--context-palette-color:' + escapeHtml(primaryColor) + '"><i class="item-context-color-chip" aria-hidden="true"></i><span>同主色</span><em>' + escapeHtml(primaryColor.toUpperCase()) + '</em></button>' : '') +
     '<button type="button" role="menuitem" data-context-action="select">' + iconCollection() + '<span>加入选择</span></button>' +
     '<div class="item-context-separator"></div>' +
     '<button type="button" role="menuitem" data-context-action="favorite">' + iconBookmark() + '<span>加入收藏</span></button>' +
-    '<button type="button" role="menuitem" data-context-action="later">' + iconClock() + '<span>加入待整理</span></button>' +
-    '<button type="button" role="menuitem" data-context-action="done">' + iconCheck() + '<span>标记已处理</span></button>' +
-    '<button type="button" role="menuitem" data-context-action="workspace">' + iconCollection() + '<span>加入工作集</span></button>' +
-    '<button type="button" role="menuitem" data-context-action="note">' + iconInfo() + '<span>编辑 Viewer 笔记</span></button>' +
     '<button type="button" role="menuitem" data-context-action="share">' + iconExternalLink() + '<span>复制素材链接</span></button>' +
-    '<button type="button" role="menuitem" data-context-action="share-file">' + iconExport() + '<span>系统分享原文件</span></button>' +
-    '<button type="button" role="menuitem" data-context-action="copy-info">' + iconInfo() + '<span>复制素材信息</span></button>' +
-    '<button type="button" role="menuitem" data-context-action="copy-md">' + iconCopy() + '<span>复制 Markdown 引用</span></button>' +
-    '<button type="button" role="menuitem" data-context-action="copy-html">' + iconCopy() + '<span>复制 HTML 引用</span></button>' +
     (canCopyImage(item.ext) ? '<button type="button" role="menuitem" data-context-action="copy">' + iconCopy() + '<span>复制图片</span></button>' : '') +
     '<div class="item-context-separator"></div>' +
     '<button type="button" role="menuitem" data-context-action="download">' + iconDownload() + '<span>下载原文件</span></button>';
@@ -4361,8 +4185,6 @@ function openQuickActionSheet(item) {
   if (!item) return;
   closeQuickActionSheet(true);
   var primaryFolder = getPrimaryItemFolder(item);
-  var sourceDomain = getItemSourceDomain(item);
-  var primaryColor = getItemPrimaryPaletteColor(item);
   var meta = [];
   if (item.ext) meta.push(String(item.ext).toUpperCase());
   if (item.width && item.height) meta.push(item.width + ' × ' + item.height);
@@ -4378,45 +4200,27 @@ function openQuickActionSheet(item) {
       '<div class="quick-action-head">' +
         '<strong>' + escapeHtml(item.name || '未命名素材') + '</strong>' +
         '<span>' + escapeHtml(meta.join(' · ') || '素材') + '</span>' +
-        '<div class="quick-action-state">' + renderQuickActionStatePills(item) + '</div>' +
       '</div>' +
       '<div class="quick-action-sections">' +
         '<section class="quick-action-section primary">' +
-          '<div class="quick-action-section-title"><span>打开</span><em>先看素材，再决定怎么整理</em></div>' +
-          '<div class="quick-action-grid quick-action-grid-primary' + (sourceDomain ? ' has-source' : '') + '">' +
+          '<div class="quick-action-section-title"><span>打开</span><em>预览或查看素材信息</em></div>' +
+          '<div class="quick-action-grid quick-action-grid-primary">' +
             '<button type="button" class="primary-action" data-quick-action="preview">' + iconEye() + '<span>预览</span></button>' +
             '<button type="button" data-quick-action="inspect">' + iconInfo() + '<span>详情</span></button>' +
             (primaryFolder ? '<button type="button" data-quick-action="folder">' + iconFolder() + '<span>文件夹</span></button>' : '') +
-            (sourceDomain ? '<button type="button" data-quick-action="source">' + iconExternalLink() + '<span>来源</span></button>' : '') +
           '</div>' +
         '</section>' +
-        (primaryColor ? '<section class="quick-action-section related" style="--quick-palette-color:' + escapeHtml(primaryColor) + '">' +
-          '<div class="quick-action-section-title"><span>发现相近素材</span><em>沿用 Eagle 的主色整理方式</em></div>' +
-          '<div class="quick-action-grid quick-action-grid-related">' +
-            '<button type="button" data-quick-action="palette" style="--quick-palette-color:' + escapeHtml(primaryColor) + '">' +
-              '<i class="quick-action-color-chip" aria-hidden="true"></i><span>同主色</span><small>' + escapeHtml(primaryColor.toUpperCase()) + '</small>' +
-            '</button>' +
-          '</div>' +
-        '</section>' : '') +
         '<section class="quick-action-section organize">' +
-          '<div class="quick-action-section-title"><span>整理</span><em>跨设备同步到 Viewer 清单</em></div>' +
-          (render.renderItemRatingControl ? render.renderItemRatingControl(item, 'quick-action-rating') : '') +
+          '<div class="quick-action-section-title"><span>操作</span><em>选择素材或加入收藏</em></div>' +
           '<div class="quick-action-grid">' +
             '<button type="button" data-quick-action="select">' + iconCollection() + '<span>选择</span></button>' +
             '<button type="button" data-quick-action="favorite">' + iconBookmark() + '<span>收藏</span></button>' +
-            '<button type="button" data-quick-action="later">' + iconClock() + '<span>待整理</span></button>' +
-            '<button type="button" data-quick-action="done">' + iconCheck() + '<span>已处理</span></button>' +
-            '<button type="button" data-quick-action="workspace">' + iconCollection() + '<span>工作集</span></button>' +
-            '<button type="button" data-quick-action="note">' + iconInfo() + '<span>笔记</span></button>' +
           '</div>' +
         '</section>' +
         '<section class="quick-action-section output">' +
-          '<div class="quick-action-section-title"><span>输出</span><em>带走链接、引用或原文件</em></div>' +
+          '<div class="quick-action-section-title"><span>输出</span><em>复制链接或下载原文件</em></div>' +
           '<div class="quick-action-grid">' +
             '<button type="button" data-quick-action="share">' + iconExternalLink() + '<span>链接</span></button>' +
-            '<button type="button" data-quick-action="share-file">' + iconExport() + '<span>原文件</span></button>' +
-            '<button type="button" data-quick-action="copy-info">' + iconInfo() + '<span>信息</span></button>' +
-            '<button type="button" data-quick-action="copy-md">' + iconCopy() + '<span>Markdown</span></button>' +
             '<button type="button" data-quick-action="download">' + iconDownload() + '<span>下载</span></button>' +
           '</div>' +
         '</section>' +

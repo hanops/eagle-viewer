@@ -36,7 +36,9 @@ def test_api_info_declares_native_capabilities(monkeypatch):
     info = main.api_info()
     assert info["apiVersion"] == 1
     assert info["auth"] == {"session": True, "bearer": True}
-    assert "sharedState" in info["features"]
+    assert "favorites" in info["features"]
+    assert "recentViewed" in info["features"]
+    assert "sharedState" not in info["features"]
 
 
 def test_logout_clears_private_offline_browser_data(monkeypatch):

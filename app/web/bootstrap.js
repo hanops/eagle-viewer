@@ -37,10 +37,17 @@ async function init() {
     render.renderSidebar();
     await api.fetchTags();
     render.renderTagList();
-    await api.fetchEagleSmartFolders();
-    if (render.renderEagleSmartFolders) render.renderEagleSmartFolders();
 
     if (applyStateFromUrl() && state.currentView) {
+      var supportedCollection = state.currentCollection === 'favorite' || state.currentCollection === 'recentViewed';
+      if ((state.currentView === 'collection' && !supportedCollection) ||
+          ['smart', 'eagle-smart', 'duplicates', 'colors', 'random'].indexOf(state.currentView) >= 0) {
+        state.currentView = 'all';
+        state.currentCollection = '';
+        state.currentSmartViewName = '';
+        state.currentEagleSmartFolderId = '';
+      }
+      state.advancedFilters = {};
       interactions.syncToolbarSelects();
       if (interactions.syncFilterForm) interactions.syncFilterForm();
       render.syncActiveNavigationState();
@@ -55,12 +62,6 @@ async function init() {
         await api.doSearch();
       } else if (state.currentView === 'collection' && state.currentCollection) {
         await interactions.showCollection(state.currentCollection);
-      } else if (state.currentView === 'smart' && state.currentSmartViewName) {
-        await interactions.openSmartViewByName(state.currentSmartViewName);
-      } else if (state.currentView === 'random') {
-        await api.loadRandomWalk(state.currentRandomSeed, false);
-      } else if (state.currentView === 'eagle-smart' && state.currentEagleSmartFolderId) {
-        await api.loadEagleSmartFolderItems(state.currentEagleSmartFolderId);
       } else {
         await api.loadAllItems(true);
       }

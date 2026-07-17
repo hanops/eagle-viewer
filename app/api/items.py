@@ -9,8 +9,7 @@ from fastapi import APIRouter, Body, HTTPException
 from fastapi.responses import FileResponse, Response
 from starlette.background import BackgroundTask
 
-from app.vault import get_item, get_folder_paths_for_item, get_similar_items, item_to_dict
-from app.vault.document_preview import DocumentPreviewError, preview_document
+from app.vault import get_item, get_folder_paths_for_item, item_to_dict
 
 router = APIRouter(prefix="/api", tags=["items"])
 
@@ -45,16 +44,6 @@ def api_item_detail(item_id: str):
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
     return item_to_dict(item)
-
-
-@router.get("/items/{item_id}/similar")
-def api_similar_items(item_id: str, limit: int = 12):
-    """Return locally ranked related assets without requiring Eagle AI Search."""
-    item = get_item(item_id)
-    if not item:
-        raise HTTPException(status_code=404, detail="Item not found")
-    bounded_limit = max(1, min(limit, 40))
-    return {"sourceId": item_id, "items": get_similar_items(item_id, bounded_limit)}
 
 
 @router.get("/items/{item_id}/thumbnail")
@@ -127,19 +116,6 @@ def api_item_snippet(item_id: str, limit: int = 240):
     if len(normalized) > char_limit:
         snippet = snippet.rstrip() + "…"
     return {"snippet": snippet}
-
-
-@router.get("/items/{item_id}/document-preview")
-def api_item_document_preview(item_id: str):
-    """Return a bounded, read-only structural preview of a supported document."""
-    item = get_item(item_id)
-    if not item:
-        raise HTTPException(status_code=404, detail="Item not found")
-    try:
-        preview = preview_document(Path(item.main_file_path), item.ext)
-    except DocumentPreviewError as exc:
-        raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
-    return {"itemId": item.id, "name": item.name, "ext": item.ext, "preview": preview}
 
 
 def _sanitize_zip_path(s: str) -> str:
