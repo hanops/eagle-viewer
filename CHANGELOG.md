@@ -1,5 +1,29 @@
 # Changelog
 
+## 2.0.0 - 2026-07-17
+
+### Breaking Changes
+
+- Remove advanced list filters, smart-folder and discovery endpoints, structured document previews, offline snapshots, and extended Viewer state fields.
+- Limit shared Viewer state to favorites and recently viewed items; clients using removed fields or endpoints must migrate to the core browsing API.
+
+### Features
+
+- Focus the desktop and mobile experience on remote browsing, plain search, folders, tags, favorites, recent items, native preview, and download.
+- Add a complete light theme alongside the dark theme and improve text size, contrast, and mobile touch targets.
+- Keep two predictable layouts—waterfall grid and list—with a smaller image preview toolbar and browser-native media controls.
+- Keep the PWA installable while caching only the static application shell, never API responses, thumbnails, or original Vault files.
+
+### Fixes
+
+- Remove organize queues, smart views, smart folders, tools, source-domain filtering, special search syntax, autoplay, filmstrips, and complex batch actions from user-facing surfaces.
+- Align desktop and iPhone navigation, search, Inspector, and batch output with the simplified product boundary.
+
+### Testing
+
+- Replace removed feature contracts with focused coverage for core APIs, state synchronization, PWA cache boundaries, layouts, search, preview formats, themes, and protected folders.
+- Verify desktop and 390 x 844 mobile flows in a real browser with no console errors or warnings.
+
 ## 1.6.0 - 2026-07-16
 
 ### Features
