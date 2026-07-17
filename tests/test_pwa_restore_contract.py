@@ -13,10 +13,10 @@ def test_static_shell_uses_one_asset_revision():
     index = read("app/web/index.html")
     service_worker = read("app/web/sw.js")
     for asset in ("styles.css", "core.js", "render.js", "api.js", "interactions.js", "bootstrap.js"):
-        versioned = f"/static/{asset}?v=1.92"
+        versioned = f"/static/{asset}?v=1.93"
         assert versioned in index
         assert versioned in service_worker
-    assert "eagle-viewer-shell-v38" in service_worker
+    assert "eagle-viewer-shell-v39" in service_worker
 
 
 def test_service_worker_only_caches_the_app_shell():
@@ -123,6 +123,17 @@ def test_theme_and_mobile_navigation_remain_available():
     assert "setAttribute('data-theme', theme)" in interactions
     for element_id in ("mobileLibraryBtn", "mobileFavoriteBtn", "mobileSearchBtn", "mobileMoreBtn"):
         assert f'id="{element_id}"' in index
+
+
+def test_iphone_layout_uses_dynamic_viewport_and_balanced_safe_areas():
+    index = read("app/web/index.html")
+    styles = read("app/web/styles.css")
+    assert "viewport-fit=cover, interactive-widget=resizes-content" in index
+    assert "height:100dvh" in styles
+    assert "--mobile-home-gap:max(8px,calc(env(safe-area-inset-bottom,0px) - 18px))" in styles
+    assert "height:calc(64px + env(safe-area-inset-top,0px))" in styles
+    assert "height:var(--mobile-tab-height)" in styles
+    assert "padding-bottom:20px" in styles
 
 
 def test_protected_folder_boundary_is_documented():
