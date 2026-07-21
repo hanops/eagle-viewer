@@ -13,10 +13,10 @@ def test_static_shell_uses_one_asset_revision():
     index = read("app/web/index.html")
     service_worker = read("app/web/sw.js")
     for asset in ("styles.css", "core.js", "render.js", "api.js", "interactions.js", "bootstrap.js"):
-        versioned = f"/static/{asset}?v=1.93"
+        versioned = f"/static/{asset}?v=1.94"
         assert versioned in index
         assert versioned in service_worker
-    assert "eagle-viewer-shell-v39" in service_worker
+    assert "eagle-viewer-shell-v40" in service_worker
 
 
 def test_service_worker_only_caches_the_app_shell():

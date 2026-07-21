@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.0.1 - 2026-07-21
+
+### Fixes
+
+- Fill the available iPhone viewport in Safari and installed PWA mode, including dynamic browser chrome and safe areas.
+- Increase mobile search, navigation, and bottom-tab spacing while removing excess space below the primary actions.
+
 ## 2.0.0 - 2026-07-17
 
 ### Breaking Changes
