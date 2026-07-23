@@ -522,7 +522,7 @@ function normalizeWorkspaces(value) {
     var name = String(raw.name || '').trim().slice(0, 80);
     if (!id || !name || seen[id]) return null;
     seen[id] = true;
-    var color = /^#[0-9a-f]{6}$/i.test(String(raw.color || '')) ? String(raw.color).toLowerCase() : '#4f82d9';
+    var color = /^#[0-9a-f]{6}$/i.test(String(raw.color || '')) ? String(raw.color).toLowerCase() : '#b06a3a';
     return {
       id: id,
       name: name,
@@ -1083,7 +1083,7 @@ function createWorkspace(name, color) {
   var workspace = {
     id: 'ws-' + now.toString(36) + '-' + Math.random().toString(36).slice(2, 7),
     name: cleanName,
-    color: /^#[0-9a-f]{6}$/i.test(String(color || '')) ? String(color).toLowerCase() : '#4f82d9',
+    color: /^#[0-9a-f]{6}$/i.test(String(color || '')) ? String(color).toLowerCase() : '#b06a3a',
     itemIds: uniqueIdList(workspaceContextItemIds).slice(0, 500),
     createdAt: now,
     updatedAt: now

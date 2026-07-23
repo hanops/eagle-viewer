@@ -1,4 +1,5 @@
 import json
+import re
 from pathlib import Path
 
 
@@ -145,3 +146,28 @@ def test_protected_folder_boundary_is_documented():
     checklist = read("docs/regression-checklist.md")
     assert "密码保护文件夹及后代素材不进入索引" in checklist
     assert "全部文件、最近、收藏、文件夹、标签、搜索" in checklist
+
+
+def test_accent_tokens_are_not_self_referential():
+    # Regression guard: a sweep that rewrote hardcoded blues into var(--accent)
+    # produced `--accent:var(--accent)` cyclic references, which CSS resolves to
+    # a guaranteed-invalid value and blanks the global accent across the whole app.
+    styles = read("app/web/styles.css")
+    pattern = re.compile(
+        r"^\s*(--accent(?:-text)?)\s*:\s*var\(\1\)\s*;",
+        re.MULTILINE,
+    )
+    self_ref = [m.group(0).strip() for m in pattern.finditer(styles)]
+    assert self_ref == [], f"accent self-references found: {self_ref}"
+
+
+def test_accent_tokens_resolve_to_concrete_values():
+    # The accent token must never be left blank (`--accent:;`), which would blank
+    # the global accent. Concrete colors and references to *other* tokens are fine.
+    styles = read("app/web/styles.css")
+    bad = []
+    for m in re.finditer(r"(--accent(?:-text)?)\s*:\s*([^;]+);", styles):
+        value = m.group(2).strip()
+        if value == "":
+            bad.append(m.group(0).strip())
+    assert bad == [], f"blank accent token definitions: {bad}"

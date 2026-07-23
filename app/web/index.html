@@ -17,9 +17,12 @@
   <meta name="apple-mobile-web-app-title" content="Eagle Vault" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="format-detection" content="telephone=no" />
-  <meta name="theme-color" content="#191a1d" />
+  <meta name="theme-color" content="#191712" />
   <title>Eagle Vault Viewer</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232c7be5'/%3E%3Cpath d='M17 20h30v7H25v9h18v7H25v1h23v7H17z' fill='white'/%3E%3C/svg%3E" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23b06a3a'/%3E%3Cpath d='M17 20h30v7H25v9h18v7H25v1h23v7H17z' fill='white'/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Public+Sans:wght@400;500;600;700&display=swap" />
   <link rel="stylesheet" href="/static/styles.css?v=1.95" />
   <link rel="manifest" href="/manifest.json" />
   <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png" />
@@ -180,7 +183,7 @@
       <label>主色
         <span class="color-filter-control">
           <input type="checkbox" id="filterColorEnabled" />
-          <input type="color" id="filterColor" value="#4f82d9" aria-label="选择主色" />
+          <input type="color" id="filterColor" value="#b06a3a" aria-label="选择主色" />
           <span>启用</span>
         </span>
       </label>
@@ -260,7 +263,7 @@
     <div class="workspace-context" id="workspaceContext" hidden></div>
     <div class="workspace-create-row">
       <input type="text" id="workspaceName" maxlength="80" placeholder="新建项目、灵感板或交付集" />
-      <input type="color" id="workspaceColor" value="#4f82d9" aria-label="工作集颜色" />
+      <input type="color" id="workspaceColor" value="#b06a3a" aria-label="工作集颜色" />
       <button type="button" id="createWorkspaceBtn" class="primary">新建</button>
     </div>
     <div class="workspace-list" id="workspaceList"></div>
