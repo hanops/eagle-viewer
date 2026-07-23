@@ -6,6 +6,11 @@
 
 - Cache already-viewed mobile thumbnails in IndexedDB so recently browsed images restore instantly on weak networks or after the Vault connection drops; the cache flushes when the source library revision changes, with a bounded LRU and graceful network-only fallback when IndexedDB is unavailable.
 - Add `Caddyfile.example` and remote-access guidance (HTTPS reverse proxy via Tailscale / LAN / public domain) for reaching the mobile PWA from a phone.
+- Redesign the desktop layout: light gallery (Gallery Atelier) as the default line with the dark dense "tool" (Quiet Workbench) as the dark derivation; the app now starts in the light theme by default. Larger whitespace, larger radii, soft shadows, hover lift, and Fraunces display titles; also fixes dark hardcoded values leaking into the light theme.
+
+### Fixes
+
+- Consolidate the duplicated global theme token blocks into a single source and guard against accent self-reference, which had disabled the entire accent color across the UI.
 
 ### Documentation
 
