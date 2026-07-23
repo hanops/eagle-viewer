@@ -17,8 +17,8 @@
       --accent-text:#b06a3a;
       --hover:rgba(31,35,42,.065);
       --sidebar-bg:#e9e9e5;
-      --card-shadow:none;
-      --card-shadow-hover:0 10px 28px rgba(22,22,20,0.09);
+      --card-shadow:0 1px 2px rgba(27,30,35,.05);
+      --card-shadow-hover:0 12px 30px rgba(22,22,20,0.10);
       --overlay-bg:rgba(40,30,20,0.45);
       --marquee-bg:rgba(176,106,58,0.12);
       --font-ui:"Public Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
@@ -3579,7 +3579,7 @@
 
     /* ===== Responsive ===== */
     @media(max-width:1400px){.masonry{column-count:5;}}
-    @media(max-width:1100px){.masonry{column-count:4;}}
+    @media(max-width:1100px){.masonry{column-count:4;} .density-control{display:none;} .toolbar-left{width:188px;min-width:188px;} .readonly-badge{display:none;} .toolbar-center{flex-basis:180px;}}
     @media(max-width:900px){.masonry{column-count:3;}}
 
     @media(max-width:768px){
@@ -3827,56 +3827,60 @@
        source block at the top of the file). */
     body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:-0.01em;}
     .toolbar{
-      height:58px;min-height:58px;padding:0 18px;gap:14px;
-      background:var(--bg);border-bottom-color:var(--border);
+      height:56px;min-height:56px;padding:0 20px;gap:16px;
+      background:var(--bg);
+      border-bottom:1px solid var(--border);
     }
-    .toolbar-left{gap:8px;}
-    .toolbar-title{font-size:14px;font-weight:650;letter-spacing:-0.02em;}
+    .toolbar-left{gap:10px;}
+    .toolbar-title{font-size:15px;font-weight:650;letter-spacing:-0.02em;font-family:var(--font-display);}
     .version-badge{border:0;background:var(--bg3);font-size:10px;}
-    .toolbar-center{max-width:580px;margin:0 auto;padding:0;}
-    .search-box{height:36px;max-width:none;border-radius:10px;background:var(--bg3);border-color:transparent;padding:0 12px;}
-    .search-box:focus-within{border-color:var(--text);box-shadow:0 0 0 3px rgba(255,255,255,0.08);}
-    .toolbar-right{gap:2px;}
-    .tb-btn{width:32px;height:32px;border-radius:7px;}
+    .toolbar-center{max-width:620px;margin:0 auto;padding:0;}
+    .search-box{height:38px;max-width:none;border-radius:11px;background:var(--bg3);border-color:transparent;padding:0 12px;}
+    .search-box:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 16%,transparent);}
+    .toolbar-right{gap:4px;}
+    .tb-btn{width:34px;height:34px;border-radius:9px;}
     .tb-btn.active{color:var(--text);background:var(--bg3);}
-    .tb-select{height:32px;border-radius:7px;border-color:transparent;background:var(--bg3);}
-    .tb-link{padding:7px 8px;border-radius:7px;}
+    .tb-select{height:34px;border-radius:9px;border-color:transparent;background:var(--bg3);}
+    .tb-link{padding:8px 9px;border-radius:9px;}
     .tb-link:hover{background:var(--hover);}
-    .sidebar{background:var(--sidebar-bg);padding:10px 8px 18px;border-right:1px solid var(--border);}
-    .sidebar-workspace{display:flex;flex-direction:column;gap:3px;padding:9px 10px 16px;color:var(--text);}
+    .sidebar{background:var(--sidebar-bg);padding:12px 10px 20px;border-right:1px solid var(--border);}
+    .sidebar-workspace{display:flex;flex-direction:column;gap:3px;padding:10px 12px 18px;color:var(--text);}
     .sidebar-workspace span{font-size:13px;font-weight:650;}
     .sidebar-workspace small{font-size:11px;color:var(--text-muted);}
-    .sidebar-section{margin:12px 0 0;}
-    .sidebar-section-title{padding:0 10px 7px;color:var(--text-muted);font-size:10px;font-weight:650;letter-spacing:0.08em;text-transform:uppercase;}
-    .sidebar-item{min-height:34px;padding:7px 9px;border-radius:7px;gap:8px;}
+    .sidebar-section{margin:14px 0 0;}
+    .sidebar-section-title{padding:0 12px 8px;color:var(--text-muted);font-size:10px;font-weight:650;letter-spacing:0.08em;text-transform:uppercase;}
+    .sidebar-item{min-height:36px;padding:8px 11px;border-radius:9px;gap:10px;}
     .sidebar-item:hover{background:var(--hover);}
     .sidebar-item.active{background:var(--bg3);color:var(--text);}
     .sidebar-item.active .sidebar-item-icon svg{color:var(--text);}
     .sidebar-item-count{font-size:11px;}
-    .tag-chip{border-radius:6px;background:transparent;border-color:transparent;}
+    .tag-chip{border-radius:7px;background:transparent;border-color:transparent;}
     .tag-chip:hover,.tag-chip.active{background:var(--bg3);color:var(--text);}
     .main{background:var(--bg);}
-    .content-toolbar{padding:18px 24px 12px;border-bottom:0;gap:7px;}
+    .content-toolbar{padding:22px 28px 14px;border-bottom:1px solid var(--border);gap:8px;}
     .content-toolbar label{font-size:11px;letter-spacing:0.04em;text-transform:uppercase;}
-    .content-toolbar select{height:32px;border-radius:7px;border-color:transparent;background:var(--bg3);}
-    .quick-filter{height:30px;border-radius:7px;border-color:transparent;background:transparent;padding:0 9px;}
+    .content-toolbar select{height:34px;border-radius:9px;border-color:transparent;background:var(--bg3);}
+    .quick-filter{height:32px;border-radius:9px;border-color:transparent;background:transparent;padding:0 10px;}
     .quick-filter:hover{background:var(--hover);color:var(--text);}
     .quick-filter.active{background:var(--text);border-color:var(--text);color:var(--bg);}
-    .active-filter-chip{height:28px;border-color:transparent;background:var(--bg2);color:var(--text);}
-    .active-filter-clear{height:28px;border-color:transparent;background:var(--bg3);}
-    .content-crumb{height:30px;border-radius:7px;font-size:12px;}
+    .active-filter-chip{height:30px;border-color:transparent;background:var(--bg2);color:var(--text);}
+    .active-filter-clear{height:30px;border-color:transparent;background:var(--bg3);}
+    .content-crumb{height:32px;border-radius:9px;font-size:12px;}
     .content-crumb[aria-current="page"]{background:var(--bg2);box-shadow:0 1px 0 rgba(0,0,0,.03);}
     .content-title{font-size:12px;color:var(--text-muted);font-weight:520;}
-    .content-body{padding:4px 24px 28px;}
-    .list-wrap{border:1px solid var(--border);border-radius:10px;background:var(--bg2);}
+    .content-body{padding:8px 28px 32px;}
+    .list-wrap{border:1px solid var(--border);border-radius:12px;background:var(--bg2);}
     .list-table th{background:var(--bg2);font-size:11px;text-transform:uppercase;letter-spacing:0.04em;}
     .list-table th,.list-table td{border-bottom-color:var(--border);padding:10px;}
     .list-table tbody tr:hover{background:var(--hover);}
     .list-table th.col-check,.list-table td.col-check,.list-table th.col-name,.list-table td.col-name{background:var(--bg2);}
     .list-table tbody tr:hover td.col-check,.list-table tbody tr:hover td.col-name{background:var(--hover);}
-    .card{border:1px solid var(--border);border-radius:10px;background:var(--bg2);box-shadow:none;}
-    .card:hover{box-shadow:var(--card-shadow-hover);}
-    .folder-card{border:1px solid var(--border);border-radius:10px;box-shadow:none;background:var(--bg2);}
+    .masonry{column-gap:18px;}
+    .card{margin-bottom:18px;border:0;border-radius:16px;background:var(--bg2);box-shadow:var(--card-shadow);}
+    .card:hover{transform:translateY(-3px);box-shadow:var(--card-shadow-hover);}
+    .card-thumb{background:var(--bg3);}
+    .card-details-name{font-family:var(--font-display);font-weight:600;font-size:12px;}
+    .folder-card{border:1px solid var(--border);border-radius:14px;box-shadow:var(--card-shadow);background:var(--bg2);}
     .inspector{background:var(--bg2);border-left-color:var(--border);}
     .inspector-header{padding:14px 16px;background:var(--bg);}
     .inspector-fields{padding:18px;}
@@ -3907,8 +3911,11 @@
       .inspector-header{background:var(--bg2);}
     }
 
-    /* Eagle desktop fidelity pass component overrides (token values live in the
-       single source block at the top of the file). */
+    /* Eagle desktop fidelity pass: dark-theme-only overrides. Wrapped in
+       [data-theme="dark"] so these hardcoded dark values no longer leak into
+       the light theme. The mobile @media(max-width:768px) block below stays
+       global (theme-independent). */
+    [data-theme="dark"]{
     body{font-size:12px;background:#191a1d;}
     .toolbar{
       height:42px;min-height:42px;padding:0 10px 0 12px;gap:8px;
@@ -4135,7 +4142,7 @@
     }
     .card-details-name{
       width:100%;
-      font-size:10px;
+      font-size:12px;
       line-height:1.25;
       text-align:center;
       color:#c9cbd0;
@@ -4411,6 +4418,7 @@
       .toolbar-left{width:188px;min-width:188px;}
       .readonly-badge{display:none;}
       .toolbar-center{flex-basis:180px;}
+    }
     }
     @media(max-width:768px){
       .toolbar{height:48px;min-height:48px;padding:env(safe-area-inset-top) 8px 0;}
