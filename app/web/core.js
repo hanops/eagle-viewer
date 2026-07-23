@@ -3,7 +3,7 @@
 var EagleViewer = window.EagleViewer = window.EagleViewer || {};
 
 var API = '';
-var VERSION = '2.0.2';
+var VERSION = '2.0.3';
 var VERSION_DATE = '2026-07-23';
 var PREVIEW_IMAGE_EXTS = ['jpg','jpeg','png','gif','webp','svg','bmp'];
 var PREVIEW_VIDEO_EXTS = ['mp4','webm','mov','m4v'];

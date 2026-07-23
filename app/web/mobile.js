@@ -147,6 +147,7 @@
   const folderSVG = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg>';
   const searchSVG = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>';
   const refreshSVG = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7M21 4v4h-4"/></svg>';
+  const lockSVG = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
 
   // ---------- 状态 ----------
   const S = {
@@ -217,7 +218,7 @@
         html += '<h2>目录</h2>';
       }
     } else if (S.view === 'search') {
-      html += '<h2>搜索</h2>';
+      html += '<button class="back" id="backBtn">' + backSVG + '</button><h2>搜索</h2>';
     } else if (S.view === 'status') {
       html += '<button class="back" id="backBtn">' + backSVG + '</button><h2>连接状态</h2>';
     } else {
@@ -226,7 +227,7 @@
     topbar.innerHTML = html;
     const bb = topbar.querySelector('#backBtn');
     if (bb) bb.onclick = () => {
-      if (S.view === 'status') { S.view = 'library'; setTabActive('library'); renderLibrary(); }
+      if (S.view === 'status' || S.view === 'search') { S.view = 'library'; setTabActive('library'); renderLibrary(); }
       else if (S.view === 'folders' && S.folderStack.length) { S.folderStack.pop(); renderFolders(); }
     };
   }
@@ -306,7 +307,12 @@
         hasMore = !!data.hasMore;
         offset = data.nextOffset || 0;
       }
-    } catch (e) { if (e.message === 'unauthorized') return; viewBody.innerHTML = '<div class="errbox">加载失败：' + esc(e.message) + '</div>'; return; }
+    } catch (e) {
+      if (e.message === 'unauthorized') return;
+      const msg = e.message === 'HTTP 423' ? '该文件夹被 Eagle 锁定，无法在远程查看' : ('加载失败：' + esc(e.message));
+      viewBody.innerHTML = '<div class="errbox">' + msg + '</div>';
+      return;
+    }
     S.folderSubfolders = subfolders;
     S.folderItems = items;
     S.folderHasMore = hasMore; S.folderOffset = offset;
@@ -315,10 +321,10 @@
     if (!atRoot && subfolders.length) html += '<div class="lbl">子文件夹</div>';
     if (subfolders.length) {
       html += subfolders.map(f =>
-        '<button class="fr" data-fid="' + esc(f.id) + '" data-fname="' + esc(f.name) + '">' +
+        '<button class="fr' + (f.locked ? ' locked' : '') + '" data-fid="' + esc(f.id) + '" data-fname="' + esc(f.name) + '"' + (f.locked ? ' data-locked="1"' : '') + '>' +
           '<span class="fico">' + folderSVG + '</span>' +
           '<span class="fn">' + esc(f.name) + '</span>' +
-          '<span class="ct">' + (f.count != null ? f.count : '') + '</span>' + chevSVG +
+          '<span class="ct">' + (f.locked ? lockSVG : (f.count != null ? f.count : '')) + '</span>' + chevSVG +
         '</button>').join('');
     } else if (atRoot) {
       html += '<div class="empty">没有文件夹</div>';
@@ -330,6 +336,7 @@
     viewBody.innerHTML = html;
 
     viewBody.querySelectorAll('.fr').forEach(b => b.onclick = () => {
+      if (b.dataset.locked) { toast('该文件夹被 Eagle 锁定，无法在远程查看'); return; }
       S.folderStack.push({ id: b.dataset.fid, name: b.dataset.fname });
       renderFolders();
       scrollTop();
@@ -521,12 +528,8 @@
     setTimeout(showPreviewItem, 170);
   }
   function updatePeeks() {
-    const list = S.preview.list, i = S.preview.index;
-    const prev = list[i - 1], next = list[i + 1];
-    let peeks = pvStage.querySelectorAll('.pv-peek');
-    peeks.forEach(p => p.remove());
-    if (prev) { const d = document.createElement('div'); d.className = 'pv-peek l'; d.style.backgroundImage = 'url(/api/items/' + prev.id + '/thumbnail)'; pvStage.insertBefore(d, pvImg); }
-    if (next) { const d = document.createElement('div'); d.className = 'pv-peek r'; d.style.backgroundImage = 'url(/api/items/' + next.id + '/thumbnail)'; pvStage.insertBefore(d, pvImg); }
+    // 预览时保持纯净背景：移除相邻项的探出缩略图，避免透出其它结果干扰查看。
+    pvStage.querySelectorAll('.pv-peek').forEach(p => p.remove());
   }
   function applyTransform() { pvImg.style.transform = g.scale > 1 ? 'scale(' + g.scale + ')' : ''; }
   function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }

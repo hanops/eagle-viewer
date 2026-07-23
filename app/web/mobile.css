@@ -199,6 +199,8 @@ a { color: var(--accent); }
   width: 100%; text-align: left; background: none; border-left: none; border-right: none; border-top: none;
 }
 .fr:active { background: var(--bg2); }
+.fr.locked { opacity: .5; }
+.fr.locked:active { background: none; }
 .fr .fico { color: var(--mut); flex: 0 0 auto; }
 .fr .fn { flex: 1; font-size: 14px; font-weight: 500; min-width: 0;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

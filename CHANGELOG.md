@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.0.3 - 2026-07-23
+
+### Fixes
+
+- Mobile: mark Eagle-locked folders (encrypted / smart) with a lock icon and block navigation into them with a friendly message, instead of failing with a raw HTTP 423.
+- Mobile: remove the adjacent thumbnails peeking out behind the full-screen preview so other search results no longer bleed through the background.
+- Mobile: add a back button to the search view to return to the home library.
+- Desktop: give light-theme cards a hairline border and layered shadow so tiles no longer blend into the near-white background (the refined light-card styling had mistakenly been scoped inside the mobile-only media query).
+
+### Documentation
+
+- Advance the PWA shell cache to `eagle-viewer-shell-v42` with static asset revision `1.96`.
+
 ## 2.0.2 - 2026-07-23
 
 ### Features

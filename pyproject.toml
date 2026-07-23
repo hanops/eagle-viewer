@@ -1,6 +1,6 @@
 [project]
 name = "eagle-viewer"
-version = "2.0.2"
+version = "2.0.3"
 description = "Read-only viewer for Eagle libraries"
 readme = "README.md"
 requires-python = ">=3.11"
