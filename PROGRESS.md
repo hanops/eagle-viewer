@@ -4,13 +4,14 @@
 > 与 `CHANGELOG.md`（记录“已发布了什么”）、`AGENTS.md`（通用结构与命令）互补。
 > 每次做出会影响后续迭代的决策或踩到新坑，请追加到此文件。
 
-最后更新：2026-07-23 · 当前版本：**2.0.2（已发布）**
+最后更新：2026-07-23 · 当前版本：**2.0.3（已发布）**
 
 ---
 
 ## 1. 当前状态
 
 - **v2.0.2 已发布**：tag `v2.0.2` 已推送，GitHub Release 已建。此版本主要为桌面端视觉重做。
+- **v2.0.3 已发布**：tag `v2.0.3` 已推送，GitHub Release 已建。此版本修复移动端三处体验（锁文件夹拦截提示、预览背景透出其它搜索结果、搜索页返回主页按钮）与桌面浅色卡片边框缺失。静态资源 revision 升至 `1.96`、SW shell 缓存升至 `eagle-viewer-shell-v42`。改动均未碰后端 `/api`。
 - 版本号一致性由 `make check` 的 version-check 保证，**只比对三处**：`pyproject.toml`、`README.md`、`app/web/core.js`。改版本号时这三处必须同步（`uv.lock` 里项目自身版本也需一致，`uv sync` 会带出）。
 - 工作树中 `docs/mockups/web-desktop-redesign.html` 是**有意保留**的设计参考稿（untracked），不是临时文件，勿删。
 
@@ -45,6 +46,9 @@
 - **SW 不得缓存 `/api`**：契约测试会失败。
 - **`warmCurrentOfflineSnapshot`（桌面）是存活功能**，曾被误判为无效旧代码，实为移动端相关，勿删。
 - **`v2.0.1` 从未打 tag**：CHANGELOG 里有 `2.0.1` 发布段，但仓库无 `v2.0.1` tag（现有 tag 到 `v2.0.0` 再到 `v2.0.2`）。`gh release create` 不能用 `--notes-start-tag v2.0.1`，去掉该参数让 gh 自动推断上一 tag。
+- **PWA 测试硬编码静态资源版本号**：`tests/test_pwa_restore_contract.py::test_static_shell_uses_one_asset_revision` 内硬编码 `?v=1.95` 与 `eagle-viewer-shell-v41`，并断言 `index.html`/`mobile.html`/`sw.js` 都含该版本。**bump 静态资源 revision（如 `1.95`→`1.96`）或 SW 缓存名（如 `v41`→`v42`）时，必须同步改这条测试**，否则 `make check` 的 pytest 失败。
+- **`git fetch --tags origin` 会因本地旧 tag 让 `&&` 链中断**：若本地已存在同名旧 tag（如 `v1.4.0`），fetch 报 `would clobber existing tag` 返回非零，整条 `&&` 构建链会在 fetch 处断（表象像 checkout 失败）。构建时直接用 `git checkout -f vX.Y.Z`（tag 上次已 fetch 存在）即可，或 `git fetch --tags origin || true`。
+- **`uv run` 会顺带把 `uv.lock` 里项目自身版本号同步成新版本**（如 `2.0.2`→`2.0.3`）。若 `make check` 触发 `uv run` 后发现 `uv.lock` 变脏，补一个 `uv.lock` 同步提交即可（不影响 docker 构建，后者用 `requirements.txt`）。
 
 ---
 
