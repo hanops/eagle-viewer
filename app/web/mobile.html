@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#14151a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="apple-touch-icon" href="/static/icon-192.png" />
+  <title>Eagle Vault Viewer</title>
+  <link rel="stylesheet" href="/static/mobile.css?v=1.95" />
+</head>
+<body>
+  <div id="app">
+    <header class="top" id="topbar">
+      <!-- 由 JS 渲染：返回键 + 标题 / 面包屑 -->
+    </header>
+
+    <main class="bd" id="view">
+      <div class="pad" id="viewBody">
+        <div class="spinner"></div>
+      </div>
+    </main>
+
+    <nav class="tabs" id="tabs">
+      <button class="tb active" data-view="library">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 12l9 4 9-4M3 17l9 4 9-4"/></svg>
+        LIBRARY
+      </button>
+      <button class="tb" data-view="folders">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg>
+        FOLDERS
+      </button>
+      <button class="tb" data-view="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+        SEARCH
+      </button>
+    </nav>
+  </div>
+
+  <!-- 预览浮层 -->
+  <div class="overlay" id="preview" aria-hidden="true">
+    <div class="pv-top">
+      <button id="pvClose" aria-label="关闭">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+      <span class="ix" id="pvIndex">1 / 1</span>
+      <span class="spacer"></span>
+      <button id="pvShare" aria-label="分享">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/><path d="M12 3v13M8 7l4-4 4 4"/></svg>
+      </button>
+    </div>
+    <div class="pv-stage" id="pvStage">
+      <img class="pv-img" id="pvImg" alt="" />
+    </div>
+    <div class="pv-bottom">
+      <div class="nm" id="pvName">—</div>
+      <div class="meta" id="pvMeta">—</div>
+      <div class="pv-actions">
+        <a id="pvDownload" class="primary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14"/></svg>
+          下载
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/mobile.js?v=1.95"></script>
+</body>
+</html>

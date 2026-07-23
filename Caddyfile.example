@@ -1,0 +1,33 @@
+# Eagle Vault Viewer — Caddy 反向代理示例
+#
+# 用途：在 eagle-viewer 服务前加一层 HTTPS 反代，让手机通过局域网 / VPN /
+# 公网域名安全访问。Caddy 自动申请并续期证书，从而解锁浏览器
+# navigator.share（分享到其它 App）与剪贴板写入（这些能力要求 HTTPS 或
+# localhost）。
+#
+# 用法（配合 docker-compose.remote.example.yml 的 caddy 段）：
+#   1. 把本文件复制为 Caddyfile，或保持 Caddyfile.example 并在 compose 的
+#      caddy 服务里把 ./Caddyfile.example 挂载为 /etc/caddy/Caddyfile。
+#   2. 在 docker-compose.remote.example.yml 中取消 caddy 段注释。
+#   3. 把下面的示例域名 / IP 改成你自己的。
+
+{
+	# 公网 HTTPS 时必填，用于 Let's Encrypt 证书注册
+	# email you@example.com
+}
+
+# —— 方式 A：Tailscale 内网域名（推荐，免公网端口转发，自动 HTTPS）——
+# 前提：服务端已加入 Tailscale，并在 Admin Console 开启 HTTPS。
+# your-tailnet.ts.net {
+# 	reverse_proxy eagle-viewer:8000
+# }
+
+# —— 方式 B：自有域名（公网或内网都行）——
+# viewer.example.com {
+# 	reverse_proxy eagle-viewer:8000
+# }
+
+# —— 方式 C：纯局域网 HTTP（无证书；分享 / 复制不可用）——
+:80 {
+	reverse_proxy eagle-viewer:8000
+}

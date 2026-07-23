@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.0.2 - 2026-07-23 (unreleased)
+
+### Features
+
+- Cache already-viewed mobile thumbnails in IndexedDB so recently browsed images restore instantly on weak networks or after the Vault connection drops; the cache flushes when the source library revision changes, with a bounded LRU and graceful network-only fallback when IndexedDB is unavailable.
+- Add `Caddyfile.example` and remote-access guidance (HTTPS reverse proxy via Tailscale / LAN / public domain) for reaching the mobile PWA from a phone.
+
+### Documentation
+
+- Correct the mobile PWA description: thumbnails are now cached offline, not omitted.
+- Advance the PWA shell cache to `eagle-viewer-shell-v41` with static asset revision `1.95`.
+
 ## 2.0.1 - 2026-07-21
 
 ### Fixes

@@ -1,0 +1,492 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Eagle Viewer · Mobile PWA v2 — 工具风画板</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  /* ============ artboard (dark workbench, matches subject) ============ */
+  :root{
+    --board:oklch(16% .006 260);
+    --board2:oklch(19% .006 260);
+    --b-ink:oklch(92% .005 260);
+    --b-mut:oklch(62% .01 260);
+    --b-line:oklch(30% .008 260);
+    --acc:oklch(72% .14 250);
+
+    /* ---- phone: DARK theme tokens ---- */
+    --d-bg:oklch(18% .006 260);        /* canvas */
+    --d-bg2:oklch(22% .007 260);       /* raised */
+    --d-bg3:oklch(26% .008 260);       /* raised-2 / inputs */
+    --d-ink:oklch(93% .004 260);
+    --d-mut:oklch(64% .01 260);
+    --d-line:oklch(31% .008 260);
+    --d-acc:oklch(74% .13 250);        /* single accent: eagle blue */
+    --d-good:oklch(75% .14 160);
+    --d-warn:oklch(78% .13 75);
+
+    /* ---- phone: LIGHT theme tokens ---- */
+    --l-bg:oklch(96% .004 260);
+    --l-bg2:oklch(99% .002 260);
+    --l-bg3:oklch(92% .006 260);
+    --l-ink:oklch(24% .01 260);
+    --l-mut:oklch(52% .012 260);
+    --l-line:oklch(86% .006 260);
+    --l-acc:oklch(52% .16 255);
+    --l-good:oklch(56% .14 160);
+
+    --sans:"Archivo",-apple-system,sans-serif;
+    --mono:"JetBrains Mono",ui-monospace,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-font-smoothing:antialiased;}
+  body{background:var(--board);color:var(--b-ink);font-family:var(--sans);padding:52px clamp(20px,4vw,72px) 110px;}
+  .wrap{max-width:1640px;margin:0 auto;}
+
+  /* header */
+  .kick{display:inline-flex;align-items:center;gap:9px;font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--b-mut);border:1px solid var(--b-line);padding:7px 14px;border-radius:6px;}
+  .kick b{width:7px;height:7px;border-radius:50%;background:var(--d-good);}
+  h1{font-size:clamp(34px,4.6vw,58px);font-weight:800;letter-spacing:-.03em;line-height:1.05;margin:20px 0 12px;}
+  h1 span{color:var(--acc);}
+  .sub{max-width:760px;color:var(--b-mut);font-size:15px;line-height:1.75;}
+  .sub b{color:var(--b-ink);font-weight:600;}
+  .toks{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px;}
+  .tok{font-family:var(--mono);font-size:11.5px;color:var(--b-mut);border:1px solid var(--b-line);background:var(--board2);padding:7px 12px;border-radius:6px;}
+  .tok em{font-style:normal;color:var(--b-ink);}
+
+  /* board */
+  .board{display:flex;flex-wrap:wrap;gap:clamp(28px,3.5vw,56px);align-items:flex-start;margin-top:54px;}
+  .frame{width:322px;flex:0 0 auto;}
+  .cap{display:flex;gap:11px;margin-bottom:14px;align-items:flex-start;}
+  .cap .n{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--acc);border:1px solid var(--b-line);border-radius:6px;width:26px;height:26px;display:grid;place-items:center;flex:0 0 auto;}
+  .cap h3{font-size:15.5px;font-weight:700;letter-spacing:-.01em;}
+  .cap p{font-size:12px;color:var(--b-mut);margin-top:2px;font-family:var(--mono);}
+
+  /* phone shell */
+  .phone{width:322px;height:700px;border-radius:44px;padding:10px;background:oklch(24% .006 260);
+    box-shadow:0 34px 80px oklch(8% .01 260 / .8),inset 0 0 0 1.5px oklch(38% .008 260 / .6);}
+  .scr{position:relative;width:100%;height:100%;border-radius:35px;overflow:hidden;display:flex;flex-direction:column;
+    background:var(--d-bg);color:var(--d-ink);font-size:14px;}
+  .scr.light{background:var(--l-bg);color:var(--l-ink);}
+  .notch{position:absolute;top:0;left:50%;transform:translateX(-50%);width:112px;height:24px;background:oklch(10% .005 260);border-radius:0 0 14px 14px;z-index:50;}
+
+  .sbar{height:42px;flex:0 0 42px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 22px 5px;font-family:var(--mono);font-size:11.5px;font-weight:500;}
+  .sbar .r{display:flex;gap:6px;}
+  .ic{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;}
+  .ic.s{width:16px;height:16px;}
+  .ic.l{width:23px;height:23px;}
+
+  .bd{flex:1;overflow-y:auto;overflow-x:hidden;position:relative;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+  .bd::-webkit-scrollbar{width:0;height:0;}
+  .pad{position:relative;min-height:100%;padding:2px 14px 14px;overflow:visible;}
+
+  /* ===== dark theme components ===== */
+  .top{display:flex;align-items:center;justify-content:space-between;margin:6px 2px 12px;}
+  .top h2{font-size:21px;font-weight:700;letter-spacing:-.02em;}
+  .lbl{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--d-mut);margin:18px 3px 9px;}
+  .scr.light .lbl{color:var(--l-mut);}
+
+  /* status strip — the "library card" replacement: a tool bar, not a marketing card */
+  .strip{display:flex;align-items:center;gap:10px;background:var(--d-bg2);border:1px solid var(--d-line);border-radius:10px;padding:11px 12px;}
+  .strip .dot{width:8px;height:8px;border-radius:50%;background:var(--d-good);box-shadow:0 0 0 3px oklch(75% .14 160 / .18);flex:0 0 auto;}
+  .strip .nm{font-weight:700;font-size:14px;letter-spacing:-.01em;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .strip .mono{font-family:var(--mono);font-size:11px;color:var(--d-mut);}
+  .counts{display:flex;gap:0;margin-top:10px;border:1px solid var(--d-line);border-radius:10px;overflow:hidden;background:var(--d-bg2);}
+  .counts div{flex:1;padding:10px 12px;border-right:1px solid var(--d-line);}
+  .counts div:last-child{border-right:0;}
+  .counts b{font-family:var(--mono);font-size:16px;font-weight:700;display:block;}
+  .counts span{font-size:11px;color:var(--d-mut);}
+
+  .srch{display:flex;align-items:center;gap:9px;background:var(--d-bg3);border:1px solid var(--d-line);border-radius:10px;padding:11px 12px;color:var(--d-mut);font-size:13.5px;margin-top:12px;}
+  .scr.light .srch{background:var(--l-bg2);border-color:var(--l-line);color:var(--l-mut);}
+
+  /* folder rows */
+  .rows{border:1px solid var(--d-line);border-radius:10px;overflow:hidden;background:var(--d-bg2);}
+  .fr{display:flex;align-items:center;gap:11px;padding:11.5px 12px;border-bottom:1px solid var(--d-line);}
+  .fr:last-child{border-bottom:0;}
+  .fr .fi{color:var(--d-acc);flex:0 0 auto;display:grid;place-items:center;}
+  .fr b{font-size:13.5px;font-weight:600;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.005em;}
+  .fr .ct{font-family:var(--mono);font-size:11px;color:var(--d-mut);}
+  .fr .ch{color:var(--d-mut);opacity:.55;}
+
+  .crumb{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:11.5px;color:var(--d-mut);margin:0 2px 12px;white-space:nowrap;overflow:hidden;}
+  .crumb b{color:var(--d-ink);font-weight:500;}
+  .crumb i{font-style:normal;opacity:.45;}
+
+  /* ===== SIGNATURE: irregular masonry ===== */
+  .mas{display:flex;gap:7px;}
+  .mas .col{flex:1;display:flex;flex-direction:column;gap:7px;min-width:0;}
+  .th{position:relative;border-radius:8px;overflow:hidden;width:100%;}
+  .th .ext{position:absolute;left:5px;bottom:5px;font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.06em;color:#fff;background:oklch(15% .01 260/.72);padding:2px 5px;border-radius:4px;backdrop-filter:blur(3px);}
+  .th .dur{position:absolute;right:5px;bottom:5px;font-family:var(--mono);font-size:9px;color:#fff;background:oklch(15% .01 260/.72);padding:2px 5px;border-radius:4px;}
+  /* placeholder art */
+  .a1{background:linear-gradient(150deg,oklch(70% .1 20),oklch(78% .09 60));}
+  .a2{background:linear-gradient(150deg,oklch(65% .1 250),oklch(75% .08 200));}
+  .a3{background:linear-gradient(150deg,oklch(60% .11 300),oklch(72% .09 340));}
+  .a4{background:linear-gradient(150deg,oklch(35% .03 250),oklch(48% .04 270));}
+  .a5{background:linear-gradient(150deg,oklch(75% .1 90),oklch(70% .11 40));}
+  .a6{background:linear-gradient(150deg,oklch(68% .12 160),oklch(74% .09 210));}
+  .a7{background:linear-gradient(150deg,oklch(80% .06 330),oklch(88% .04 20));}
+  .a8{background:linear-gradient(150deg,oklch(45% .09 260),oklch(60% .1 290));}
+  .a9{background:linear-gradient(150deg,oklch(82% .07 130),oklch(70% .1 170));}
+
+  /* tab bar */
+  .tabs{flex:0 0 62px;display:flex;align-items:stretch;justify-content:space-around;padding:6px 10px 12px;border-top:1px solid var(--d-line);background:oklch(20% .006 260/.92);backdrop-filter:blur(14px);}
+  .scr.light .tabs{border-top-color:var(--l-line);background:oklch(98% .003 260/.9);}
+  .tb{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--d-mut);font-family:var(--mono);font-size:10px;letter-spacing:.08em;flex:1;border-radius:9px;}
+  .tb.on{color:var(--d-acc);}
+  .scr.light .tb{color:var(--l-mut);}
+  .scr.light .tb.on{color:var(--l-acc);}
+
+  /* preview */
+  .scr.pv{background:oklch(12% .005 260);}
+  .pvt{position:absolute;top:42px;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:8px 14px;z-index:30;color:#fff;}
+  .pvt .cb{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;background:oklch(25% .008 260/.7);backdrop-filter:blur(8px);border:1px solid oklch(40% .008 260/.4);}
+  .pvt .ix{font-family:var(--mono);font-size:11px;color:oklch(75% .005 260);}
+  .pvimg{position:absolute;inset:0;display:grid;place-items:center;}
+  .pvimg .im{width:86%;aspect-ratio:3/4;border-radius:14px;box-shadow:0 20px 60px oklch(5% 0 0/.6);}
+  .pvb{position:absolute;left:0;right:0;bottom:0;padding:14px 14px 22px;z-index:30;background:linear-gradient(0deg,oklch(12% .005 260/.94),transparent);}
+  .pvb h4{font-size:14.5px;font-weight:700;color:#fff;letter-spacing:-.01em;}
+  .pvb .meta{font-family:var(--mono);font-size:10.5px;color:oklch(66% .008 260);margin-top:4px;}
+  .pvacts{display:flex;gap:8px;margin-top:14px;}
+  .pbt{flex:1;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:7px;font-size:13px;font-weight:700;background:oklch(28% .008 260/.8);color:#fff;border:1px solid oklch(40% .008 260/.35);backdrop-filter:blur(8px);}
+  .pbt.pri{flex:1.6;background:var(--d-acc);color:oklch(16% .02 250);border:0;}
+  /* swipe-dismiss frame */
+  .ghostgrid{position:absolute;inset:0;padding:56px 14px 0;opacity:.5;filter:blur(1px);}
+  .dragcard{position:absolute;left:50%;top:54%;transform:translate(-50%,-50%) scale(.62);width:86%;aspect-ratio:3/4;border-radius:22px;box-shadow:0 30px 70px oklch(5% 0 0/.7);z-index:20;}
+  .draghint{position:absolute;bottom:26px;left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:8px;z-index:30;color:oklch(80% .005 260);}
+  .draghint .arrow{width:22px;height:22px;}
+  .draghint span{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;}
+  .dim{position:absolute;inset:0;background:oklch(12% .005 260/.5);z-index:10;}
+
+  /* immersive preview: peek slivers + pinch/tap hints */
+  .peek{position:absolute;top:13%;bottom:13%;width:17%;border-radius:12px;opacity:.42;filter:blur(.6px);z-index:5;}
+  .peek.l{left:1.5%;transform:scale(.92);transform-origin:left center;}
+  .peek.r{right:1.5%;transform:scale(.92);transform-origin:right center;}
+  .pvhint{position:absolute;left:0;right:0;bottom:20px;display:flex;flex-direction:column;align-items:center;gap:7px;z-index:30;color:oklch(80% .005 260);pointer-events:none;}
+  .pvhint .pinch{width:24px;height:24px;opacity:.85;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;}
+  .pvhint span{font-family:var(--mono);font-size:10px;letter-spacing:.12em;}
+
+  /* status page */
+  .stt{border:1px solid var(--d-line);border-radius:10px;background:var(--d-bg2);overflow:hidden;}
+  .stt .hd{display:flex;align-items:center;gap:10px;padding:13px 12px;border-bottom:1px solid var(--d-line);}
+  .stt .hd .dot{width:9px;height:9px;border-radius:50%;background:var(--d-good);box-shadow:0 0 0 3px oklch(75% .14 160/.16);}
+  .stt .hd b{font-size:14px;font-weight:700;}
+  .stt .hd span{font-family:var(--mono);font-size:10.5px;color:var(--d-mut);margin-left:auto;}
+  .kv{display:flex;justify-content:space-between;align-items:center;padding:10.5px 12px;border-bottom:1px solid var(--d-line);font-size:12.5px;}
+  .kv:last-child{border-bottom:0;}
+  .kv span{color:var(--d-mut);}
+  .kv b{font-family:var(--mono);font-size:11.5px;font-weight:500;max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .kv b.g{color:var(--d-good);}
+  .actbtn{width:100%;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:13.5px;font-weight:700;margin-top:10px;border:1px solid var(--d-line);background:var(--d-bg2);color:var(--d-ink);}
+  .actbtn.pri{background:var(--d-acc);color:oklch(16% .02 250);border:0;}
+  .warnrow{display:flex;gap:10px;align-items:center;border:1px solid oklch(78% .13 75/.4);background:oklch(78% .13 75/.08);border-radius:10px;padding:11px 12px;margin-top:14px;}
+  .warnrow b{font-size:12.5px;font-weight:700;}
+  .warnrow span{display:block;font-family:var(--mono);font-size:10px;color:var(--d-mut);margin-top:2px;}
+
+  /* light-theme overrides used in frame 6 */
+  .scr.light .strip,.scr.light .counts,.scr.light .rows{background:var(--l-bg2);border-color:var(--l-line);}
+  .scr.light .counts div{border-color:var(--l-line);}
+  .scr.light .counts span,.scr.light .strip .mono,.scr.light .fr .ct{color:var(--l-mut);}
+  .scr.light .fr{border-color:var(--l-line);}
+  .scr.light .fr .fi{color:var(--l-acc);}
+  .scr.light .strip .dot{background:var(--l-good);box-shadow:0 0 0 3px oklch(56% .14 160/.15);}
+  .scr.light .lblv{color:var(--l-mut);}
+
+  /* note */
+  .note{width:300px;flex:0 0 auto;}
+  .note .bx{border:1px dashed var(--b-line);border-radius:12px;padding:20px;background:var(--board2);}
+  .note h4{font-size:15px;font-weight:800;letter-spacing:-.01em;margin-bottom:14px;}
+  .note h4 i{font-style:normal;color:var(--acc);font-family:var(--mono);font-size:11px;letter-spacing:.12em;display:block;margin-bottom:6px;}
+  .note ul{list-style:none;display:flex;flex-direction:column;gap:11px;}
+  .note li{font-size:12.5px;color:var(--b-mut);line-height:1.6;padding-left:16px;position:relative;}
+  .note li::before{content:"";position:absolute;left:0;top:7px;width:7px;height:7px;border-radius:2px;background:var(--acc);}
+  .note li b{color:var(--b-ink);font-weight:600;}
+
+  footer{margin-top:72px;padding-top:22px;border-top:1px solid var(--b-line);color:var(--b-mut);font-size:12.5px;font-family:var(--mono);line-height:1.8;}
+  footer b{color:var(--b-ink);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <span class="kick"><b></b>EAGLE VIEWER / MOBILE PWA / V2</span>
+    <h1>工具风重构 <span>·</span> 瀑布流为王</h1>
+    <p class="sub">方向锁定后的第二稿：<b>Eagle 桌面工具的手机延伸</b>。深灰工作台材质、等宽字体数据层、单一强调色；界面全面退后，<b>保真宽高比的不规则瀑布流</b>是唯一视觉签名。签名交互为预览<b>跟手下拉关闭</b>。深浅双主题跟随系统。</p>
+    <div class="toks">
+      <div class="tok">type <em>Archivo + JetBrains Mono</em></div>
+      <div class="tok">bg <em>oklch(18% .006 260)</em></div>
+      <div class="tok">accent <em>oklch(74% .13 250)</em> 全局唯一</div>
+      <div class="tok">radius <em>10px 面板 / 8px 缩略图</em></div>
+      <div class="tok">grid <em>2 列 masonry · gap 7px</em></div>
+    </div>
+  </header>
+
+  <div class="board">
+
+    <!-- 1 HOME dark -->
+    <div class="frame">
+      <div class="cap"><span class="n">01</span><div><h3>资源库首页</h3><p>REQ 1+3 · 点状态条看连接详情</p></div></div>
+      <div class="phone"><div class="scr"><div class="notch"></div>
+        <div class="sbar"><span>09:41</span><div class="r"><svg class="ic s" viewBox="0 0 24 24"><path d="M2 12h4v6H2zM9 8h4v10H9zM16 4h4v14h-4z"/></svg><svg class="ic s" viewBox="0 0 24 24"><rect x="2" y="7" width="18" height="10" rx="2"/><path d="M22 10v4"/></svg></div></div>
+        <div class="bd"><div class="pad">
+          <div class="top"><h2>资源库</h2></div>
+
+          <div class="strip">
+            <span class="dot"></span>
+            <span class="nm">Design.library</span>
+            <span class="mono">CONNECTED</span>
+            <svg class="ic s" style="color:var(--d-mut)" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>
+          </div>
+          <div class="counts">
+            <div><b>12,480</b><span>项目</span></div>
+            <div><b>326</b><span>文件夹</span></div>
+            <div><b>09:12</b><span>索引时间</span></div>
+          </div>
+
+          <div class="srch"><svg class="ic s" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4-4"/></svg>搜索文件名 / 标签 / 注释</div>
+
+          <div class="lbl">最近添加</div>
+          <div class="mas">
+            <div class="col">
+              <div class="th a2" style="aspect-ratio:3/4"><span class="ext">PNG</span></div>
+              <div class="th a5" style="aspect-ratio:1/1"><span class="ext">JPG</span></div>
+              <div class="th a7" style="aspect-ratio:4/5"><span class="ext">GIF</span></div>
+            </div>
+            <div class="col">
+              <div class="th a3" style="aspect-ratio:1/1.6"><span class="ext">FIG</span></div>
+              <div class="th a6" style="aspect-ratio:16/10"><span class="ext">SVG</span></div>
+              <div class="th a4" style="aspect-ratio:3/4"><span class="ext">MP4</span><span class="dur">0:24</span></div>
+            </div>
+          </div>
+        </div></div>
+        <div class="tabs">
+          <div class="tb on"><svg class="ic" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>LIBRARY</div>
+          <div class="tb"><svg class="ic" viewBox="0 0 24 24"><path d="M3 5h18M3 12h18M3 19h18"/></svg>FOLDERS</div>
+          <div class="tb"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4-4"/></svg>SEARCH</div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- 2 FOLDERS -->
+    <div class="frame">
+      <div class="cap"><span class="n">02</span><div><h3>目录浏览</h3><p>REQ 1 · mono breadcrumb + rows + masonry</p></div></div>
+      <div class="phone"><div class="scr"><div class="notch"></div>
+        <div class="sbar"><span>09:41</span><div class="r"><svg class="ic s" viewBox="0 0 24 24"><path d="M2 12h4v6H2zM9 8h4v10H9zM16 4h4v14h-4z"/></svg><svg class="ic s" viewBox="0 0 24 24"><rect x="2" y="7" width="18" height="10" rx="2"/><path d="M22 10v4"/></svg></div></div>
+        <div class="bd"><div class="pad">
+          <div class="top" style="gap:10px;justify-content:flex-start;">
+            <svg class="ic l" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+            <h2>Mobile</h2>
+            <span style="margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--d-mut)">455 items</span>
+          </div>
+          <div class="crumb"><span>~</span><i>/</i><span>UI Kits</span><i>/</i><b>Mobile</b></div>
+
+          <div class="rows">
+            <div class="fr"><span class="fi"><svg class="ic s" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></span><b>iOS Components</b><span class="ct">210</span><svg class="ic s ch" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></div>
+            <div class="fr"><span class="fi"><svg class="ic s" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></span><b>Android Material</b><span class="ct">158</span><svg class="ic s ch" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></div>
+            <div class="fr"><span class="fi"><svg class="ic s" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></span><b>Icons Library</b><span class="ct">940</span><svg class="ic s ch" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></div>
+          </div>
+
+          <div class="lbl">87 个文件</div>
+          <div class="mas">
+            <div class="col">
+              <div class="th a1" style="aspect-ratio:4/5"><span class="ext">PNG</span></div>
+              <div class="th a6" style="aspect-ratio:1/1"><span class="ext">SVG</span></div>
+              <div class="th a8" style="aspect-ratio:3/4"><span class="ext">PNG</span></div>
+            </div>
+            <div class="col">
+              <div class="th a9" style="aspect-ratio:1/1"><span class="ext">JPG</span></div>
+              <div class="th a2" style="aspect-ratio:3/4.4"><span class="ext">FIG</span></div>
+              <div class="th a5" style="aspect-ratio:16/10"><span class="ext">PNG</span></div>
+            </div>
+          </div>
+        </div></div>
+        <div class="tabs">
+          <div class="tb"><svg class="ic" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>LIBRARY</div>
+          <div class="tb on"><svg class="ic" viewBox="0 0 24 24"><path d="M3 5h18M3 12h18M3 19h18"/></svg>FOLDERS</div>
+          <div class="tb"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4-4"/></svg>SEARCH</div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- 3 SEARCH -->
+    <div class="frame">
+      <div class="cap"><span class="n">03</span><div><h3>模糊搜索</h3><p>REQ 2 · live results, count in mono</p></div></div>
+      <div class="phone"><div class="scr"><div class="notch"></div>
+        <div class="sbar"><span>09:41</span><div class="r"><svg class="ic s" viewBox="0 0 24 24"><path d="M2 12h4v6H2zM9 8h4v10H9zM16 4h4v14h-4z"/></svg><svg class="ic s" viewBox="0 0 24 24"><rect x="2" y="7" width="18" height="10" rx="2"/><path d="M22 10v4"/></svg></div></div>
+        <div class="bd"><div class="pad">
+          <div class="srch" style="margin-top:8px;border-color:var(--d-acc);background:var(--d-bg2);color:var(--d-ink);">
+            <svg class="ic s" style="color:var(--d-acc)" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4-4"/></svg>
+            <span style="flex:1">login form<span style="display:inline-block;width:1.5px;height:15px;background:var(--d-acc);margin-left:2px;vertical-align:-3px;"></span></span>
+            <svg class="ic s" style="color:var(--d-mut)" viewBox="0 0 24 24"><path d="m8 8 8 8M16 8l-8 8"/></svg>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin:13px 3px 10px;font-family:var(--mono);font-size:11px;color:var(--d-mut);">
+            <span>46 RESULTS · 0.05s</span>
+            <span style="display:flex;align-items:center;gap:4px;">MODIFIED ↓</span>
+          </div>
+          <div class="mas">
+            <div class="col">
+              <div class="th a3" style="aspect-ratio:3/4"><span class="ext">PNG</span></div>
+              <div class="th a4" style="aspect-ratio:16/10"><span class="ext">MP4</span><span class="dur">1:08</span></div>
+              <div class="th a9" style="aspect-ratio:1/1"><span class="ext">JPG</span></div>
+              <div class="th a1" style="aspect-ratio:4/5"><span class="ext">PNG</span></div>
+            </div>
+            <div class="col">
+              <div class="th a6" style="aspect-ratio:1/1"><span class="ext">SVG</span></div>
+              <div class="th a2" style="aspect-ratio:3/4.6"><span class="ext">FIG</span></div>
+              <div class="th a7" style="aspect-ratio:4/5"><span class="ext">PNG</span></div>
+              <div class="th a5" style="aspect-ratio:16/10"><span class="ext">JPG</span></div>
+            </div>
+          </div>
+        </div></div>
+        <div class="tabs">
+          <div class="tb"><svg class="ic" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>LIBRARY</div>
+          <div class="tb"><svg class="ic" viewBox="0 0 24 24"><path d="M3 5h18M3 12h18M3 19h18"/></svg>FOLDERS</div>
+          <div class="tb on"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4-4"/></svg>SEARCH</div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- 4 PREVIEW -->
+    <div class="frame">
+      <div class="cap"><span class="n">04</span><div><h3>全屏预览</h3><p>REQ 4 · 左右滑切换 · 双指缩放 · 下滑关闭</p></div></div>
+      <div class="phone"><div class="scr pv"><div class="notch"></div>
+        <div class="pvt">
+          <div class="cb"><svg class="ic s" style="color:#fff" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></div>
+          <span class="ix">3 / 46</span>
+          <div class="cb"><svg class="ic s" style="color:#fff" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg></div>
+        </div>
+        <div class="pvimg"><div class="peek l a4"></div><div class="im a3"></div><div class="peek r a6"></div></div>
+        <div class="pvb">
+          <h4>login-form-v3.png</h4>
+          <div class="meta">1440×1920 · PNG · 2.4 MB · ~/UI Kits/Mobile</div>
+          <div class="pvacts">
+            <div class="pbt pri"><svg class="ic s" viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14"/></svg>下载</div>
+            <div class="pbt"><svg class="ic s" style="color:#fff" viewBox="0 0 24 24"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7M16 6l-4-4-4 4M12 2v13"/></svg>分享</div>
+          </div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- 5 SWIPE DISMISS -->
+    <div class="frame">
+      <div class="cap"><span class="n">05</span><div><h3>签名交互 · 下滑关闭</h3><p>drag-to-dismiss, grid shows through</p></div></div>
+      <div class="phone"><div class="scr pv"><div class="notch"></div>
+        <div class="ghostgrid">
+          <div class="mas">
+            <div class="col">
+              <div class="th a3" style="aspect-ratio:3/4"></div>
+              <div class="th a4" style="aspect-ratio:16/10"></div>
+              <div class="th a9" style="aspect-ratio:1/1"></div>
+              <div class="th a1" style="aspect-ratio:4/5"></div>
+            </div>
+            <div class="col">
+              <div class="th a6" style="aspect-ratio:1/1"></div>
+              <div class="th a2" style="aspect-ratio:3/4.6"></div>
+              <div class="th a7" style="aspect-ratio:4/5"></div>
+              <div class="th a5" style="aspect-ratio:16/10"></div>
+            </div>
+          </div>
+        </div>
+        <div class="dim"></div>
+        <div class="dragcard a3"></div>
+        <div class="draghint">
+          <svg class="arrow ic" viewBox="0 0 24 24"><path d="M12 4v14m0 0 5-5m-5 5-5-5"/></svg>
+          <span>DRAG DOWN TO DISMISS</span>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- 6 STATUS + LIGHT THEME -->
+    <div class="frame">
+      <div class="cap"><span class="n">06</span><div><h3>连接状态 · 浅色主题示例</h3><p>REQ 3 · same layout, light tokens</p></div></div>
+      <div class="phone"><div class="scr light"><div class="notch"></div>
+        <div class="sbar"><span>09:41</span><div class="r"><svg class="ic s" viewBox="0 0 24 24"><path d="M2 12h4v6H2zM9 8h4v10H9zM16 4h4v14h-4z"/></svg><svg class="ic s" viewBox="0 0 24 24"><rect x="2" y="7" width="18" height="10" rx="2"/><path d="M22 10v4"/></svg></div></div>
+        <div class="bd"><div class="pad">
+          <div class="top" style="gap:10px;justify-content:flex-start;">
+            <svg class="ic l" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+            <h2>资源库状态</h2>
+          </div>
+
+          <div class="stt" style="background:var(--l-bg2);border-color:var(--l-line);">
+            <div class="hd" style="border-color:var(--l-line);"><span class="dot" style="background:var(--l-good);box-shadow:0 0 0 3px oklch(56% .14 160/.14);"></span><b>已连接 · 内容最新</b><span style="color:var(--l-mut)">3 MIN AGO</span></div>
+            <div class="kv" style="border-color:var(--l-line);"><span style="color:var(--l-mut)">资源库</span><b>Design.library</b></div>
+            <div class="kv" style="border-color:var(--l-line);"><span style="color:var(--l-mut)">挂载路径</span><b>/vault/Design.library</b></div>
+            <div class="kv" style="border-color:var(--l-line);"><span style="color:var(--l-mut)">项目 / 文件夹</span><b>12,480 / 326</b></div>
+            <div class="kv" style="border-color:var(--l-line);"><span style="color:var(--l-mut)">索引加载于</span><b>TODAY 09:12</b></div>
+            <div class="kv"><span style="color:var(--l-mut)">远程变更</span><b style="color:var(--l-good)">NONE</b></div>
+          </div>
+
+          <div class="actbtn pri" style="background:var(--l-acc);color:#fff;"><svg class="ic s" viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14-5l2 2M20 12a8 8 0 0 1-14 5l-2-2M18 4v5h-5M6 20v-5h5"/></svg>重新加载索引</div>
+          <div class="actbtn" style="background:var(--l-bg2);border-color:var(--l-line);color:var(--l-ink);"><svg class="ic s" viewBox="0 0 24 24"><path d="M15 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10M10 12h11M18 9l3 3-3 3"/></svg>退出登录</div>
+
+          <div class="warnrow" style="border-color:oklch(60% .13 75/.5);background:oklch(78% .13 75/.1);">
+            <svg class="ic" style="color:oklch(60% .13 75)" viewBox="0 0 24 24"><path d="M12 9v4m0 4h.01M10.3 3.9 2 18a1.7 1.7 0 0 0 1.5 2.5h17A1.7 1.7 0 0 0 22 18L13.7 3.9a1.7 1.7 0 0 0-3 0z"/></svg>
+            <div><b>检测到库内容更新</b><span>TAP RELOAD TO SYNC</span></div>
+          </div>
+        </div></div>
+        <div class="tabs">
+          <div class="tb on"><svg class="ic" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>LIBRARY</div>
+          <div class="tb"><svg class="ic" viewBox="0 0 24 24"><path d="M3 5h18M3 12h18M3 19h18"/></svg>FOLDERS</div>
+          <div class="tb"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4-4"/></svg>SEARCH</div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- 7 IMMERSIVE PREVIEW -->
+    <div class="frame">
+      <div class="cap"><span class="n">07</span><div><h3>预览·沉浸态</h3><p>REQ 4 · tap 隐藏栏 · 双指缩放</p></div></div>
+      <div class="phone"><div class="scr pv"><div class="notch"></div>
+        <div class="pvimg" style="background:oklch(12% .005 260)">
+          <div class="im a3" style="width:90%;aspect-ratio:3/4;transform:scale(1.04);"></div>
+        </div>
+        <div class="pvhint">
+          <svg class="pinch" viewBox="0 0 24 24"><path d="M9 8 5 12l4 4M15 8l4 4-4 4"/></svg>
+          <span>TAP TO SHOW CONTROLS · PINCH TO ZOOM</span>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- NOTE -->
+    <div class="note">
+      <div class="bx">
+        <h4><i>DESIGN NOTES / V2</i>相对 v1 改了什么</h4>
+        <ul>
+          <li><b>废弃紫蓝渐变库卡片</b> → 换成工具感 status strip + mono 计数条，信息密度更高。</li>
+          <li><b>方形网格 → 不规则瀑布流</b>（签名）：保留原图宽高比，永不裁切，2 列，gap 7px。</li>
+          <li><b>字体重选</b>：Archivo（UI）+ JetBrains Mono（计数/路径/状态/时间全部走 mono），v1 的 Instrument Serif 在禁用名单。</li>
+          <li><b>深色为默认</b>（媒体浏览器 → 内容前置），浅色为系统跟随的第二主题，见第 06 屏。</li>
+          <li><b>签名交互</b>：预览跟手下拉关闭（05 屏），图片缩小圆角化、背景透出网格；超过 25% 视口高度释放即关闭。</li>
+          <li><b>单一强调色</b> oklch(74% .13 250)：只用于激活 Tab、搜索聚焦、主按钮、文件夹图标，其余全灰阶。</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- INTERACTION REVIEW NOTE -->
+    <div class="note">
+      <div class="bx">
+        <h4><i>INTERACTION REVIEW</i>交互已全部落稿</h4>
+        <ul>
+          <li><b>🔴 已修：列表屏可滚动</b>。原 overflow:hidden 把首页瀑布流下半截裁掉，现改为纵向滚动，浏览器里可真实下滑 review。</li>
+          <li><b>🟢 已加：预览双指缩放 + 点按隐藏栏</b>。见 07 屏：纯黑沉浸、无上下栏，底部 PINCH/ZOOM 与 TAP 提示；缩略图小字可放大阅读。</li>
+          <li><b>🟢 已加：左右滑切换兄弟项</b>。见 04 屏左右露出相邻缩略图（iOS Photos 同款 peek 暗示），横滑=换图、下滑=关闭，互不冲突。</li>
+          <li><b>🟢 已加：状态页入口</b>。点首页状态条 → 进完整状态页(06)；首屏齿轮图标已移除，消除歧义。</li>
+          <li><b>🟢 已定：下滑关闭</b>。位移 &gt;25% 视口高度（或快速下甩）释放即关，图片缩小圆角化、背景透出网格。</li>
+          <li><b>🟢 搜索防抖 300ms</b> + 结果数/耗时走 mono，与工具风签名一致；空结果/无匹配态一帧待补（不影响主流程）。</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+
+  <footer>
+    <b>EAGLE VIEWER MOBILE V2</b> · 画板占位色块 = /api/items/{id}/thumbnail 实图 · masonry 按 item.width/height 预排版（后端已返回尺寸）<br/>
+    确认后落地：app/web/mobile.{html,css,js}，数据层复用 api.js，后端零改动。
+  </footer>
+
+</div>
+</body>
+</html>

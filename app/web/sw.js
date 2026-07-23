@@ -1,18 +1,21 @@
-const CACHE_NAME = 'eagle-viewer-shell-v40';
+const CACHE_NAME = 'eagle-viewer-shell-v41';
 const STATIC_URLS = [
   '/',
   '/index.html',
+  '/mobile.html',
   '/manifest.json',
   '/static/icon.svg',
   '/static/apple-touch-icon.png',
   '/static/icon-192.png',
   '/static/icon-512.png',
-  '/static/styles.css?v=1.94',
-  '/static/core.js?v=1.94',
-  '/static/render.js?v=1.94',
-  '/static/api.js?v=1.94',
-  '/static/interactions.js?v=1.94',
-  '/static/bootstrap.js?v=1.94',
+  '/static/styles.css?v=1.95',
+  '/static/core.js?v=1.95',
+  '/static/render.js?v=1.95',
+  '/static/api.js?v=1.95',
+  '/static/interactions.js?v=1.95',
+  '/static/bootstrap.js?v=1.95',
+  '/static/mobile.css?v=1.95',
+  '/static/mobile.js?v=1.95',
 ];
 
 self.addEventListener('install', function(event) {
@@ -50,12 +53,16 @@ self.addEventListener('fetch', function(event) {
   var request = event.request;
   if (request.method !== 'GET') return;
   var url = new URL(request.url);
-  if (url.origin !== location.origin || url.pathname.startsWith('/api/')) return;
+  if (url.origin !== location.origin) return;
+  // API 响应不进 service worker 缓存（离线由应用自身快照机制负责）
+  if (url.pathname.startsWith('/api/')) return;
 
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request).catch(function() {
-        return caches.match('/index.html');
+        return caches.match(url.pathname + url.search)
+          .then(function(c) { return c || caches.match('/mobile.html'); })
+          .then(function(c) { return c || caches.match('/index.html'); });
       })
     );
     return;

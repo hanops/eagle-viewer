@@ -157,6 +157,7 @@ _index_path = web_dir / "index.html"
 _login_path = web_dir / "login.html"
 _manifest_path = web_dir / "manifest.json"
 _sw_path = web_dir / "sw.js"
+_mobile_path = web_dir / "mobile.html"
 
 app.mount("/static", StaticFiles(directory=web_dir, html=False), name="static")
 
@@ -226,3 +227,10 @@ def sw():
     if _sw_path.exists():
         return FileResponse(_sw_path, media_type="application/javascript")
     return Response(content="", media_type="application/javascript")
+
+
+@app.get("/mobile.html")
+def mobile_page():
+    if _mobile_path.exists():
+        return FileResponse(_mobile_path, media_type="text/html")
+    return RedirectResponse(url="/", status_code=302)

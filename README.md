@@ -43,7 +43,7 @@ Web 聚焦远程只读浏览，而不是在浏览器内复制 Eagle 的完整工
 
 iPhone / iPad 使用同一套 Web 应用。在 Safari 打开远程地址后，可通过“分享 → 添加到主屏幕”获得独立窗口入口；底部四栏为资料库、收藏、搜索和更多设置。
 
-浏览器仅缓存 PWA 静态外壳，不保存素材列表、缩略图或原文件离线快照；浏览与下载始终以远程 Vault 连接状态为准。
+浏览器缓存 PWA 静态外壳，并已浏览过的缩略图会存入 IndexedDB——弱网或断网重开时可即时还原已看过的图；素材列表、原文件与未浏览的缩略图仍依赖远程 Vault 连接。
 
 ## 运行方式
 
@@ -61,6 +61,16 @@ docker-compose up -d --build
 ```
 
 3. 浏览器访问 `http://<NAS或主机IP>:8000`。
+
+#### 手机远程访问（LAN / VPN / HTTPS）
+
+手机端应**通过 HTTP 访问服务端**，而不是在手机上直接挂载 `.library`：vault 只在服务端挂载，手机只消费 JSON 与缩略图。这样既能复用服务端的索引 / 缩略图 / 缓存头，又能用分层缓存应对移动网络不稳。
+
+- **局域网**：手机与服务器同 WiFi，直接访问 `http://<服务器IP>:8000/mobile.html`。
+- **VPN（推荐）**：用 Tailscale / ZeroTier / WireGuard 把手机接入与服务端同一虚拟网，再访问 `http://<VPN内网地址>:8000/mobile.html`——免端口转发、等同内网安全。
+- **HTTPS**：分享 / 复制等功能要求 HTTPS 或 localhost（见下文安全说明）；即便走 VPN 也建议开启 HTTPS（Tailscale HTTPS 或 Caddy 反代），否则这些功能在手机上会被禁用。
+
+完整的服务端挂载 + 远程访问示例见 [`docker-compose.remote.example.yml`](docker-compose.remote.example.yml)；其中可选的 Caddy 反代段配套 [`Caddyfile.example`](Caddyfile.example)，提供 Tailscale 内网域名 / 自有域名 / 纯局域网三种 HTTPS 反代写法，文件内注释即开即用。
 
 ### 本地开发
 
