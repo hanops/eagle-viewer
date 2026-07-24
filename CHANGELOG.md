@@ -1,4 +1,18 @@
-# Changelog
+# Changelog · 更新日志
+
+---
+
+## 3.0.1 - 2026-07-24
+
+### Changes
+- Added `README.zh.md`: full Chinese translation of the README.
+- Updated `README.md`: added language link to the Chinese version.
+- Updated `CHANGELOG.md`: added Chinese summaries for each version entry.
+- Updated `scripts/check_versions.py`: added README.zh.md version verification.
+
+**中文**：新增中文版 README。英文 README 和 CHANGELOG 补充中文内容。版本检查脚本同步更新。
+
+---
 
 ## 3.0.0 - 2026-07-24
 
@@ -8,10 +22,14 @@
 - **Privacy section** in README: documents the fully offline, no-telemetry, no-CDN nature of the viewer.
 - **Governance model**: `GOVERNANCE.md` added; `AGENTS.md` moved to `.gitignore` (internal AI agent guide).
 
+**中文**：新增中英文切换按钮（右上角工具栏），界面文字全部双语化，默认跟随浏览器语言。开源准备：全英文文档、GitHub Actions CI、Issue/PR 模板、隐私说明、治理文档。AGENTS.md 移入 .gitignore。
+
 ### Fixes
 - **Mobile bottom navigation gap**: Added `100lvh` before `100dvh` in `#app` height cascade. On browsers that don't support `dvh`, `lvh` (large viewport — address bar fully retracted) ensures the tabs start at the screen bottom on first load.
 - **Version fallback leak**: Backend `APP_VERSION` fell back to the literal string `"dev"` when the package wasn't pip-installed, producing `CONNECTED vdev` in the mobile library strip. Changed to read from `pyproject.toml` via `tomllib`.
 - **Sync-status CSS regression** (v2.0.5): Fixed `[data-state="conflict"]` selector mismatch that broke the Merging state color.
+
+**中文**：修复移动端底部导航空白（lvh+dvh 双重兜底）；修复后端版本号回退显示「vdev」的问题（改为从 pyproject.toml 读取）；修复同步状态 CSS 选择器不匹配。
 
 ### Documentation
 - README rewritten in English with badges, full API reference, configuration table, Eagle.cool link, and product boundaries.
@@ -23,6 +41,8 @@
 - `SECURITY.md` and `CHANGELOG.md` already in English.
 - Removed `docs/regression-results-v1.4.0.md` and `v1.5.0.md` (contained personal file paths and referenced removed features).
 
+**中文**：README 全部英文化（含徽章、API 文档、配置表、Eagle 链接）、regression-checklist 和 release.md 英文化、提取 logo.svg、Docker compose 和 login 注释英文化、删除含个人路径的旧回归结果文件。
+
 ### Infrastructure
 - `.gitignore`: added `.codebuddy/`, `AGENTS.md`, `images/`, `*.egg-info/`, `dist/`, `build/`, `docs/mockups/web-desktop-redesign.html`.
 - `pyproject.toml`: added `authors`, `license`, `keywords`, `[project.urls]`.
@@ -30,8 +50,14 @@
 - GitHub Issue templates (bug report, feature request) and PR template.
 - Docker Compose: stale `eagle-viewer:v1.3` tag → `eagle-viewer:latest`.
 
+**中文**：gitignore 补全、pyproject.toml 补元数据、新增 CI 工作流和 Issue/PR 模板、Docker Compose 镜像版本更新。
+
 ### Maintenance
 - Bumped static asset revision and SW shell cache to `eagle-viewer-shell-v45`.
+
+**中文**：静态资源 revision 和 SW 缓存升至 v45。
+
+---
 
 ## 2.0.5 - 2026-07-24
 
