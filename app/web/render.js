@@ -249,13 +249,6 @@ function getViewCrumbs() {
   } else if (state.currentView === 'search') {
     crumbs.push({ label: '搜索', action: 'search-root' });
     if (state.searchQuery) crumbs.push({ label: state.searchQuery, search: state.searchQuery });
-  } else if (state.currentView === 'collection') {
-    if (state.currentCollection && state.currentCollection.indexOf('workspace:') === 0) {
-      crumbs.push({ label: '工作集', action: 'workspaces' });
-      crumbs.push({ label: state.currentTitle || '工作集', collection: state.currentCollection });
-    } else {
-      crumbs.push({ label: state.currentCollection === 'later' ? '待整理' : (state.currentCollection === 'done' ? '已处理' : (state.currentCollection === 'recentViewed' ? '最近查看' : '收藏')), collection: state.currentCollection || 'favorite' });
-    }
   } else if (state.currentView === 'smart') {
     crumbs.push({ label: '智能视图', action: 'smart-root' });
     if (state.currentSmartViewName) crumbs.push({ label: state.currentSmartViewName, smart: state.currentSmartViewName });
@@ -345,20 +338,11 @@ function updateBatchBar() {
       return '<button type="button" class="batch-preview-thumb" data-selected-preview-id="' + escapeHtml(item.id) + '" title="' + escapeHtml(label) + '" aria-label="定位已选素材 ' + escapeHtml(label) + '">' + inner + '</button>';
     }).join('') + (selectedItems.length > visibleItems.length ? '<span class="batch-preview-more">+' + (selectedItems.length - visibleItems.length) + '</span>' : '');
   }
-  if (favoriteBtn) favoriteBtn.textContent = '加入收藏';
-  if (laterBtn) laterBtn.textContent = '加入待整理';
-  if (doneBtn) doneBtn.textContent = '标记已处理';
   if (compareBtn) {
     var comparableCount = selectedItems.filter(function(item) { return isImageExt(item.ext); }).length;
     compareBtn.disabled = comparableCount < 2;
     compareBtn.textContent = comparableCount > 4 ? '对比前 4 张' : ('对比图片' + (comparableCount ? ' ' + comparableCount : ''));
     compareBtn.title = comparableCount < 2 ? '至少选择 2 张图片' : '打开 2–4 张图片并排审阅';
-  }
-  if (removeCollectionBtn) {
-    var inWorkspaceView = state.currentView === 'collection' && state.currentCollection && state.currentCollection.indexOf('workspace:') === 0;
-    var inCollectionView = state.currentView === 'collection' && (state.currentCollection === 'favorite' || state.currentCollection === 'later' || state.currentCollection === 'done' || inWorkspaceView);
-    removeCollectionBtn.hidden = !inCollectionView;
-    removeCollectionBtn.textContent = inWorkspaceView ? '移出工作集' : (state.currentCollection === 'later' ? '移出待整理' : (state.currentCollection === 'done' ? '移出已处理' : '移出收藏'));
   }
   if (downloadBtn) {
     var offline = isRemoteAccessUnavailableForRender();
@@ -1734,13 +1718,6 @@ function getMobileSnapshotLabel() {
   return (snapshot.ok || 0) + ' 项 · ' + age;
 }
 
-function getLastViewedItemForMobile() {
-  var recent = (state.collectionIds && state.collectionIds.recentViewed) || [];
-  var itemMap = (state.collectionIds && state.collectionIds.items) || {};
-  var id = recent[0] || '';
-  return id ? itemMap[id] : null;
-}
-
 function updateMobileWorkbar() {
   var el = document.getElementById('mobileWorkbar');
   if (!el) return;
@@ -1993,18 +1970,7 @@ function renderContent() {
   body.innerHTML = '';
 
   if (!state.currentSubfolders.length && !state.currentItems.length) {
-    if (state.currentView === 'collection') {
-      var isWorkspace = state.currentCollection && state.currentCollection.indexOf('workspace:') === 0;
-      var label = isWorkspace ? (state.currentTitle || '工作集') : (state.currentCollection === 'favorite' ? '收藏' : (state.currentCollection === 'done' ? '已处理' : (state.currentCollection === 'recentViewed' ? '最近查看' : '待整理')));
-      body.innerHTML = '<div class="empty-state collection-empty">' + iconCollection() + '<strong>' + escapeHtml(label) + (isWorkspace ? '还是空的' : '清单还是空的') + '</strong><span>' + escapeHtml(state.currentEmptyMsg || '当前清单暂无素材') + '</span><button type="button" id="collectionBrowseBtn">浏览资料库</button></div>';
-      var browseBtn = document.getElementById('collectionBrowseBtn');
-      if (browseBtn) browseBtn.onclick = function() {
-        var search = document.getElementById('searchInput');
-        if (search) search.value = '';
-        renderModule.closeInspector();
-        api.loadAllItems(true);
-      };
-    } else if (state.currentView === 'smart') {
+    if (state.currentView === 'smart') {
       var smartEmpty = getSmartEmptyState();
       body.innerHTML = '<div class="empty-state smart-empty">' + iconSliders() + '<strong>' + escapeHtml(smartEmpty.title) + '</strong><span>' + escapeHtml(smartEmpty.message) + '</span><div class="empty-actions"><button type="button" id="smartEmptyFilterBtn">调整筛选</button><button type="button" id="smartEmptyBrowseBtn">浏览资料库</button></div></div>';
       var smartFilterBtn = document.getElementById('smartEmptyFilterBtn');
@@ -2218,7 +2184,6 @@ function showEmptyState() {
   state.currentSubfolders = [];
   state.currentFolderId = null;
   state.currentTagName = null;
-  state.currentCollection = '';
   state.currentSmartViewName = '';
   state.currentTitle = '';
   state.currentTotal = 0;

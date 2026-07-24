@@ -9,42 +9,21 @@ from pathlib import Path
 from fastapi import HTTPException
 
 
-_MAX_COLLECTION_ITEMS = 500
-
-
 def _default_state() -> dict:
     return {
         "version": 2,
         "revision": 0,
         "updatedAt": 0,
-        "collections": {"favorite": [], "recentViewed": []},
     }
-
-
-def _unique_ids(value: object) -> list[str]:
-    if not isinstance(value, list):
-        return []
-    out = []
-    for item_id in value:
-        if isinstance(item_id, str) and item_id and len(item_id) <= 200 and item_id not in out:
-            out.append(item_id)
-        if len(out) >= _MAX_COLLECTION_ITEMS:
-            break
-    return out
 
 
 def sanitize_state(value: object, updated_at: int | None = None, revision: int = 0) -> dict:
     if not isinstance(value, dict):
         raise HTTPException(status_code=422, detail="State must be an object")
-    collections = value.get("collections") if isinstance(value.get("collections"), dict) else {}
     return {
         "version": 2,
         "revision": revision,
         "updatedAt": updated_at if updated_at is not None else int(time.time() * 1000),
-        "collections": {
-            "favorite": _unique_ids(collections.get("favorite")),
-            "recentViewed": _unique_ids(collections.get("recentViewed")),
-        },
     }
 
 

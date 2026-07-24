@@ -196,7 +196,6 @@ var lastSelectedId = '';
 var currentFolderId = null;
 var currentTagName = null;
 var currentView = 'all';
-var currentCollection = '';
 var currentSmartViewName = '';
 var currentEagleSmartFolderId = '';
 var currentRandomSeed = '';
@@ -228,7 +227,6 @@ var collectionIds = { favorite: [], later: [], done: [], recentViewed: [], items
 var itemRatings = {};
 var viewerNotes = {};
 var reviewMarkers = {};
-var workspaces = [];
 var indexStats = null;
 var duplicateGroups = [];
 var paletteAtlas = null;
@@ -269,7 +267,6 @@ Object.defineProperties(EagleViewer.state, {
   currentFolderId: { get: function() { return currentFolderId; }, set: function(v) { currentFolderId = v; }, enumerable: true },
   currentTagName: { get: function() { return currentTagName; }, set: function(v) { currentTagName = v; }, enumerable: true },
   currentView: { get: function() { return currentView; }, set: function(v) { currentView = v; }, enumerable: true },
-  currentCollection: { get: function() { return currentCollection; }, set: function(v) { currentCollection = v || ''; }, enumerable: true },
   currentSmartViewName: { get: function() { return currentSmartViewName; }, set: function(v) { currentSmartViewName = v || ''; }, enumerable: true },
   currentEagleSmartFolderId: { get: function() { return currentEagleSmartFolderId; }, set: function(v) { currentEagleSmartFolderId = v || ''; }, enumerable: true },
   currentRandomSeed: { get: function() { return currentRandomSeed; }, set: function(v) { currentRandomSeed = v || ''; }, enumerable: true },
@@ -301,7 +298,6 @@ Object.defineProperties(EagleViewer.state, {
   itemRatings: { get: function() { return itemRatings; }, set: function(v) { itemRatings = v && typeof v === 'object' ? v : {}; }, enumerable: true },
   viewerNotes: { get: function() { return viewerNotes; }, set: function(v) { viewerNotes = v && typeof v === 'object' ? v : {}; }, enumerable: true },
   reviewMarkers: { get: function() { return reviewMarkers; }, set: function(v) { reviewMarkers = v && typeof v === 'object' ? v : {}; }, enumerable: true },
-  workspaces: { get: function() { return workspaces; }, set: function(v) { workspaces = Array.isArray(v) ? v : []; }, enumerable: true },
   indexStats: { get: function() { return indexStats; }, set: function(v) { indexStats = v; }, enumerable: true },
   duplicateGroups: { get: function() { return duplicateGroups; }, set: function(v) { duplicateGroups = v || []; }, enumerable: true },
   paletteAtlas: { get: function() { return paletteAtlas; }, set: function(v) { paletteAtlas = v || null; }, enumerable: true },

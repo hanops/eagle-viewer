@@ -130,7 +130,6 @@ async function loadIncrementalView(options) {
     state.currentItems = [];
   }
   state.currentView = options.view;
-  state.currentCollection = '';
   state.currentFolderId = options.folderId || null;
   state.currentTagName = options.tagName || null;
   if (options.searchQuery !== undefined) state.searchQuery = options.searchQuery;

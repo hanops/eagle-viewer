@@ -41,7 +41,6 @@ async function init() {
     if (applyStateFromUrl() && state.currentView) {
       if (['smart', 'eagle-smart', 'duplicates', 'colors', 'random'].indexOf(state.currentView) >= 0) {
         state.currentView = 'all';
-        state.currentCollection = '';
         state.currentSmartViewName = '';
         state.currentEagleSmartFolderId = '';
       }

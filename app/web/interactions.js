@@ -2792,8 +2792,6 @@ function buildItemShareUrl(item) {
   else params.delete('days');
   if (state.currentView === 'search' && state.searchQuery) params.set('q', state.searchQuery);
   else params.delete('q');
-  if (state.currentView === 'collection' && state.currentCollection) params.set('collection', state.currentCollection);
-  else params.delete('collection');
   if (state.currentView === 'smart' && state.currentSmartViewName) params.set('smart', state.currentSmartViewName);
   else params.delete('smart');
   if (state.currentView === 'eagle-smart' && state.currentEagleSmartFolderId) params.set('eagleSmart', state.currentEagleSmartFolderId);
