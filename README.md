@@ -1,78 +1,110 @@
 # Eagle Vault Viewer
 
-把 NAS 或远程主机上挂载的 Eagle 资源库带到浏览器：在无法安装 Eagle 的电脑、平板和手机上浏览、搜索、预览与下载素材。Vault 始终只读挂载，不修改库内任何文件。
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.11%2B-blue)](pyproject.toml)
+[![GitHub release](https://img.shields.io/github/v/release/hanops/eagle-viewer)](https://github.com/hanops/eagle-viewer/releases)
 
-**版本**：v2.0.5（2026-07-24）
+> A read-only web viewer for [Eagle](https://eagle.cool/) libraries — browse, search, preview, and download your creative assets from NAS or a remote host on any device.
 
-**License**：MIT
+[Eagle](https://eagle.cool/) is a popular desktop app for organizing design assets, images, videos, audio, and documents. Eagle Vault Viewer takes the Eagle library you already sync to your NAS and makes it accessible from computers, tablets, and phones that can't run Eagle itself — without installing anything.
 
-## 功能
+Vault is always mounted **read-only**. It never modifies files inside the library.
 
-- **浏览**：解析 Eagle 库的文件夹树（`metadata.json`），按文件夹展示素材（各 `*.info/metadata.json`）
-- **视图**：全部文件、最近 7 天 / 30 天、按文件夹、按标签、搜索
-- **增量加载**：全部文件、最近、文件夹、标签与搜索视图按批次自动续载，滚动到底部时继续加载更多，避免一次性渲染全量结果
-- **Eagle 式工作区**：紧凑三栏结构，包含资源库树、可调密度素材画布和 Inspector；素材卡片持续显示文件名、尺寸、格式和来源信息
-- **专业画布布局**：支持 Eagle 式瀑布流和列表两种视图；缩略图密度可在工具栏调整并记忆
-- **Inspector 面板**：点击素材打开资产档案，查看大图预览、规格、文件夹、标签、来源 URL、Eagle 备注和素材 ID，并可复制引用、分享或下载
-- **左侧导航**：文件夹树可展开/折叠；导航栏宽度可拖拽调节；文件夹右侧显示含子文件夹在内的总文件数；整栏支持隐藏/展开，状态存本地
-- **左侧导航**：文件夹树、标签与最近添加分区，不混入收藏 / 整理类入口
-- **排序与类型筛选**：按修改时间 / 创建时间 / 名称 / 大小 / 格式排序，并按图片、视频、文档、音频和其他类型收窄结果
-- **保护文件夹边界**：Eagle 中设置密码的文件夹及其后代不会进入索引、搜索、缩略图或原文件端点
-- **远程更新感知**：检测挂载 Vault 的目录与元数据变化，提示用户原位载入更新
-- **悬停预览**：鼠标悬停缩略图 300ms 后显示大图预览；图片悬停优先使用缩略图链路，`pdf` 支持悬停预览
-- **卡片快捷操作**：桌面悬停显示预览与详情；右键菜单与移动端长按面板保留选择、复制链接和下载
-- **预览与下载**：图片、视频、音频、PDF 和纯文本可直接预览；其他格式下载后查看；单文件下载保留原文件名，多选可打包为 ZIP
-- **音频试听**：音频素材可直接打开沉浸式播放器，展示格式、时长、BPM 和原生播放控制，适合远程试听素材库声音文件
-- **基础图片工具**：全屏图片预览只保留缩小、适应窗口和放大，视频与音频使用浏览器原生播放控制
-- **多选模式**：勾选素材后可复制链接或打包下载，保持移动端操作简单
-- **详情浏览**：Inspector 支持上一项 / 下一项切换，键盘可用 `← / →`；关闭详情或全屏预览后会回到并短暂高亮刚查看的素材，滚远后也可用“回到当前项”浮动胶囊重新定位，长列表里不丢位置
-- **素材分享**：Inspector、右键菜单、移动端长按菜单和全屏预览可复制当前素材链接，另一台设备打开后直接恢复详情
-- **手动刷新索引**：前端工具栏可一键刷新资源库缓存，无需重启服务即可重新扫描 NAS 上最新内容
-- **复制**：图片类素材可复制到剪贴板（需 HTTPS 或 localhost）
-- **快捷键**：`Esc` 取消选择或关闭预览 / Inspector，Inspector 中可用 `← / →` 切换前后项
-- **快速搜索**：按名称、标签或备注查找素材；标签区支持就地搜索
-- **URL**：当前文件夹、标签、最近、搜索、排序、类型及打开素材反映在地址栏 hash，可分享或刷新恢复
-- **主题**：三套主题 —— 画廊（浅色暖陶土，默认）、工作台（深色蓝）、碳工作室（深色绿）；切换仅改配色、不改布局，工具栏、侧栏、卡片与移动端 sheet 同步；偏好存本地
-- **PWA**：支持安装到主屏幕，并缓存应用外壳；素材和 API 数据始终从远程 Vault 获取
-- **移动端适配**：底部三栏导航覆盖资料库、文件夹与搜索；支持触控预览、长按操作、手势关闭、主题切换和安全区域适配
-- **SVG 图标**：全部使用内联 SVG 图标，精致一致
+**Current version**: v3.0.0 (2026-07-24) · [Changelog](CHANGELOG.md)
 
-## 产品边界
+---
 
-Web 聚焦远程只读浏览，而不是在浏览器内复制 Eagle 的完整工作台。界面保留资料库、文件夹、标签、搜索、预览、素材链接、下载和基础多选；不提供整理队列、评分、收藏、工作集、Viewer 笔记、审片标记、智能视图、Eagle 智能文件夹、重复分析、色谱、随机漫游、命令工具、复杂引用导出或离线数据管理。
+## Screenshots
 
-iPhone / iPad 使用同一套 Web 应用。在 Safari 打开远程地址后，可通过“分享 → 添加到主屏幕”获得独立窗口入口；底部三栏为资料库、文件夹与搜索。
+> Screenshots showing the viewer in action. Generated with the sample test library.
 
-浏览器缓存 PWA 静态外壳，并已浏览过的缩略图会存入 IndexedDB——弱网或断网重开时可即时还原已看过的图；素材列表、原文件与未浏览的缩略图仍依赖远程 Vault 连接。
+<!-- TODO: replace with actual screenshots when available -->
+<!-- Screenshots will be added here. See docs/screenshots/README.md for naming conventions and generation instructions. -->
 
-## 运行方式
+---
 
-### Docker（推荐，用于 NAS）
+## Features
 
-1. 将 NAS 上的 Eagle 库目录挂载到容器内 `/vault`。
-2. 构建并启动：
+- **Browse**: Parses the Eagle library folder tree (`metadata.json`) and displays assets from each `*.info/metadata.json`.
+- **Views**: All Items, Recent 7/30 Days, By Folder, By Tag, Search.
+- **Incremental loading**: All Items, Recent, Folders, Tags and Search views load in batches as you scroll — no giant renders.
+- **Gallery layout**: Compact three-column shell with library tree, density-adjustable asset canvas, and Inspector.
+- **View modes**: Waterfall masonry and list layout; thumbnail density is adjustable and persists across sessions.
+- **Inspector**: Click any asset to open its detailed card — large preview, dimensions, format, folder path, tags, source URL, Eagle notes, asset ID. Copy share link or download from within the Inspector.
+- **Left navigation**: Folder tree with expand/collapse, draggable sidebar width, folder counts (including children), hide/show toggle — all persisted locally.
+- **Sort & filter**: Sort by modified/created date, name, size, or format. Filter by image, video, document, audio, or other.
+- **Password-protected folders**: Eagle password-protected folders (and their descendants) are excluded from indexing, search, thumbnails, and file endpoints.
+- **Remote update awareness**: Detects Vault directory and metadata changes; prompts in-place reload.
+- **Hover preview**: 300 ms hover over thumbnails shows a larger preview. PDF also supports hover preview.
+- **Card actions**: Desktop hover shows preview and details. Right-click and mobile long-press expose select, copy link, and download.
+- **Preview & download**: Images, video, audio, PDF, and plain text preview inline. Other formats are downloadable. Single-file downloads preserve the original filename; multi-select can bundle as ZIP.
+- **Audio player**: Audio assets open in a full-featured player showing format, duration, BPM, and native playback controls.
+- **Image tools**: Full-screen image viewer with zoom-to-fit, fit-to-window, and zoom-in controls. Video/audio use native browser controls.
+- **Multi-select**: Select assets to copy links or download as ZIP. Touch-friendly on mobile.
+- **Previous / next navigation**: Inspector supports ← / → keyboard shortcuts to cycle through assets.
+- **Share**: Copy asset links from Inspector, context menu, mobile long-press, and full-screen preview.
+- **Manual index refresh**: One-click reload from the toolbar — no server restart needed to pick up new NAS content.
+- **Copy to clipboard**: Image assets can be copied directly (requires HTTPS or localhost).
+- **Keyboard shortcuts**: `Esc` to deselect or close preview/Inspector; `←` / `→` to navigate items in Inspector.
+- **Quick search**: Search by name, tags, or notes. Inline tag search available.
+- **Hash URLs**: Current folder, tag, search, sort, type, and open asset are reflected in the URL hash — shareable and restoreable.
+- **Three themes**: Gallery (light, warm terracotta — default), Workbench (dark, blue accent), Carbon (dark, green accent). Theme switching changes colors only, never layout. Toolbar, sidebar, cards, and mobile sheets all follow the active theme. Preference is persisted.
+- **PWA**: Installable to home screen with shell caching. Assets and API data always fetch from the remote Vault.
+- **Mobile-optimized**: Three-tab bottom navigation (Library, Folders, Search). Touch preview, long-press actions, gesture-driven sheet closing, theme sync, and safe-area insets.
+- **Inline SVG icons**: All icons are inline SVGs — crisp and consistent.
+
+---
+
+## Product Boundaries
+
+The web viewer focuses on **remote read-only browsing**, **not** replicating Eagle's full workstation in the browser. It surfaces library, folders, tags, search, preview, asset links, downloads, and basic multi-select. It does **not** provide organization queues, ratings, favorites, workspaces, Viewer notes, review markers, smart views, Eagle smart folders, duplicate analysis, color spectrum, random walk, command palette, advanced reference export, or offline data management.
+
+iPhone / iPad use the same web app. Open the remote URL in Safari, then tap **Share → Add to Home Screen** for a standalone window. The three bottom tabs are Library, Folders, and Search.
+
+Browser-cached PWA shell + IndexedDB thumbnail cache means previously viewed images rehydrate instantly on weak or offline networks. Asset lists, originals, and unseen thumbnails still require a live Vault connection.
+
+## Privacy
+
+Eagle Vault Viewer is **fully offline and self-contained**:
+
+- **No telemetry, no analytics, no external requests** — the app never phones home. No tracking pixels, no crash reporters, no usage statistics.
+- **No third-party CDN** — all frontend assets (CSS, JS, fonts, icons) are bundled and served from the app itself. No Google Fonts, no external icon sets.
+- **Your data stays on your network** — the Eagle library is parsed and served entirely on your own machine or NAS. Nothing is sent to external servers.
+- **Optional authentication** — set `VIEWER_PASSWORD` in your environment and the app requires a login page before accessing any data. API access can be further restricted with `VIEWER_API_TOKEN`.
+- **Docker images** are built from source using the provided `Dockerfile`. There are no pre-built binaries from unknown sources — you control exactly what runs.
+
+The only network activity is between your browser and the server you control (LAN, VPN, or optional HTTPS via your own reverse proxy).
+
+---
+
+## Quick Start
+
+### Docker (recommended, for NAS)
+
+1. Mount your Eagle library directory into the container at `/vault`.
+2. Build and start:
 
 ```bash
-# 修改 docker-compose.yml 中 volumes 为你的库路径，例如：
+# Edit docker-compose.yml to point volumes at your library, e.g.:
 # volumes:
 #   - /volume1/eagle/Design.library:/vault:ro
 
-docker-compose up -d --build
+docker compose up -d --build
 ```
 
-3. 浏览器访问 `http://<NAS或主机IP>:8000`。
+3. Open `http://<NAS-or-host-IP>:8000` in your browser.
 
-#### 手机远程访问（LAN / VPN / HTTPS）
+#### Remote access (LAN / VPN / HTTPS)
 
-手机端应**通过 HTTP 访问服务端**，而不是在手机上直接挂载 `.library`：vault 只在服务端挂载，手机只消费 JSON 与缩略图。这样既能复用服务端的索引 / 缩略图 / 缓存头，又能用分层缓存应对移动网络不稳。
+Clients access the viewer via HTTP — **never mount `.library` on the phone**. The Vault lives on the server only:
 
-- **局域网**：手机与服务器同 WiFi，直接访问 `http://<服务器IP>:8000/mobile.html`。
-- **VPN（推荐）**：用 Tailscale / ZeroTier / WireGuard 把手机接入与服务端同一虚拟网，再访问 `http://<VPN内网地址>:8000/mobile.html`——免端口转发、等同内网安全。
-- **HTTPS**：分享 / 复制等功能要求 HTTPS 或 localhost（见下文安全说明）；即便走 VPN 也建议开启 HTTPS（Tailscale HTTPS 或 Caddy 反代），否则这些功能在手机上会被禁用。
+- **LAN**: Same WiFi → `http://<server-ip>:8000/mobile.html`
+- **VPN (recommended)**: Tailscale / ZeroTier / WireGuard → `http://<vpn-ip>:8000/mobile.html`
+- **HTTPS**: Required for `navigator.share` and clipboard write. Enable via Caddy reverse proxy (see [`Caddyfile.example`](Caddyfile.example)) or a Tailscale Funnel.
 
-完整的服务端挂载 + 远程访问示例见 [`docker-compose.remote.example.yml`](docker-compose.remote.example.yml)；其中可选的 Caddy 反代段配套 [`Caddyfile.example`](Caddyfile.example)，提供 Tailscale 内网域名 / 自有域名 / 纯局域网三种 HTTPS 反代写法，文件内注释即开即用。
+Full server-mount + remote-access example: [`docker-compose.remote.example.yml`](docker-compose.remote.example.yml). See also the companion [`Caddyfile.example`](Caddyfile.example) for Tailscale / custom-domain / LAN-only HTTPS proxy config.
 
-### 本地开发
+### Local development
 
 ```bash
 cd eagle-viewer
@@ -82,69 +114,79 @@ export EAGLE_VAULT_ROOT=/path/to/your/Design.library
 make dev
 ```
 
-## 开发与贡献
+---
 
-- `make setup` — 安装 / 同步本地开发环境
-- `make dev` — 启动开发服务
-- `make check` — 运行版本一致性、lint、pytest、Python/JS 语法检查
-- `make test` — 运行自动测试
-- `CHANGELOG.md` — 更新记录
-- `docs/release.md` — 发布流程
-- `CONTRIBUTING.md` — 贡献指南
-- `SECURITY.md` — 安全报告方式
+## Development & Contributing
 
-前端保持原生 HTML/CSS/JS，不引入框架；后端使用 FastAPI。更细的仓库协作约定见 `AGENTS.md`。
+```bash
+make setup    # Install/sync dev environment
+make dev      # Start dev server
+make check    # Version consistency, lint, pytest, Python/JS syntax
+make test     # Run pytest only
+```
 
-## 配置
+- [Contributing guide](CONTRIBUTING.md)
+- [Release process](docs/release.md)
+- [Changelog](CHANGELOG.md)
+- [Security policy](SECURITY.md)
 
-| 环境变量 | 说明 | 默认 |
-|----------|------|------|
-| `EAGLE_VAULT_ROOT` | 库在容器内的路径（需挂载） | `/vault` |
-| `VIEWER_PASSWORD` | 访问密码。设置后打开页面需先登录；不设置则无需认证 | 空（不启用） |
-| `VIEWER_SECRET_KEY` | Session 签名密钥，建议随机字符串（如 `openssl rand -hex 32`） | 未设置时使用 `VIEWER_PASSWORD` |
-| `VIEWER_API_TOKEN` | 自动化工具或 API 客户端使用的 Bearer Token；设置后 API 需要该 Token 或网页登录会话 | 空（不启用） |
-| `VIEWER_STATE_PATH` | （预留）查看状态持久化文件；应位于 Eagle 库挂载目录之外。当前版本前端未启用收藏 / 最近查看同步 | `data/eagle-viewer-state.json` |
+The frontend uses vanilla HTML/CSS/JS — no framework. The backend is FastAPI. For detailed conventions, see `docs/release.md` and `CONTRIBUTING.md`.
 
-## API（只读）
+---
 
-- `GET /health` — 无需认证的容器健康检查
-- `GET /api/info` — API 版本、能力与可用认证方式，供自动化工具或 API 客户端连接检查
-- `GET /api/tree` — 文件夹树（每个节点含 `count`：该文件夹及所有子文件夹内文件总数）
-- `GET /api/items` — 全部文件（支持 `sort`, `dir`, `type`, `offset`, `limit`）
-- `GET /api/recent?days=7|30` — 最近 N 天素材（支持 `sort`, `dir`, `type`, `offset`, `limit`）
-- `GET /api/folders/{folder_id}/items` — 某文件夹下子文件夹与素材（支持 `sort`, `dir`, `type`, `offset`, `limit`）
-- `GET /api/tags` — 标签及数量
-- `GET /api/state` / `PUT /api/state` — 同步查看状态（当前版本未启用收藏 / 最近查看同步）
-- `POST /api/items/resolve` — 根据素材 ID 批量解析当前元数据，用于同步清单
-- `GET /api/tags/{tag}/items` — 某标签下素材（支持 `sort`, `dir`, `type`, `offset`, `limit`）
-- `GET /api/search?q=...` — 搜索（支持 `sort`, `dir`, `type`, `offset`, `limit`）
-- `GET /api/items/{item_id}` — 素材元数据
-- `GET /api/items/{item_id}/snippet` — 文本文件摘要（目前支持 `txt`）
-- `GET /api/items/{item_id}/thumbnail` — 缩略图（无则返回占位图）
-- `GET /api/items/{item_id}/file` — 原文件（预览）
-- `GET /api/items/{item_id}/file?download=true` — 原文件（下载）
-- `POST /api/library/reload` — 重新扫描资源库并刷新内存缓存
-- `POST /api/items/batch-download` — 批量打包为 ZIP（Body: `["id1","id2",...]`）
+## Configuration
 
-列表类接口返回：`items`、`total`、`offset`、`limit`、`nextOffset`、`hasMore`，以及各端点自有字段（如 `subfolders`、`tag`、`query`、`days`），供前端增量加载使用。
+| Env variable | Description | Default |
+|--------------|-------------|---------|
+| `EAGLE_VAULT_ROOT` | Path to the Eagle library inside the container (must be mounted) | `/vault` |
+| `VIEWER_PASSWORD` | Access password — set to require login; leave empty for no auth | _(empty)_ |
+| `VIEWER_SECRET_KEY` | Session signing key — use a random string (e.g. `openssl rand -hex 32`) | Falls back to `VIEWER_PASSWORD` |
+| `VIEWER_API_TOKEN` | Bearer token for API clients — when set, API calls need this token or a web session | _(empty)_ |
+| `VIEWER_STATE_PATH` | State persistence file path; should be outside the mounted vault directory | `data/eagle-viewer-state.json` |
 
-Eagle 密码保护文件夹返回 `423 Locked`；其中素材不会进入 Viewer 索引，因此素材详情、缩略图和原文件直链统一返回 `404`，避免从非导航入口绕过保护。
+---
 
-素材元数据保留 Eagle 原生 `duration` 与 `bpm` 字段，Inspector 会显示可用的音视频信息。
+## API (Read-only)
 
-自动化脚本或受信客户端可为任意 API 请求添加 `Authorization: Bearer <VIEWER_API_TOKEN>`。该 Token 应仅保存在系统密钥链、密码管理器或服务端密钥管理中；生产环境请始终通过 HTTPS 或可信内网访问。
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/health` | Unauthenticated container health check |
+| GET | `/api/info` | API metadata: version, capabilities, available auth methods |
+| GET | `/api/tree` | Folder tree (each node includes `count`: total items in folder + descendants) |
+| GET | `/api/items` | All items (supports `sort`, `dir`, `type`, `offset`, `limit`) |
+| GET | `/api/recent?days=7\|30` | Recent N-day assets (supports `sort`, `dir`, `type`, `offset`, `limit`) |
+| GET | `/api/folders/{folder_id}/items` | Items in a specific folder (supports `sort`, `dir`, `type`, `offset`, `limit`) |
+| GET | `/api/tags` | Tags and their counts |
+| GET | `/api/state` | Viewer state (viewer preferences, density, etc.) |
+| PUT | `/api/state` | Persist viewer state (optimistic locking via `revision`) |
+| POST | `/api/items/resolve` | Batch-resolve current metadata by asset ID |
+| GET | `/api/tags/{tag}/items` | Items with a given tag (supports `sort`, `dir`, `type`, `offset`, `limit`) |
+| GET | `/api/search?q=...` | Search (supports `sort`, `dir`, `type`, `offset`, `limit`) |
+| GET | `/api/items/{item_id}` | Single item metadata |
+| GET | `/api/items/{item_id}/snippet` | Text file snippet (currently supports `.txt`) |
+| GET | `/api/items/{item_id}/thumbnail` | Thumbnail image (returns placeholder on miss) |
+| GET | `/api/items/{item_id}/file` | Original file (preview) |
+| GET | `/api/items/{item_id}/file?download=true` | Original file (download) |
+| POST | `/api/library/reload` | Trigger a full re-scan of the library |
+| POST | `/api/items/batch-download` | Bundle items as ZIP (`Body: ["id1","id2",...]`) |
 
-状态写入使用 `revision` 做乐观锁。客户端先读取 `/api/state`，写回时携带返回的 `revision`；若其他设备已更新，服务端返回 `409` 和最新状态，避免静默覆盖。
+List endpoints return: `items`, `total`, `offset`, `limit`, `nextOffset`, `hasMore`, plus endpoint-specific fields (`subfolders`, `tag`, `query`, `days`).
 
-## 库结构要求
+Eagle password-protected folders return `423 Locked`; their assets never enter the viewer index, so item detail / thumbnail / file endpoints return `404` for protected content.
 
-Eagle 库目录应包含：
+---
 
-- `metadata.json` — 库级元数据（含 `folders` 树）
-- `images/*.info/` — 每个素材一个子目录，内含 `metadata.json` 和媒体文件
+## Library Structure
 
-与 Eagle 官方 Mac/Windows 端使用的库格式一致，直接使用同步到 NAS 的库路径即可。
+The Eagle library directory should contain:
 
-## 更新记录
+- `metadata.json` — library-level metadata (including the `folders` tree)
+- `images/*.info/` — one subdirectory per asset, containing `metadata.json` and the media file(s)
 
-完整更新记录见 [CHANGELOG.md](CHANGELOG.md)。
+This matches the standard Eagle desktop app format. Just point `EAGLE_VAULT_ROOT` at your synced NAS library path.
+
+---
+
+## License
+
+[MIT](LICENSE) © 2026 hanops

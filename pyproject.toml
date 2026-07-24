@@ -1,15 +1,24 @@
 [project]
 name = "eagle-viewer"
-version = "2.0.5"
+version = "3.0.0"
 description = "Read-only viewer for Eagle libraries"
+authors = [{name = "hanops", email = "opsnote@gmail.com"}]
+license = {text = "MIT"}
 readme = "README.md"
 requires-python = ">=3.11"
+keywords = ["eagle", "library", "viewer", "nas", "asset-management"]
 dependencies = [
   "fastapi==0.115.0",
   "uvicorn[standard]==0.32.0",
   "python-multipart==0.0.12",
   "itsdangerous==2.2.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/hanops/eagle-viewer"
+Repository = "https://github.com/hanops/eagle-viewer"
+"Bug Tracker" = "https://github.com/hanops/eagle-viewer/issues"
+Changelog = "https://github.com/hanops/eagle-viewer/blob/main/CHANGELOG.md"
 
 [dependency-groups]
 dev = [

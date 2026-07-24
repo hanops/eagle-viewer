@@ -22,7 +22,7 @@ def test_static_shell_uses_one_asset_revision():
         versioned = f"/static/{asset}?v=1.98"
         assert versioned in mobile
         assert versioned in service_worker
-    assert "eagle-viewer-shell-v44" in service_worker
+    assert "eagle-viewer-shell-v45" in service_worker
 
 
 def test_service_worker_only_caches_the_app_shell():
@@ -171,8 +171,8 @@ def test_iphone_layout_uses_dynamic_viewport_and_balanced_safe_areas():
 
 def test_protected_folder_boundary_is_documented():
     checklist = read("docs/regression-checklist.md")
-    assert "密码保护文件夹及后代素材不进入索引" in checklist
-    assert "全部文件、最近、收藏、文件夹、标签、搜索" in checklist
+    assert "Password-protected folders and their descendants are excluded from indexing" in checklist
+    assert "All Items, Recent Additions, Folders, Tags, and Search views switch correctly" in checklist
 
 
 def test_accent_tokens_are_not_self_referential():

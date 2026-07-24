@@ -414,7 +414,7 @@ async function loadLocalData() {
   var pending = readStoredViewerState(VIEWER_STATE_PENDING_KEY);
   if (pending && pending.state) {
     applyRemoteViewerState(pending.state, { updateBaseline: false });
-    setSyncStatus('pending', '待同步');
+    setSyncStatus('pending', 'Pending sync');
   }
   try {
     var remoteState = await api.fetchViewerState();
@@ -425,22 +425,22 @@ async function loadLocalData() {
         applyRemoteViewerState(merged, { updateBaseline: false });
         state.viewerStateRevision = remoteState.revision || 0;
         persistPendingViewerState();
-        setSyncStatus('pending', '待同步');
+        setSyncStatus('pending', 'Pending sync');
         scheduleViewerStateSave(0);
       } else {
         applyRemoteViewerState(remoteState);
         clearPendingViewerState();
-        setSyncStatus('synced', '已同步');
+        setSyncStatus('synced', 'Synced');
       }
     } else if (hasViewerState()) {
       persistPendingViewerState();
       scheduleViewerStateSave();
     } else {
-      setSyncStatus('synced', '已同步');
+      setSyncStatus('synced', 'Synced');
     }
   } catch (e3) {
     if (hasViewerState()) persistPendingViewerState();
-    setSyncStatus(hasViewerState() ? 'pending' : 'local', hasViewerState() ? '待同步' : '本机');
+    setSyncStatus(hasViewerState() ? 'pending' : 'local', hasViewerState() ? 'Pending sync' : 'Local');
   }
 }
 
@@ -460,10 +460,10 @@ function saveLocalData(syncRemote) {
 function scheduleViewerStateSave(delay) {
   clearTimeout(viewerStateSaveTimer);
   if (navigator.onLine === false) {
-    setSyncStatus('pending', '待同步');
+    setSyncStatus('pending', 'Pending sync');
     return;
   }
-  setSyncStatus('syncing', '同步中');
+  setSyncStatus('syncing', 'Syncing…');
   viewerStateSaveTimer = setTimeout(async function() {
     if (viewerStateSaveInFlight) {
       scheduleViewerStateSave(350);
@@ -481,7 +481,7 @@ function scheduleViewerStateSave(delay) {
         applyRemoteViewerState(merged, { updateBaseline: false });
         state.viewerStateRevision = result.state.revision || 0;
         persistPendingViewerState();
-        setSyncStatus('conflict', '正在合并');
+        setSyncStatus('conflict', 'Merging');
         scheduleViewerStateSave(80);
       } else if (result) {
         state.viewerStateRevision = result.revision || state.viewerStateRevision;
@@ -489,18 +489,18 @@ function scheduleViewerStateSave(delay) {
         if (submittedMutationVersion === viewerStateMutationVersion) {
           applyRemoteViewerState(result);
           clearPendingViewerState();
-          setSyncStatus('synced', '已同步');
+          setSyncStatus('synced', 'Synced');
         } else {
           persistPendingViewerState();
-          setSyncStatus('pending', '待同步');
+          setSyncStatus('pending', 'Pending sync');
           scheduleViewerStateSave(80);
         }
       } else {
-        setSyncStatus('pending', '待同步');
+        setSyncStatus('pending', 'Pending sync');
       }
     } catch (e) {
       persistPendingViewerState();
-      setSyncStatus('pending', '待同步');
+      setSyncStatus('pending', 'Pending sync');
     } finally {
       viewerStateSaveInFlight = false;
     }
@@ -3997,6 +3997,24 @@ function bindEvents() {
   document.querySelectorAll('.theme-swatch').forEach(function(btn) {
     btn.onclick = function() { setTheme(btn.dataset.themeName); };
   });
+
+  // Language switcher
+  var langBtn = document.getElementById('langBtn');
+  if (langBtn) {
+    langBtn.onclick = function() {
+      var newLang = getLang() === 'zh' ? 'en' : 'zh';
+      setLang(newLang);
+      applyStaticI18n();
+      // Update toolbar buttons with data-i18n-title
+      document.querySelectorAll('[data-i18n-title]').forEach(function(el) {
+        el.setAttribute('title', t(el.getAttribute('data-i18n-title')));
+      });
+      // Re-apply theme aria-labels
+      document.querySelectorAll('.theme-swatch').forEach(function(btn) {
+        btn.setAttribute('aria-label', t('theme_' + btn.dataset.themeName));
+      });
+    };
+  }
 
   // Export
   var copyCurrentViewBtn = document.getElementById('copyCurrentViewBtn');

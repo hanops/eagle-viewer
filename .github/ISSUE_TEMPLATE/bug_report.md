@@ -1,28 +1,35 @@
 ---
 name: Bug report
-about: Report a reproducible problem
+about: Create a report to help us improve
 title: ""
 labels: bug
 assignees: ""
 ---
 
-## Summary
+**Describe the bug**
+A clear and concise description of what the bug is.
 
-## Steps to Reproduce
+**To Reproduce**
+Steps to reproduce the behavior:
+1. Go to '...'
+2. Click on '...'
+3. Scroll down to '...'
+4. See error
 
-1.
-2.
-3.
+**Expected behavior**
+A clear and concise description of what you expected to happen.
 
-## Expected Behavior
+**Screenshots**
+If applicable, add screenshots to help explain your problem.
 
-## Actual Behavior
+**Environment (please complete the following):**
+- OS: [e.g. macOS 14, Ubuntu 24.04, DSM 7]
+- Browser: [e.g. Chrome 126, Safari 17]
+- Viewer version: [e.g. v2.0.5]
+- Access method: [e.g. Docker on NAS, local dev, remote via Tailscale]
 
-## Environment
+**Browser console errors**
+If available, paste any console errors here.
 
-- Version:
-- Browser:
-- OS / Docker / NAS:
-- Eagle library size:
-
-## Notes or Screenshots
+**Additional context**
+Add any other context about the problem here.

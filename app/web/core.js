@@ -3,7 +3,7 @@
 var EagleViewer = window.EagleViewer = window.EagleViewer || {};
 
 var API = '';
-var VERSION = '2.0.5';
+var VERSION = '3.0.0';
 var VERSION_DATE = '2026-07-24';
 var PREVIEW_IMAGE_EXTS = ['jpg','jpeg','png','gif','webp','svg','bmp'];
 var PREVIEW_VIDEO_EXTS = ['mp4','webm','mov','m4v'];
@@ -602,7 +602,7 @@ function renderInspectorPreview(container, item, thumbUrl, fileUrl) {
 function formatDate(ts) {
   if (!ts) return '—';
   var d = new Date(ts);
-  return isNaN(d.getTime()) ? '—' : d.toLocaleString('zh-CN', { dateStyle: 'short', timeStyle: 'short' });
+  return isNaN(d.getTime()) ? '—' : d.toLocaleString(getLang() === 'en' ? 'en' : 'zh-CN', { dateStyle: 'short', timeStyle: 'short' });
 }
 
 function formatSize(bytes) {
@@ -610,4 +610,281 @@ function formatSize(bytes) {
   if (bytes < 1024) return bytes + ' B';
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
   return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+}
+
+// ===== i18n =====
+var I18N_DATA = {
+  zh: {
+    lang_name: '中',
+    lang_en: 'English',
+    // Sidebar
+    sidebar_browse: '浏览',
+    sidebar_all: '全部',
+    sidebar_recent: '最近添加',
+    sidebar_7d: '最近 7 天',
+    sidebar_30d: '最近 30 天',
+    sidebar_folders: '文件夹',
+    sidebar_tags: '标签',
+    // Search
+    search_placeholder: '搜索名称、标签或备注',
+    search_suggest: '搜索建议',
+    tag_search_placeholder: '搜索标签…',
+    // Sort & filter
+    sort_label: '排序',
+    sort_mtime: '修改时间',
+    sort_btime: '创建时间',
+    sort_name: '名称',
+    sort_size: '大小',
+    sort_ext: '格式',
+    sort_desc: '降序',
+    sort_asc: '升序',
+    filter_label: '类型',
+    filter_all: '全部',
+    filter_image: '图片',
+    filter_video: '视频',
+    filter_document: '文档',
+    filter_audio: '音频',
+    filter_other: '其他',
+    // Batch bar
+    batch_selected: '已选 {n} 个',
+    batch_total: '总大小 {s}',
+    batch_type_dist: '类型分布 -',
+    batch_current_view: '当前视图',
+    batch_select_hint: '⌘/Ctrl+A 全选 · Shift 范围 · Esc 取消',
+    batch_sel_all: '全选',
+    batch_invert: '反选',
+    batch_clear: '取消',
+    batch_copy_links: '复制链接',
+    batch_download: '打包下载',
+    batch_output: '输出',
+    batch_output_aria: '批量输出',
+    batch_close_aria: '关闭批量输出',
+    batch_selected_title: '已选素材',
+    batch_output_meta: '复制链接或打包下载',
+    batch_copy_links2: '复制链接',
+    batch_open_other: '给另一台设备打开',
+    batch_download_zip: 'Download ZIP',
+    batch_need_remote: 'Requires remote Vault',
+    // View buttons
+    view_grid: '网格视图',
+    view_list: '列表视图',
+    // Theme
+    theme_group_aria: '主题切换',
+    theme_gallery: '画廊（浅色）',
+    theme_workbench: '工作台（深色蓝）',
+    theme_carbon: '碳工作室（深色绿）',
+    // Remote status
+    remote_online: 'Remote Vault Online',
+    remote_readonly: 'Eagle Vault · 只读挂载',
+    remote_retry: '重连',
+    // PWA
+    pwa_new_version: '新版本已准备好',
+    pwa_new_desc: '更新已在后台下载，刷新后会回到当前工作位置。',
+    pwa_update_later: '稍后',
+    pwa_update_now: '立即更新',
+    // Update
+    update_available: '新版本可用',
+    // Folders sidebar
+    folder_loading: '加载中…',
+    // Empty states
+    empty_sidebar: '选择左侧文件夹查看素材',
+    // Inspector
+    inspector_prev: '上一项',
+    inspector_next: '下一项',
+    inspector_title: '详情',
+    // Mobile tabbar & sheets (desktop responsive)
+    mobile_tab_library: '资料库',
+    mobile_tab_search: '搜索',
+    mobile_tab_more: '更多',
+    mobile_search_title: '移动搜索',
+    mobile_search_close: '关闭搜索',
+    mobile_more_settings: 'Remote Vault Settings',
+    mobile_more_install: 'Add to Home Screen',
+    mobile_more_checking: 'Checking connection…',
+    // Density
+    density_small: '小',
+    density_medium: '中',
+    density_large: '大',
+    // Sync status
+    sync_local: 'Local',
+    sync_synced: 'Synced',
+    sync_pending: 'Pending sync',
+    sync_syncing: 'Syncing…',
+    sync_conflict: 'Merging',
+    // Canvas
+    canvas_grid: '网格视图',
+    canvas_list: '列表视图',
+  },
+  en: {
+    lang_name: 'EN',
+    lang_en: 'English',
+    // Sidebar
+    sidebar_browse: 'Browse',
+    sidebar_all: 'All Items',
+    sidebar_recent: 'Recent',
+    sidebar_7d: 'Last 7 Days',
+    sidebar_30d: 'Last 30 Days',
+    sidebar_folders: 'Folders',
+    sidebar_tags: 'Tags',
+    // Search
+    search_placeholder: 'Search name, tag or notes…',
+    search_suggest: 'Search suggestions',
+    tag_search_placeholder: 'Search tags…',
+    // Sort & filter
+    sort_label: 'Sort',
+    sort_mtime: 'Date Modified',
+    sort_btime: 'Date Created',
+    sort_name: 'Name',
+    sort_size: 'Size',
+    sort_ext: 'Format',
+    sort_desc: 'Descending',
+    sort_asc: 'Ascending',
+    filter_label: 'Type',
+    filter_all: 'All',
+    filter_image: 'Image',
+    filter_video: 'Video',
+    filter_document: 'Document',
+    filter_audio: 'Audio',
+    filter_other: 'Other',
+    // Batch bar
+    batch_selected: '{n} selected',
+    batch_total: '{s} total',
+    batch_type_dist: 'Types -',
+    batch_current_view: 'Current view',
+    batch_select_hint: '⌘/Ctrl+A Select all · Shift Range · Esc Cancel',
+    batch_sel_all: 'Select All',
+    batch_invert: 'Invert',
+    batch_clear: 'Clear',
+    batch_copy_links: 'Copy Links',
+    batch_download: 'Download ZIP',
+    batch_output: 'Output',
+    batch_output_aria: 'Batch output',
+    batch_close_aria: 'Close batch output',
+    batch_selected_title: 'Selected Items',
+    batch_output_meta: 'Copy links or download ZIP',
+    batch_copy_links2: 'Copy Links',
+    batch_open_other: 'Open on another device',
+    batch_download_zip: 'Download ZIP',
+    batch_need_remote: 'Requires remote Vault',
+    // View buttons
+    view_grid: 'Grid View',
+    view_list: 'List View',
+    // Theme
+    theme_group_aria: 'Theme',
+    theme_gallery: 'Gallery (Light)',
+    theme_workbench: 'Workbench (Dark Blue)',
+    theme_carbon: 'Carbon (Dark Green)',
+    // Remote status
+    remote_online: 'Remote Vault Online',
+    remote_readonly: 'Eagle Vault · Read-only',
+    remote_retry: 'Reconnect',
+    // PWA
+    pwa_new_version: 'New version ready',
+    pwa_new_desc: 'Update downloaded in background. Refresh returns to your current position.',
+    pwa_update_later: 'Later',
+    pwa_update_now: 'Update Now',
+    // Update
+    update_available: 'Update available',
+    // Folders sidebar
+    folder_loading: 'Loading…',
+    // Empty states
+    empty_sidebar: 'Select a folder from the sidebar',
+    // Inspector
+    inspector_prev: 'Previous',
+    inspector_next: 'Next',
+    inspector_title: 'Details',
+    // Mobile tabbar & sheets (desktop responsive)
+    mobile_tab_library: 'Library',
+    mobile_tab_search: 'Search',
+    mobile_tab_more: 'More',
+    mobile_search_title: 'Mobile Search',
+    mobile_search_close: 'Close Search',
+    mobile_more_settings: 'Remote Vault Settings',
+    mobile_more_install: 'Add to Home Screen',
+    mobile_more_checking: 'Checking connection…',
+    // Density
+    density_small: 'Small',
+    density_medium: 'Medium',
+    density_large: 'Large',
+    // Sync status
+    sync_local: 'Local',
+    sync_synced: 'Synced',
+    sync_pending: 'Pending sync',
+    sync_syncing: 'Syncing…',
+    sync_conflict: 'Merging',
+    // Canvas
+    canvas_grid: 'Grid View',
+    canvas_list: 'List View',
+  }
+};
+
+var _lang = 'zh';
+
+function getLang() { return _lang; }
+
+function setLang(lang) {
+  if (lang !== 'zh' && lang !== 'en') lang = 'zh';
+  _lang = lang;
+  try { localStorage.setItem('eagle-viewer-lang', lang); } catch (e) {}
+  document.documentElement.setAttribute('lang', lang === 'en' ? 'en' : 'zh-CN');
+}
+
+function t(key) {
+  var map = I18N_DATA[_lang] || I18N_DATA.zh;
+  return map[key] || key;
+}
+
+function tFmt(key, params) {
+  var s = t(key);
+  for (var k in params) {
+    s = s.replace('{' + k + '}', params[k]);
+  }
+  return s;
+}
+
+// Load saved language preference
+try {
+  var savedLang = localStorage.getItem('eagle-viewer-lang');
+  if (savedLang === 'en' || savedLang === 'zh') setLang(savedLang);
+} catch (e) {}
+// Default to browser language preference
+if (_lang === 'zh' && navigator.language && navigator.language.startsWith('en')) {
+  _lang = 'en';
+  try { localStorage.setItem('eagle-viewer-lang', 'en'); } catch (e) {}
+  document.documentElement.setAttribute('lang', 'en');
+}
+
+// Apply i18n to static DOM elements with data-i18n attributes
+function applyStaticI18n(root) {
+  root = root || document;
+  var els = root.querySelectorAll('[data-i18n]');
+  for (var i = 0; i < els.length; i++) {
+    var el = els[i];
+    var key = el.getAttribute('data-i18n');
+    var text = t(key);
+    if (el.hasAttribute('placeholder')) {
+      el.setAttribute('placeholder', text);
+    } else if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+      el.setAttribute('placeholder', text);
+    } else if (el.tagName === 'OPTION') {
+      el.textContent = text;
+    } else {
+      // Preserve inner HTML for elements with bold/span children
+      var hasRich = el.querySelector('b, strong, span, i, em');
+      if (!hasRich) el.textContent = text;
+    }
+  }
+  // Update aria-label attributes
+  var ariaEls = root.querySelectorAll('[data-i18n-aria]');
+  for (var j = 0; j < ariaEls.length; j++) {
+    ariaEls[j].setAttribute('aria-label', t(ariaEls[j].getAttribute('data-i18n-aria')));
+  }
+  // Update title attributes
+  var titleEls = root.querySelectorAll('[data-i18n-title]');
+  for (var k = 0; k < titleEls.length; k++) {
+    titleEls[k].setAttribute('title', t(titleEls[k].getAttribute('data-i18n-title')));
+  }
+  // Update language button text
+  var langBtn = document.getElementById('langBtn');
+  if (langBtn) langBtn.textContent = getLang() === 'zh' ? I18N_DATA.zh.lang_name : I18N_DATA.en.lang_name;
 }

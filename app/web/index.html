@@ -32,8 +32,8 @@
   <!-- Toolbar -->
   <div class="toolbar">
       <div class="toolbar-left">
-        <button type="button" class="menu-btn" id="menuBtn" aria-label="菜单"></button>
-        <a class="brand" href="/" aria-label="Eagle Vault Viewer 首页">
+        <button type="button" class="menu-btn" id="menuBtn" aria-label="Menu"></button>
+        <a class="brand" href="/" aria-label="Eagle Vault Viewer Home">
           <span class="brand-mark" aria-hidden="true">
             <svg viewBox="0 0 28 28" width="22" height="22" focusable="false">
               <rect class="ev-tile" x="1.5" y="1.5" width="25" height="25" rx="8"/>
@@ -42,53 +42,54 @@
           </span>
           <span class="brand-name">Eagle <b>Vault</b></span>
         </a>
-        <span class="version-badge" id="appVersionBadge" aria-label="当前版本"></span>
-        <span class="sync-status" id="syncStatus" data-state="local">本机</span>
+        <span class="version-badge" id="appVersionBadge" aria-label="Current version"></span>
+        <span class="sync-status" id="syncStatus" data-state="local">Local</span>
       </div>
     <div class="toolbar-center">
       <div class="search-box">
         <span id="searchIcon"></span>
-        <input type="search" id="searchInput" placeholder="搜索名称、标签或备注" autocomplete="off" />
-        <div class="search-suggest" id="searchSuggest" role="listbox" aria-label="搜索建议"></div>
+        <input type="search" id="searchInput" placeholder="搜索名称、标签或备注" autocomplete="off" data-i18n="search_placeholder" />
+        <div class="search-suggest" id="searchSuggest" role="listbox" data-i18n-aria="search_suggest"></div>
       </div>
     </div>
     <div class="toolbar-right">
-      <button type="button" class="tb-btn" id="viewGrid" title="网格视图"></button>
-      <button type="button" class="tb-btn" id="viewList" title="列表视图"></button>
-      <div class="theme-switcher" id="themeSwitcher" role="group" aria-label="主题切换">
-        <button type="button" class="theme-swatch theme-swatch-gallery" data-theme-name="gallery" title="画廊（浅色）" aria-label="画廊"></button>
-        <button type="button" class="theme-swatch theme-swatch-workbench" data-theme-name="workbench" title="工作台（深色蓝）" aria-label="工作台"></button>
-        <button type="button" class="theme-swatch theme-swatch-carbon" data-theme-name="carbon" title="碳工作室（深色绿）" aria-label="碳工作室"></button>
+      <button type="button" class="tb-btn" id="viewGrid" data-i18n-title="view_grid"></button>
+      <button type="button" class="tb-btn" id="viewList" data-i18n-title="view_list"></button>
+      <div class="theme-switcher" id="themeSwitcher" role="group" data-i18n-aria="theme_group_aria">
+        <button type="button" class="theme-swatch theme-swatch-gallery" data-theme-name="gallery" data-i18n-title="theme_gallery" data-i18n-aria="theme_gallery"></button>
+        <button type="button" class="theme-swatch theme-swatch-workbench" data-theme-name="workbench" data-i18n-title="theme_workbench" data-i18n-aria="theme_workbench"></button>
+        <button type="button" class="theme-swatch theme-swatch-carbon" data-theme-name="carbon" data-i18n-title="theme_carbon" data-i18n-aria="theme_carbon"></button>
       </div>
+      <button type="button" class="lang-btn" id="langBtn" data-i18n-title="lang_en" data-i18n-aria="lang_en">中</button>
     </div>
   </div>
 
   <div class="remote-status-strip" id="remoteStatusStrip" data-state="online" hidden aria-live="polite">
     <span class="remote-status-orb" aria-hidden="true"></span>
     <div class="remote-status-copy">
-      <strong id="remoteStatusTitle">远程 Vault 在线</strong>
-      <span id="remoteStatusMeta">Eagle Vault · 只读挂载</span>
+      <strong id="remoteStatusTitle" data-i18n="remote_online">Remote Vault Online</strong>
+      <span id="remoteStatusMeta" data-i18n="remote_readonly">Eagle Vault · 只读挂载</span>
     </div>
-    <button type="button" id="remoteStatusRetry">重连</button>
+    <button type="button" id="remoteStatusRetry" data-i18n="remote_retry">重连</button>
   </div>
 
   <!-- Batch action bar -->
   <div class="batch-bar" id="batchBar">
     <div class="batch-summary">
-      <span class="batch-count" id="selectedCount">已选 0 个</span>
-      <span class="batch-meta" id="selectedMeta">总大小 0 B</span>
-      <span class="batch-breakdown" id="selectedBreakdown">类型分布 -</span>
-      <span class="batch-scope" id="selectedScope">当前视图</span>
-      <span class="batch-hint" id="selectedHint">⌘/Ctrl+A 全选 · Shift 范围 · Esc 取消</span>
+      <span class="batch-count" id="selectedCount" data-i18n="batch_selected">已选 0 个</span>
+      <span class="batch-meta" id="selectedMeta" data-i18n="batch_total">总大小 0 B</span>
+      <span class="batch-breakdown" id="selectedBreakdown" data-i18n="batch_type_dist">类型分布 -</span>
+      <span class="batch-scope" id="selectedScope" data-i18n="batch_current_view">当前视图</span>
+      <span class="batch-hint" id="selectedHint" data-i18n="batch_select_hint">⌘/Ctrl+A 全选 · Shift 范围 · Esc 取消</span>
     </div>
     <div class="batch-preview-rail" id="selectedPreviewRail" aria-label="已选素材预览"></div>
     <div class="batch-actions" aria-label="批量操作">
-      <button type="button" id="selectAllBtn" class="batch-control">全选</button>
-      <button type="button" id="invertSelectBtn" class="batch-control">反选</button>
-      <button type="button" id="clearSelectBtn" class="batch-control">取消</button>
-      <button type="button" id="batchCopyLinksBtn" class="batch-output">复制链接</button>
-      <button type="button" id="batchDownloadBtn" class="primary batch-output">打包下载</button>
-      <button type="button" id="batchMobileOutputBtn" class="batch-mobile-output">输出</button>
+      <button type="button" id="selectAllBtn" class="batch-control" data-i18n="batch_sel_all">全选</button>
+      <button type="button" id="invertSelectBtn" class="batch-control" data-i18n="batch_invert">反选</button>
+      <button type="button" id="clearSelectBtn" class="batch-control" data-i18n="batch_clear">取消</button>
+      <button type="button" id="batchCopyLinksBtn" class="batch-output" data-i18n="batch_copy_links">复制链接</button>
+      <button type="button" id="batchDownloadBtn" class="primary batch-output" data-i18n="batch_download">打包下载</button>
+      <button type="button" id="batchMobileOutputBtn" class="batch-mobile-output" data-i18n="batch_output">输出</button>
     </div>
   </div>
 
@@ -103,7 +104,7 @@
       </div>
       <div class="batch-output-grid">
         <button type="button" data-batch-output-action="copy-links"><span id="iconBatchOutputLinks"></span><strong>复制链接</strong><small>给另一台设备打开</small></button>
-        <button type="button" data-batch-output-action="download" class="primary"><span id="iconBatchOutputDownload"></span><strong>打包 ZIP</strong><small>需要连接远程 Vault</small></button>
+        <button type="button" data-batch-output-action="download" class="primary"><span id="iconBatchOutputDownload"></span><strong>Download ZIP</strong><small>Requires remote Vault</small></button>
       </div>
     </section>
   </div>
@@ -131,34 +132,34 @@
       <aside class="sidebar" id="sidebar">
         <div class="sidebar-workspace">
           <span><i></i> Eagle Vault</span>
-          <small>远程挂载 · 只读</small>
+          <small>Remote mount · Read-only</small>
         </div>
         <div class="sidebar-section">
-          <div class="sidebar-section-title">浏览</div>
+          <div class="sidebar-section-title" data-i18n="sidebar_browse">浏览</div>
           <div class="sidebar-item" id="allItems">
             <span class="sidebar-item-icon" id="iconAllItems"></span>
-            <span class="sidebar-item-name">全部</span>
+            <span class="sidebar-item-name" data-i18n="sidebar_all">全部</span>
             <span class="sidebar-item-count" id="allItemsCount"></span>
           </div>
         </div>
         <div class="sidebar-section">
-          <div class="sidebar-section-title">最近添加</div>
+          <div class="sidebar-section-title" data-i18n="sidebar_recent">最近添加</div>
           <div class="sidebar-item" id="recent7" data-days="7">
             <span class="sidebar-item-icon" id="iconRecent7"></span>
-            <span class="sidebar-item-name">最近 7 天</span>
+            <span class="sidebar-item-name" data-i18n="sidebar_7d">最近 7 天</span>
           </div>
           <div class="sidebar-item" id="recent30" data-days="30">
             <span class="sidebar-item-icon" id="iconRecent30"></span>
-            <span class="sidebar-item-name">最近 30 天</span>
+            <span class="sidebar-item-name" data-i18n="sidebar_30d">最近 30 天</span>
           </div>
         </div>
         <div class="sidebar-section" id="folderSection">
-          <div class="sidebar-section-title">文件夹</div>
+          <div class="sidebar-section-title" data-i18n="sidebar_folders">文件夹</div>
           <div id="folderTree"></div>
         </div>
         <div class="sidebar-section" id="tagSection" style="display:none;">
-          <div class="sidebar-section-title">标签</div>
-          <input type="search" id="tagSearchInput" class="tag-search" placeholder="搜索标签…" autocomplete="off" />
+          <div class="sidebar-section-title" data-i18n="sidebar_tags">标签</div>
+          <input type="search" id="tagSearchInput" class="tag-search" placeholder="搜索标签…" autocomplete="off" data-i18n="tag_search_placeholder" />
           <div class="tag-list" id="tagList"></div>
         </div>
       </aside>
@@ -169,32 +170,32 @@
 
     <main class="main" id="mainArea">
       <div id="contentToolbar" class="content-toolbar" style="display:none;">
-        <label>排序</label>
+        <label data-i18n="sort_label">排序</label>
         <select id="ctSortSelect">
-          <option value="mtime">修改时间</option>
-          <option value="btime">创建时间</option>
-          <option value="name">名称</option>
-          <option value="size">大小</option>
-          <option value="ext">格式</option>
+          <option value="mtime" data-i18n="sort_mtime">修改时间</option>
+          <option value="btime" data-i18n="sort_btime">创建时间</option>
+          <option value="name" data-i18n="sort_name">名称</option>
+          <option value="size" data-i18n="sort_size">大小</option>
+          <option value="ext" data-i18n="sort_ext">格式</option>
         </select>
         <select id="ctSortDirSelect">
-          <option value="desc">降序</option>
-          <option value="asc">升序</option>
+          <option value="desc" data-i18n="sort_desc">降序</option>
+          <option value="asc" data-i18n="sort_asc">升序</option>
         </select>
-        <label>类型</label>
+        <label data-i18n="filter_label">类型</label>
         <select id="ctTypeSelect">
-          <option value="all">全部</option>
-          <option value="image">图片</option>
-          <option value="video">视频</option>
-          <option value="document">文档</option>
-          <option value="audio">音频</option>
-          <option value="other">其他</option>
+          <option value="all" data-i18n="filter_all">全部</option>
+          <option value="image" data-i18n="filter_image">图片</option>
+          <option value="video" data-i18n="filter_video">视频</option>
+          <option value="document" data-i18n="filter_document">文档</option>
+          <option value="audio" data-i18n="filter_audio">音频</option>
+          <option value="other" data-i18n="filter_other">其他</option>
         </select>
         <div class="quick-filters" id="quickFilters">
-          <button type="button" class="quick-filter" data-type="all">全部</button>
-          <button type="button" class="quick-filter" data-type="image">图片</button>
-          <button type="button" class="quick-filter" data-type="document">文档</button>
-          <button type="button" class="quick-filter" data-type="video">视频</button>
+          <button type="button" class="quick-filter" data-type="all" data-i18n="filter_all">全部</button>
+          <button type="button" class="quick-filter" data-type="image" data-i18n="filter_image">图片</button>
+          <button type="button" class="quick-filter" data-type="document" data-i18n="filter_document">文档</button>
+          <button type="button" class="quick-filter" data-type="video" data-i18n="filter_video">视频</button>
         </div>
         <div class="active-filter-chips" id="activeFilterChips" aria-label="当前高级筛选" hidden></div>
         <div class="content-context" id="contentContext">
@@ -206,7 +207,7 @@
       <div class="content-body" id="contentBody">
         <div class="empty-state" id="emptyState">
           <span id="emptyIcon"></span>
-          <span>选择左侧文件夹查看素材</span>
+          <span data-i18n="empty_sidebar">选择左侧文件夹查看素材</span>
         </div>
       </div>
       <button type="button" class="return-current-item" id="returnToCurrentItemBtn" hidden aria-label="回到当前素材">
@@ -234,10 +235,10 @@
     </div>
   </div>
 
-  <nav class="mobile-tabbar" aria-label="移动端导航">
-    <button type="button" class="mobile-tab active" id="mobileLibraryBtn"><span id="iconMobileLibrary"></span><span>资料库</span></button>
-    <button type="button" class="mobile-tab" id="mobileSearchBtn"><span id="iconMobileSearch"></span><span>搜索</span></button>
-    <button type="button" class="mobile-tab" id="mobileMoreBtn"><span id="iconMobileMore"></span><span>更多</span><em class="mobile-tab-badge" id="mobileMoreBadge"></em></button>
+  <nav class="mobile-tabbar" data-i18n-aria="mobile_tab_library">
+    <button type="button" class="mobile-tab active" id="mobileLibraryBtn"><span id="iconMobileLibrary"></span><span data-i18n="mobile_tab_library">资料库</span></button>
+    <button type="button" class="mobile-tab" id="mobileSearchBtn"><span id="iconMobileSearch"></span><span data-i18n="mobile_tab_search">搜索</span></button>
+    <button type="button" class="mobile-tab" id="mobileMoreBtn"><span id="iconMobileMore"></span><span data-i18n="mobile_tab_more">更多</span><em class="mobile-tab-badge" id="mobileMoreBadge"></em></button>
   </nav>
 
   <div class="mobile-search-overlay" id="mobileSearchOverlay" aria-hidden="true">
@@ -246,7 +247,7 @@
       <div class="quick-action-grabber"></div>
       <div class="mobile-search-head">
         <span>Search Vault</span>
-        <strong>搜索远程资料库</strong>
+        <strong>Search Vault</strong>
         <button type="button" class="mobile-search-close" data-mobile-search-close aria-label="关闭搜索"></button>
       </div>
       <div class="mobile-search-box">
@@ -291,13 +292,13 @@
     <section class="mobile-more-sheet" role="dialog" aria-modal="true" aria-label="更多设置">
       <div class="quick-action-grabber"></div>
       <div class="mobile-more-head">
-        <strong>远程资料库设置</strong>
+        <strong>Remote Vault Settings</strong>
         <span>浏览、显示和外观</span>
       </div>
       <div class="mobile-remote-card" id="mobileRemoteCard" data-state="checking">
         <div class="mobile-remote-orb"></div>
         <div class="mobile-remote-copy">
-          <strong id="mobileRemoteTitle">检查远程连接…</strong>
+          <strong id="mobileRemoteTitle">Checking connection…</strong>
           <span id="mobileRemoteMeta">Eagle Vault · 只读挂载</span>
         </div>
         <button type="button" id="mobileRemoteRefresh">重连</button>
@@ -315,7 +316,7 @@
   <aside class="install-coach" id="installCoach" aria-live="polite" hidden>
     <div class="install-coach-icon">⌂</div>
     <div class="install-coach-copy">
-      <strong>把远程 Vault 放到主屏幕</strong>
+      <strong>Add to Home Screen</strong>
       <span>在 iPhone Safari 点“分享”→“添加到主屏幕”，下次就像 App 一样全屏打开。</span>
     </div>
     <button type="button" class="install-coach-close" id="installCoachClose" aria-label="暂时不提示"></button>

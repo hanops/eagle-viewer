@@ -21,7 +21,7 @@ def expect(pattern: str, text: str, path: str) -> str:
 def main() -> None:
     version = read_pyproject_version()
     checks = {
-        "README.md": expect(r"\*\*版本\*\*：v([^（]+)", (ROOT / "README.md").read_text(encoding="utf-8"), "README.md"),
+        "README.md": expect(r"\*\*Current version\*\*: v([^\s)]+)", (ROOT / "README.md").read_text(encoding="utf-8"), "README.md"),
         "app/web/core.js": expect(
             r"var VERSION = '([^']+)'",
             (ROOT / "app" / "web" / "core.js").read_text(encoding="utf-8"),

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'eagle-viewer-shell-v44';
+const CACHE_NAME = 'eagle-viewer-shell-v45';
 const STATIC_URLS = [
   '/',
   '/index.html',

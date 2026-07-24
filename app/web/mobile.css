@@ -110,8 +110,9 @@ a { color: var(--accent); }
 #app {
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  height: 100dvh;
+  height: 100vh;    /* fallback for very old browsers */
+  height: 100lvh;   /* large viewport: address bar fully retracted */
+  height: 100dvh;   /* dynamic viewport: updates on chrome show/hide */
 }
 
 /* ---------- 顶栏 ---------- */

@@ -287,7 +287,7 @@
     const dotCls = !connected ? 'bad' : (changed ? 'warn' : '');
     const stats = status.stats || {};
     const connText = connected ? (changed ? '已连接 · 远程有变更' : 'CONNECTED') : 'DISCONNECTED';
-    const verText = status.version ? ' · v' + esc(status.version) : '';
+    const verText = status.version ? ' v' + esc(status.version) : '';
     viewBody.innerHTML =
       '<div class="strip ' + (changed ? 'changed' : '') + '" id="strip">' +
         '<span class="dot ' + dotCls + '"></span>' +

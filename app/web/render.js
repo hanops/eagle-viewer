@@ -467,8 +467,8 @@ function updateReturnToCurrentItemButton() {
   var canContinueFinding = !!(itemId && state.currentView === 'folder' && state.currentFolderId && state.incrementalHasMore);
   btn.hidden = !(itemId && hasView && (loadedInView || canContinueFinding));
   btn.classList.toggle('is-offscreen', !!itemId && !target);
-  var label = state.lastFocusedItemName || '当前素材';
-  btn.title = target ? ('回到素材：' + label) : ('继续加载并定位：' + label);
+  var label = state.lastFocusedItemName || '\u5F53\u524D\u7D20\u6750';
+  btn.title = target ? ('\u56DE\u5230\u7D20\u6750\uFF1A' + label) : ('\u7EE7\u7EED\u52A0\u8F7D\u5E76\u5B9A\u4F4D\uFF1A' + label);
   var strong = btn.querySelector('strong');
   if (strong) strong.textContent = target ? '回到当前项' : '定位当前项';
 }

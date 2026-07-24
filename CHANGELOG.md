@@ -1,5 +1,38 @@
 # Changelog
 
+## 3.0.0 - 2026-07-24
+
+### Features
+- **i18n / language switcher**: New language toggle button in the desktop toolbar top-right corner. Switches between Chinese (default) and English. All static UI text — sidebar, search, sort/filter, batch bar, theme labels, remote status, PWA messages, mobile tabbar — is translated via a `data-i18n` infrastructure with `t(key)` / `setLang()` / `applyStaticI18n()`. Language preference is persisted in `localStorage` and auto-detected from the browser `navigator.language`.
+- **Open-source preparation**: Full English documentation (README, CONTRIBUTING, CODE_OF_CONDUCT, release.md, regression-checklist.md), GitHub Actions CI (3.11/3.12 matrix), Issue/PR templates, MIT license metadata in pyproject.toml.
+- **Privacy section** in README: documents the fully offline, no-telemetry, no-CDN nature of the viewer.
+- **Governance model**: `GOVERNANCE.md` added; `AGENTS.md` moved to `.gitignore` (internal AI agent guide).
+
+### Fixes
+- **Mobile bottom navigation gap**: Added `100lvh` before `100dvh` in `#app` height cascade. On browsers that don't support `dvh`, `lvh` (large viewport — address bar fully retracted) ensures the tabs start at the screen bottom on first load.
+- **Version fallback leak**: Backend `APP_VERSION` fell back to the literal string `"dev"` when the package wasn't pip-installed, producing `CONNECTED vdev` in the mobile library strip. Changed to read from `pyproject.toml` via `tomllib`.
+- **Sync-status CSS regression** (v2.0.5): Fixed `[data-state="conflict"]` selector mismatch that broke the Merging state color.
+
+### Documentation
+- README rewritten in English with badges, full API reference, configuration table, Eagle.cool link, and product boundaries.
+- `regression-checklist.md` rewritten in English.
+- `docs/release.md` rewritten in English.
+- `docs/logo.svg` extracted as an independent asset.
+- `docs/screenshots/README.md` added with naming conventions and generation instructions.
+- `docker-compose.yml`, `docker-compose.remote.example.yml`, `login.html` comments and labels English-ified.
+- `SECURITY.md` and `CHANGELOG.md` already in English.
+- Removed `docs/regression-results-v1.4.0.md` and `v1.5.0.md` (contained personal file paths and referenced removed features).
+
+### Infrastructure
+- `.gitignore`: added `.codebuddy/`, `AGENTS.md`, `images/`, `*.egg-info/`, `dist/`, `build/`, `docs/mockups/web-desktop-redesign.html`.
+- `pyproject.toml`: added `authors`, `license`, `keywords`, `[project.urls]`.
+- GitHub Actions CI: matrix test on Python 3.11 / 3.12 with lint, test, and syntax checks.
+- GitHub Issue templates (bug report, feature request) and PR template.
+- Docker Compose: stale `eagle-viewer:v1.3` tag → `eagle-viewer:latest`.
+
+### Maintenance
+- Bumped static asset revision and SW shell cache to `eagle-viewer-shell-v45`.
+
 ## 2.0.5 - 2026-07-24
 
 ### Fixes

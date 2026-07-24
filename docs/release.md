@@ -22,7 +22,7 @@ make check
 Create a GitHub Release from `main`:
 
 ```bash
-gh release create vX.Y.Z --target main --title "vX.Y.Z" --generate-notes --notes-start-tag vPREVIOUS
+gh release create vX.Y.Z --target main --title "vX.Y.Z" --generate-notes
 ```
 
 If using a token for `gh`, pass it only as a temporary environment variable and
@@ -33,3 +33,12 @@ rotate it after use.
 - Confirm the GitHub Release exists.
 - Confirm the remote tag points at the intended commit.
 - Keep `requirements.txt` in sync while Docker builds still use it.
+
+## Docker Image Build
+
+Tag convention: `eagle-viewer:vX.Y.Z` (do **not** use `:latest`).
+
+```bash
+docker build -t eagle-viewer:vX.Y.Z .
+docker save eagle-viewer:vX.Y.Z -o images/eagle-viewer-vX.Y.Z.tar
+```

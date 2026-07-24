@@ -5,8 +5,16 @@ __pycache__/
 .ruff_cache/
 .playwright-cli/
 .coverage
+.coverage.*
 htmlcov/
 .venv/
 .DS_Store
 /vault/
 /data/
+images/
+*.egg-info/
+dist/
+build/
+.codebuddy/
+AGENTS.md
+docs/mockups/web-desktop-redesign.html

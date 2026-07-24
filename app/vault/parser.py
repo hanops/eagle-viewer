@@ -15,12 +15,18 @@ from urllib.parse import urlparse
 from app.config import VAULT_ROOT
 from app.vault.models import FolderNode, ItemInfo, SmartFolderNode
 
-# 应用版本（单一来源 = pyproject.toml），用于前端展示；解析失败回退 "dev"。
+# 应用版本（单一来源 = pyproject.toml），用于前端展示。
 try:
     from importlib.metadata import version as _pkg_version
     APP_VERSION = _pkg_version("eagle-viewer")
-except Exception:  # pragma: no cover - 仅未安装包时触发
-    APP_VERSION = "dev"
+except Exception:  # pragma: no cover - 未安装包时从 pyproject.toml 读取
+    import tomllib
+    _pyproject = Path(__file__).resolve().parents[2] / "pyproject.toml"
+    try:
+        with open(_pyproject, "rb") as _f:
+            APP_VERSION = tomllib.load(_f)["project"]["version"]
+    except Exception:
+        APP_VERSION = "0.0.0"
 
 # In-memory cache (filled on first request or startup)
 _folder_tree: list[FolderNode] = []

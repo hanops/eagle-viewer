@@ -72,6 +72,9 @@
 .theme-swatch:focus-visible {box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--accent);}
 .theme-swatch-gallery {background:linear-gradient(135deg,#fbfaf8 50%,#e07a3d 50%);}
 .theme-swatch-workbench {background:linear-gradient(135deg,#2c2c2e 50%,#5a7aff 50%);}
+.lang-btn {display:inline-flex;align-items:center;justify-content:center;width:28px;height:22px;border:1px solid var(--border);border-radius:6px;background:var(--bg2);color:var(--text-muted);font-size:10px;font-family:var(--ui);font-weight:600;cursor:pointer;margin-left:4px;padding:0;line-height:1;transition:background .15s,color .15s;}
+.lang-btn:hover {background:var(--hover);color:var(--text);}
+.lang-btn:focus-visible {outline:2px solid var(--accent);outline-offset:1px;}
 .theme-swatch-carbon {background:linear-gradient(135deg,#15170f 50%,#34d399 50%);}
 .folder-node > .sidebar-item {position:relative;}
 .folder-node.expanded > .sidebar-item .sidebar-item-name {font-weight:600;}

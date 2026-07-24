@@ -1,51 +1,57 @@
 # docker-compose.remote.example.yml
 # =============================================================================
-# 服务端挂载 Eagle 库 + 手机远程访问（LAN / VPN / HTTPS）示例
+# Server-side Eagle library mount + remote mobile access (LAN / VPN / HTTPS)
 #
-# 核心原则
-#   - vault 只在【服务端】挂载，手机端永远通过 HTTP 访问 /mobile.html。
-#   - 不要在手机上直接挂载 .library（SMB/WebDAV 在手机上不稳定、且本项目是
-#     服务端用 Python 解析索引，手机跑不了这套服务）。
-#   - 远程访问推荐 VPN（Tailscale / ZeroTier / WireGuard）+ HTTPS。
+# Core design:
+#   - The vault is mounted on the server only. Phones access it via HTTP.
+#   - Never mount .library directly on a mobile device.
+#   - Recommended remote access: VPN (Tailscale / ZeroTier / WireGuard) + HTTPS.
 #
-# 用法（这是独立示例，不会自动加载，需显式 -f 指定）
+# Usage:
 #   docker compose -f docker-compose.remote.example.yml up -d
-# 或直接基于本仓库构建镜像：把 `image:` 换成下方 `build: .`
+#
+# To build from source instead of using a pre-built image, switch `image:` to
+# `build: .` (uncomment the `build` line and comment out `image`).
 # =============================================================================
 
 services:
   eagle-viewer:
-    image: eagle-viewer:v1.3
-    # build: .                       # 本地构建时取消注释，并注释上面 image
+    image: eagle-viewer:latest
+    # build: .
     container_name: eagle-viewer
     restart: always
     ports:
       - "8000:8000"
     environment:
-      # 容器内 vault 路径；下方 volumes 把宿主机挂载点映射到这里
+      # Path to the vault inside the container. The volumes below map the
+      # host mount point here.
       - EAGLE_VAULT_ROOT=/vault
-      # 生产务必设置密码 + 随机密钥
+      # Production: always set a password + a random secret key.
       #   openssl rand -hex 32
       - VIEWER_PASSWORD=change-me
       - VIEWER_SECRET_KEY=replace-with-openssl-rand-hex-32
-      # 状态文件应位于 vault 挂载目录之外，避免库更新时丢失
+      # State file path should be outside the read-only vault mount to
+      # preserve state across library updates.
       - VIEWER_STATE_PATH=/data/eagle-viewer-state.json
     volumes:
-      # ===== 服务端挂载 vault（三选一，按你的环境改）=====
-      # 1) 宿主机已把 .library 通过 SMB/WebDAV/NFS 挂好，直接挂进容器
+      # ===== Server-side vault mount (choose one, adapt to your setup) =====
+      # 1) Host already mounts .library via SMB/WebDAV/NFS — bind it directly
       - /volume1/eagle/Design.library:/vault:ro
-      # 2) 用预建的 docker volume（如通过 NFS 驱动挂载到 volume）
+      # 2) Pre-built docker volume (e.g. NFS-backed)
       # - eagle-vault:/vault:ro
-      # 3) 开发期用相对路径
+      # 3) Local development — relative path
       # - ./vault:/vault:ro
       - ./data:/data
-    # 远程场景建议只暴露给 VPN 网段或 localhost，不要直接 0.0.0.0 公网。
-    # 配合 Tailscale 时可改用容器网络模式，让 VPN 内网地址直接可达。
+    # For remote access, expose only to the VPN subnet or localhost — not
+    # directly to 0.0.0.0 on the public internet.
+    # When using Tailscale, switch container networking so the VPN address
+    # is directly reachable.
 
   # ---------------------------------------------------------------------------
-  # 可选：HTTPS 反向代理（Tailscale / Caddy）
-  # 作用：解锁 navigator.share、剪贴板复制（需 HTTPS/localhost）、对外加密。
-  # 不启用则手机上的分享/复制功能会被浏览器禁用，但浏览/预览不受影响。
+  # Optional: HTTPS reverse proxy (Tailscale / Caddy)
+  # Enables navigator.share and clipboard copy (require HTTPS or localhost)
+  # and encrypts external traffic. Without it, share/copy features are
+  # disabled by the browser; browsing and preview still work.
   # ---------------------------------------------------------------------------
   # caddy:
   #   image: caddy:2
@@ -60,12 +66,12 @@ services:
   #   depends_on:
   #     - eagle-viewer
   #
-  # 对应 Caddyfile（同目录 Caddyfile.example，取消注释上方挂载即可生效）：
+  # Corresponding Caddyfile (Caddyfile.example in the same directory):
   #   your-tailnet-name.ts.net {
   #     reverse_proxy eagle-viewer:8000
   #   }
 
-# 若使用 docker volume 方式挂载 vault，需先建卷（任选其一）：
+# To use a docker volume for the vault, create it first. Example (NFS):
 #   docker volume create --driver local \
 #     --opt type=nfs --opt o=addr=192.168.1.10,rw,nolock,soft \
 #     --opt device=:/volume1/eagle eagle-vault

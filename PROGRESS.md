@@ -4,15 +4,14 @@
 > 与 `CHANGELOG.md`（记录“已发布了什么”）、`AGENTS.md`（通用结构与命令）互补。
 > 每次做出会影响后续迭代的决策或踩到新坑，请追加到此文件。
 
-最后更新：2026-07-24 · 当前版本：**2.0.4（已发布）**
+最后更新：2026-07-24 · 当前版本：**3.0.0（待发布）**
 
 ---
 
 ## 1. 当前状态
 
-- **v2.0.2 已发布**：tag `v2.0.2` 已推送，GitHub Release 已建。此版本主要为桌面端视觉重做。
-- **v2.0.3 已发布**：tag `v2.0.3` 已推送，GitHub Release 已建。此版本修复移动端三处体验（锁文件夹拦截提示、预览背景透出其它搜索结果、搜索页返回主页按钮）与桌面浅色卡片边框缺失。静态资源 revision 升至 `1.96`、SW shell 缓存升至 `eagle-viewer-shell-v42`。改动均未碰后端 `/api`。
-- **v2.0.4 已发布**：tag `v2.0.4` 已推送，GitHub Release 已建。本轮为桌面 + 移动端全面去工业风重做：移除孤立的画布设置面板、登出入口与整套集合系统（收藏/稍后/完成/工作集/最近查看）；桌面三套主题同源（gallery 暖陶土浅、workbench 深蓝、carbon 深绿），深色卡片补描边/阴影、侧栏与背景分隔；移动端 token 改为暖陶土并与桌面主题共享 `eagle-viewer-theme`，移除硬编码 `data-theme` 以尊重系统深色偏好；品牌名「Eagle Vault Viewer」+ 圆形 logo 取代旧 banner。静态资源 revision 升至 `1.97`、SW shell 缓存升至 `eagle-viewer-shell-v43`。后端仅加预览图 HTTP 缓存头与 `/api/library/status` 的 `version` 字段，未改鉴权逻辑。
+- **v3.0.0 待发布**：主版本跳升。本轮为开源准备 + i18n 语言切换 + 移动端底部导航完整修复。含：全英文文档（README / CONTRIBUTING / CODE_OF_CONDUCT / regression-checklist / release 等）、GitHub Actions CI 工作流、Issue/PR 模板、i18n 框架（右上角语言按钮 + `data-i18n` 基础设施 + zh/en 双语数据）、隐私说明、Eagle 官网链接、Docker Compose 镜像版本更新。`AGENTS.md` 加入 gitignore。新增 `GOVERNANCE.md` / `docs/logo.svg` / `docs/screenshots/README.md`。后端 `APP_VERSION` 回退改为读 `pyproject.toml` 避免 `vdev` 问题。SW shell 缓存升至 `eagle-viewer-shell-v45`。
+- **v2.0.5 已发布**：tag `v2.0.5` 已推送，GitHub Release 已建。本轮为移动端底部导航修复（`100dvh` 覆盖 `100vh` 导致浏览器工具栏遮挡）、清理死 CSS（`.mobile-continue-*` 选择器级剥离）以及集合系统死代码彻底清除。静态资源 revision 升至 `1.98`、SW shell 缓存升至 `eagle-viewer-shell-v44`。
 - 版本号一致性由 `make check` 的 version-check 保证，**只比对三处**：`pyproject.toml`、`README.md`、`app/web/core.js`。改版本号时这三处必须同步（`uv.lock` 里项目自身版本也需一致，`uv sync` 会带出）。
 - 工作树中 `docs/mockups/web-desktop-redesign.html` 是**有意保留**的设计参考稿（untracked），不是临时文件，勿删。
 
@@ -53,18 +52,11 @@
 
 ---
 
-## 4. 发布流程（见 `docs/release.md`）
+## 4. 发布流程
 
-1. Bump 版本：`pyproject.toml` + `README.md` + `app/web/core.js`（若改缓存策略还需 `sw.js` cache 名）。
-2. 更新 `CHANGELOG.md`，发布时去掉顶部 `(unreleased)` 标记。
-3. `make check` 通过（含 version-check / lint / pytest / 语法检查）。
-4. 若改了 UI 可见行为，产出 `docs/regression-results-vX.Y.Z.md`（模板参考既有文件）。
-5. `git commit` → `git tag vX.Y.Z`。
-6. `git push origin main` + `git push origin vX.Y.Z`。
-7. `gh release create vX.Y.Z --target main --title vX.Y.Z --generate-notes`（自动推断上一 tag）。
+参阅 [`docs/release.md`](docs/release.md)。
 
 ### Docker 镜像构建约定
-- 在专用构建副本里执行；tag **带 `v` 前缀**（如 `eagle-viewer:v2.0.2`），**不要加 `:latest`**。
-- 流程：`docker build -t eagle-viewer:vX.Y.Z .` → `docker save ... -o ./images/eagle-viewer-vX.Y.Z.tar`。
-- `images/` 是 untracked 构建产物目录；`git checkout -f` 不会删 untracked，可安全切 tag。
-- 具体开发机主机 / 端口 / 归档路径等基础设施细节不入库（见私有运维记录）。
+- Tag 标准：`eagle-viewer:vX.Y.Z`，**不要加 `:latest`**。
+- 流程：`docker build -t eagle-viewer:vX.Y.Z .` → `docker save eagle-viewer:vX.Y.Z -o ./images/eagle-viewer-vX.Y.Z.tar`。
+- `images/` 是 untracked 构建产物目录，`git checkout -f` 不会误删。

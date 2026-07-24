@@ -15,6 +15,9 @@ async function init() {
   var savedTheme = localStorage.getItem('eagle-viewer-theme') || 'gallery';
   interactions.setTheme(savedTheme);
 
+  // Apply saved/default language to static DOM
+  applyStaticI18n();
+
   interactions.setupSidebarResize();
   interactions.setupSidebarToggle();
   interactions.setupMobileMenu();

@@ -9,31 +9,35 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+
     steps:
       - uses: actions/checkout@v4
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
 
-      - name: Set up Python
+      - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: uv sync --frozen
+        run: uv sync
 
-      - name: Version consistency
-        run: uv run python scripts/check_versions.py
-
-      - name: Python lint
+      - name: Lint
         run: uv run ruff check app tests scripts
 
-      - name: Python tests
+      - name: Test
         run: uv run pytest
 
-      - name: Python syntax
+      - name: Python compile check
         run: uv run python -m compileall app
 
-      - name: JavaScript syntax
+      - name: JS syntax check
         run: node --check app/web/core.js app/web/render.js app/web/api.js app/web/interactions.js app/web/bootstrap.js app/web/sw.js

@@ -1,95 +1,95 @@
-# Eagle Vault Viewer 手动回归清单
+# Eagle Vault Viewer — Manual Regression Checklist
 
-## 环境
+## Environment
 
-- 使用 `tests/fixtures/sample.library` 或不含隐私数据的测试 Vault
-- 桌面至少验证 Chrome；移动端至少验证 390×844 视口
-- 深色与浅色主题各走一次主路径
-- 测试期间浏览器控制台无未处理异常
+- Use `tests/fixtures/sample.library` or a test vault with no private data.
+- Desktop: verify at least Chrome; mobile: verify at least 390×844 viewport.
+- Walk the main paths once per theme (light and dark).
+- No unhandled browser console errors during testing.
 
-## 登录与首页
+## Login & Homepage
 
-- 未配置密码时可直接进入；配置密码时登录和错误提示正常
-- 首页显示全部文件，文件夹树、标签、素材总数与 Vault 状态正确
-- 浅色 / 深色主题同步覆盖工具栏、侧栏、画布、Inspector、弹层和移动端 sheet，正文与按钮对比度清晰
-- 桌面正文与素材名不低于 12px，手机搜索输入为 16px，主要触控按钮高度至少 40px
-- 密码保护文件夹及后代素材不进入索引、搜索、缩略图或原文件端点
+- With no password configured, the app loads directly; with password, login and error display work correctly.
+- Homepage shows All Items; folder tree, tags, total asset count, and vault status are correct.
+- Light / dark themes cover toolbar, sidebar, canvas, Inspector, overlays, and mobile sheet consistently; body text and buttons have sufficient contrast.
+- Desktop body/filename text ≥ 12px, mobile search input ≥ 16px, primary touch buttons ≥ 40px height.
+- Password-protected folders and their descendants are excluded from indexing, search, thumbnails, and file endpoints.
 
-## 精简导航边界
+## Streamlined Navigation
 
-- 桌面侧栏只保留全部文件、收藏、最近查看、最近添加、文件夹和标签等浏览入口
-- 桌面侧栏不显示待整理、已处理、工作集、智能视图、Eagle 智能文件夹或工具分区
-- 顶部不显示高级筛选、保存视图、统计、重复项、命令面板或列表导出入口
-- 卡片、列表、Inspector、右键菜单和全屏预览不显示评分、待整理、已处理、工作集、Viewer 笔记、审片标记或相似素材入口
-- 旧的 `smart`、`eagle-smart`、`duplicates`、`colors`、`random` 以及非收藏类 collection URL 会安全回到全部文件
-- 刷新资源库、画布布局、主题、侧栏开合与 Inspector 开合仍可用
+- Desktop sidebar shows only: All Items, Recent Additions, Folders, and Tags.
+- Desktop sidebar does **not** show: pending review, done, workspaces, smart views, Eagle smart folders, or tool sections.
+- Top bar does **not** show: advanced filters, saved views, statistics, duplicates, command palette, or list export.
+- Cards, list, Inspector, context menu, and fullscreen preview do **not** show: ratings, pending/done markers, workspaces, Viewer notes, review markers, or similar assets.
+- Legacy `smart`, `eagle-smart`, `duplicates`, `colors`, `random` and non-folder collection URLs fall back safely to All Items.
+- Reload library, canvas layout, theme, sidebar toggle, and Inspector toggle still work.
 
-## 搜索与导航
+## Search & Navigation
 
-- 搜索支持按名称、标签或备注查找素材
-- 全部、收藏、最近查看、最近添加、文件夹、标签和搜索视图切换正确
-- 文件夹树可展开、折叠、拖宽和收起；计数包含子文件夹
-- 排序支持修改时间、创建时间、名称、大小和格式
-- 类型筛选支持图片、视频、文档、音频和其他
-- 当前文件夹、标签、搜索、收藏、最近、排序、类型与打开素材可通过 hash 刷新恢复
-- 打开文件夹或标签后，面包屑、侧栏高亮和素材结果同步更新
+- Search supports name, tag, and note matching.
+- All Items, Recent Additions, Folders, Tags, and Search views switch correctly.
+- Folder tree can expand, collapse, drag to resize, and hide; counts include child folders.
+- Sorting works by: modified, created, name, size, format.
+- Type filter works by: Image, Video, Document, Audio, Other.
+- Current folder, tag, search, sort, type, and open asset are recoverable from the URL hash.
+- Opening a folder or tag updates the breadcrumb, sidebar highlight, and asset results.
 
-## 列表与画布
+## Gallery & Canvas
 
-- 瀑布流和列表布局可切换，无重叠或横向溢出
-- 缩略图大小与填满 / 完整显示设置即时生效
-- 桌面悬停卡片只显示预览、详情和收藏快捷操作
-- 单击打开 Inspector，双击或预览按钮打开全屏预览
-- 图片、视频、音频、PDF 和纯文本可预览；其他格式明确提示下载后查看
-- 素材缩略图失败时显示占位或可用回退，不导致画布错位
+- Waterfall and list views switch without overlap or horizontal overflow.
+- Thumbnail density and fill/fit display settings take effect immediately.
+- Desktop hover shows preview and detail actions only.
+- Single-click opens Inspector; double-click or preview button opens fullscreen.
+- Images, video, audio, PDF, and plain text preview inline; other formats show a download prompt.
+- Failed thumbnails show a placeholder or fallback without breaking the grid.
 
-## Inspector 与预览
+## Inspector & Preview
 
-- Inspector 显示预览、格式、尺寸、大小、文件夹、标签、来源、Eagle 备注和素材 ID
-- Inspector 可上一项 / 下一项切换；关闭后回到并高亮当前素材
-- 预览、收藏、复制链接和下载入口可用
-- 全屏预览可用上一项 / 下一项切换当前视图中的可预览素材
-- 图片缩小、适应和放大正常；视频与音频原生播放控制正常
-- 离线时原文件下载明确禁用或提示需要连接远程 Vault
+- Inspector shows: preview, format, dimensions, file size, folder path, tags, source URL, Eagle notes, and asset ID.
+- Inspector supports previous / next navigation; closing returns to and highlights the current asset.
+- Preview, copy link, and download are accessible from the Inspector.
+- Fullscreen preview supports previous / next navigation for previewable assets in the current view.
+- Image zoom-to-fit, fit-to-window, and zoom-in work correctly; video/audio native player controls work.
+- Offline downloads clearly indicate that a Vault connection is required.
 
-## 多选与输出
+## Multi-Select & Output
 
-- 勾选和取消行为正确，不误开详情
-- 批量条显示数量、总大小、类型构成和素材缩略图
-- 批量条不显示加入待整理、标记已处理、工作集或移出整理队列操作
-- 复制链接和 ZIP 打包下载正常；不显示 Markdown / HTML 引用、CSV / JSON 导出或图片对比台
+- Selection and deselection work correctly without accidentally opening details.
+- Batch bar shows count, total size, type breakdown, and thumbnail previews.
+- Batch bar does **not** show: pending review, done markers, workspaces, or queue management.
+- Copy links and ZIP download work; no Markdown/HTML reference, CSV/JSON export, or image comparison surface.
 
-## 移动端
+## Mobile
 
-- 底部导航只有资料库、收藏、搜索和更多四项，选中状态准确
-- 搜索 sheet 空输入时只展示最近查看、收藏和最近 7 天等浏览入口
-- 更多 sheet 只提供连接状态、侧栏、画布设置、最近查看、刷新、主题等基础设置
-- 搜索和更多 sheet 不显示整理队列、工作集、智能视图、Eagle 智能文件夹、高级筛选、重复项、色谱、随机漫游、统计或命令入口
-- 长按素材弹出的快捷面板按打开、操作和输出分区，只保留选择、收藏、素材链接、下载及上下文浏览动作
-- 移动端 Inspector 与全屏预览不显示待整理、已处理、工作集、Viewer 笔记或审片入口
-- sheet 支持下滑关闭，Inspector 支持半屏 / 全屏、左右切换和安全区域避让
-- 页面无横向溢出，底部操作不被 Home Indicator 遮挡
-- Safari 与添加到主屏幕模式均使用动态视口铺满页面；顶部搜索和导航有足够触控高度，底部四栏在避让 Home Indicator 的同时不留下过量空白
-- 带分页的目录与搜索结果（素材 >120 项）进入后缩略图随滚动正常水合，不出现全盘空白（验证 `setupInfinite` 不会误杀懒水合观察器 `__hio`）
+- Bottom navigation shows only: Library, Folders, and Search tabs; active state is accurate.
+- Search sheet on empty input shows only Recent 7 Days as browsing entry points.
+- More sheet shows only: connection status, sidebar toggle, canvas settings, refresh, theme, and other basic settings.
+- Search and More sheets do **not** show: organization queues, workspaces, smart views, Eagle smart folders, advanced filters, duplicates, color spectrum, random walk, statistics, or command palette.
+- Long-press action sheet groups into: Open, Actions, and Output — only shows select, copy link, download, and contextual navigation.
+- Mobile Inspector and fullscreen preview do **not** show: pending/done markers, workspaces, Viewer notes, or review markers.
+- Sheets close on swipe-down; Inspector supports half-screen / full-screen toggle, left/right swipe, and safe-area insets.
+- No horizontal overflow; bottom actions are not obscured by the Home Indicator.
+- Safari and home-screen standalone mode fill the viewport with dynamic viewport sizing; the top search and navigation have sufficient touch height; the four-tab bottom bar leaves no excess whitespace after Home Indicator avoidance.
+- Paginated directory and search results (>120 items) hydrate thumbnails correctly on scroll, never showing a blank canvas (verify `setupInfinite` does not kill the lazy-hydration observer `__hio`).
 
-## PWA 与缓存
+## PWA & Cache
 
-- manifest 快捷入口只包含全部素材、搜索 Vault、最近查看和收藏
-- Service Worker 升级后可取得最新静态资源，更新提示不遮挡当前 sheet
-- 应用只缓存静态外壳，界面不显示离线数据管理或快照入口
-- 缓存不包含任何 `/api` 请求、缩略图、原文件或批量下载
-- 远程 Vault 恢复后可重连并刷新当前浏览视图
+- Manifest quick links only include: All Items and Search Vault.
+- Service Worker upgrade fetches the latest static assets without blocking current sheets.
+- Only the static shell is cached; no offline data management or snapshot UI is shown.
+- Cache does **not** include any `/api` requests, thumbnails, originals, or batch downloads.
+- When the remote Vault reconnects, the current view refreshes gracefully.
 
-## 刷新与缓存
+## Refresh & Cache
 
-- 手动刷新资源库后页面无报错，当前支持视图恢复到合理状态
-- 检测到远程 Vault 更新时先提示，确认后刷新树、标签和当前结果
-- 前后台切换不会打断预览、Inspector 或多选状态
-- 升级静态资源版本后浏览器不会长期使用旧界面
+- Manual library reload completes without errors; the current view recovers to a reasonable state.
+- When a remote Vault update is detected, a prompt appears; after confirmation, the tree, tags, and current results refresh.
+- Switching between background and foreground does not break preview, Inspector, or multi-select state.
+- After a static asset version upgrade, the browser does not serve stale UI for an extended period.
 
-## 最低通过标准
+## Minimum Pass Criteria
 
-- 无白屏、无主路径报错
-- 全部文件、最近、收藏、文件夹、标签、搜索、详情、多选、下载和预览至少走通一次
-- 桌面和移动端均找不到已移除的整理、智能视图、智能文件夹和工具入口
-- 未发现明显布局错乱、低对比度文字或交互回退
+- No white screen, no main-path console errors.
+- All Items, Recent, Folders, Tags, Search, detail, multi-select, download, and preview each work at least once.
+- Desktop and mobile surfaces show no traces of removed features (organization queues, smart views, smart folders, tools).
+- No obvious layout breakage, low-contrast text, or interaction regressions.
