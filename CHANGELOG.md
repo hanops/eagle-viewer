@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.0.5 - 2026-07-24
+
+### Fixes
+- Mobile: fix bottom navigation tabs being pushed behind the mobile browser's bottom toolbar. Root cause was `#app { height:100dvh; height:100vh; }` — `100vh` was declared last and overrode `100dvh` on dual-supporting browsers, making `#app` taller than the visible viewport. Reordered so `100dvh` wins; the tabs now stay pinned above the browser chrome.
+
+### Cleanup
+- Removed the remaining `.mobile-continue-*` dead CSS (~230 lines) that 2.0.4's notes claimed to remove but was still present. It was entangled in compound selectors with live `.mobile-workbar` / `.install-coach` / `.pull-refresh` rules, so it required selector-level stripping rather than line deletion. The live selectors and the `[data-feature-removed]` rule are preserved.
+- Removed dead collection/workspace code branches: `state_store.py` no longer persists an unused `collections` field; `core.js` dropped the inert `currentCollection` / `workspaces` state; `render.js` dropped the unreachable `currentView === 'collection'` branches and the uncalled `getLastViewedItemForMobile()`; `api.js` / `bootstrap.js` / `interactions.js` dropped the corresponding dead assignments and URL params. The smart-views (`savedViews`) system and the `collectionIds.items` item cache (used by `getItemById`) remain live.
+- Bumped static asset revision to `1.98` and SW shell cache to `eagle-viewer-shell-v44`.
+
 ## 2.0.4 - 2026-07-24
 
 ### UI / Visual
