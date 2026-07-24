@@ -1,5 +1,31 @@
 # Changelog
 
+## 2.0.4 - 2026-07-24
+
+### UI / Visual
+
+- Desktop & mobile full de-industrialization pass: warm terracotta palette shared across both surfaces, single design language.
+- Desktop: three themes now share one token source — `gallery` (light terracotta, default), `workbench` (dark + blue accent), `carbon` (dark + green accent). Theme switching changes color only, never layout/font-size.
+- Desktop dark mode: cards gain a hairline border and layered shadow; the sidebar gets a subtle right border so it no longer blends into the background.
+- Mobile: tokens switched to warm terracotta and the mobile shell now reads the shared `eagle-viewer-theme` key from the desktop side (`syncTheme()`), so the phone follows the chosen desktop theme. Removed the hardcoded `data-theme="dark"` so the OS dark preference is respected when no theme is set.
+- Branding: "Eagle Vault Viewer" wordmark + circular logo replaces the old banner across desktop toolbar and mobile top bar.
+
+### Removed (dead surfaces)
+
+- Removed the orphaned Canvas settings panel (no desktop entry point) and its `canvasPrefs` storage chain. Thumbnail density is now a plain JS variable (`gridDensity`) persisted under `eagle-viewer-grid-density`.
+- Removed the logout entry point (frontend + backend `/logout` route and its offline-data cleanup page).
+- Removed the entire collection system: favorites / later / done / workspace (工作集) / recentViewed. Frontend state stubs in `core.js` remain inert and safe.
+- Removed dead markup (`.mobile-continue-rail`, `data-feature-removed` surfaces, folder arrow glyphs, redundant viewport meta) and the corresponding dead CSS/JS.
+
+### Backend
+
+- `GET /api/item/{id}/file`: inline (preview) responses get `Cache-Control: private, max-age=86400` so swiping between images no longer re-pulls the full image from the remote mount every time; downloads remain uncached. Service worker still never caches `/api` (PWA contract preserved).
+- `GET /api/library/status`: now reports the app `version` from package metadata.
+
+### Documentation
+
+- Updated `README.md`, `PROGRESS.md`, and this changelog to 2.0.4; advanced static-asset revision to `1.97` and SW shell cache to `eagle-viewer-shell-v43`.
+
 ## 2.0.3 - 2026-07-23
 
 ### Fixes

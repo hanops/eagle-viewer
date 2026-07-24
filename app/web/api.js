@@ -33,11 +33,7 @@ async function saveViewerState() {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      revision: state.viewerStateRevision,
-      collections: {
-        favorite: (state.collectionIds.favorite || []).slice(),
-        recentViewed: (state.collectionIds.recentViewed || []).slice()
-      }
+      revision: state.viewerStateRevision
     })
   });
   if (handleAuthResponse(response)) return null;
@@ -76,9 +72,6 @@ async function refreshCurrentView() {
   if (state.currentView === 'tag' && state.currentTagName) return loadTagItems(state.currentTagName);
   if (state.currentView === 'recent') return loadRecentItems(state.recentDays);
   if (state.currentView === 'search') return doSearch();
-  if (state.currentView === 'collection' && EagleViewer.modules.interactions) {
-    return EagleViewer.modules.interactions.showCollection(state.currentCollection);
-  }
   return loadAllItems(true);
 }
 

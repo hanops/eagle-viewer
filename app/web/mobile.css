@@ -1,24 +1,26 @@
 /* Eagle Vault Viewer — 纯手机端 PWA 样式
-   设计语言：Eagle 工具风（深灰工作台）、唯一强调色、瀑布流签名、深浅双主题。
-   字体走系统栈（离线友好，无 CDN 依赖）。 */
+   设计语言：与桌面端同源的暖陶土极简风（terracotta + 衬线 display）、
+   瀑布流签名、深浅双主题；强调色跟随桌面端主题选择。
+   字体走系统栈 + Fraunces 衬线标题（离线友好，无 CDN 依赖）。 */
 
 :root {
-  /* 深色（默认） */
-  --bg: oklch(16% .008 260);
-  --bg2: oklch(20% .01 260);
-  --panel: oklch(23% .012 260);
-  --line: oklch(30% .01 260);
-  --fg: oklch(92% .005 260);
-  --mut: oklch(64% .008 260);
-  --mut2: oklch(50% .008 260);
-  --accent: oklch(74% .13 250);
-  --accent-fg: oklch(18% .02 250);
-  --ok: oklch(72% .14 150);
-  --warn: oklch(76% .15 70);
-  --bad: oklch(68% .17 25);
-  --scrim: oklch(10% .005 260 / .6);
+  /* 暖色深底（默认）：去掉原工业蓝灰，与桌面端 gallery 暖陶土同源 */
+  --bg: #1a1816;
+  --bg2: #26241f;
+  --panel: #322f29;
+  --line: rgba(255,238,220,.08);
+  --fg: #f1ece5;
+  --mut: #9a928a;
+  --mut2: #6f6a62;
+  --accent: #e07a3d;
+  --accent-fg: #fff;
+  --ok: #3f9d63;
+  --warn: #c8881f;
+  --bad: #cf5b4a;
+  --scrim: rgba(20,14,8,.6);
 
   --ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+  --display: "Fraunces", Georgia, "Times New Roman", serif;
   --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
 
   --tab-h: 56px;
@@ -27,19 +29,72 @@
 
 @media (prefers-color-scheme: light) {
   :root {
-    --bg: oklch(97% .004 260);
-    --bg2: oklch(99% .004 260);
-    --panel: #ffffff;
-    --line: oklch(88% .006 260);
-    --fg: oklch(24% .012 260);
-    --mut: oklch(46% .01 260);
-    --mut2: oklch(60% .01 260);
-    --scrim: oklch(20% .01 260 / .35);
+    --bg: #f7f2ea;
+    --bg2: #fdfbf7;
+    --panel: #fbf6ef;
+    --line: rgba(120,96,66,.16);
+    --fg: #2a2520;
+    --mut: #857c6f;
+    --mut2: #a99e8e;
+    --accent: #e07a3d;
+    --accent-fg: #fff;
+    --ok: #2f8f57;
+    --warn: #b9771a;
+    --bad: #c0493a;
+    --scrim: rgba(40,30,20,.45);
+  }
+}
+
+/* 跟随桌面端主题选择（data-theme / data-accent），覆盖系统偏好。
+   放在媒体查询之后，等特异性下靠后源胜出；无 data-theme 时沿用上面的系统偏好。 */
+[data-theme="light"] {
+  --bg: #f7f2ea; --bg2: #fdfbf7; --panel: #fbf6ef;
+  --line: rgba(120,96,66,.16);
+  --fg: #2a2520; --mut: #857c6f; --mut2: #a99e8e;
+  --accent: #e07a3d; --accent-fg: #fff;
+  --ok: #2f8f57; --warn: #b9771a; --bad: #c0493a;
+  --scrim: rgba(40,30,20,.45);
+}
+[data-theme="dark"] {
+  --bg: #1a1816; --bg2: #26241f; --panel: #322f29;
+  --line: rgba(255,238,220,.08);
+  --fg: #f1ece5; --mut: #9a928a; --mut2: #6f6a62;
+  --accent: #e07a3d; --accent-fg: #fff;
+  --ok: #3f9d63; --warn: #c8881f; --bad: #cf5b4a;
+  --scrim: rgba(20,14,8,.6);
+}
+[data-accent="blue"]  { --accent:#5a7aff; --accent-fg:#fff; }
+[data-accent="green"] { --accent:#34d399; --accent-fg:#06231a; }
+
+/* 未选择桌面端主题时，跟随系统深浅偏好 */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1a1816; --bg2: #26241f; --panel: #322f29;
+    --line: rgba(255,238,220,.08);
+    --fg: #f1ece5; --mut: #9a928a; --mut2: #6f6a62;
+    --accent: #e07a3d; --accent-fg: #fff;
+    --ok: #3f9d63; --warn: #c8881f; --bad: #cf5b4a;
+    --scrim: rgba(20,14,8,.6);
   }
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; padding: 0; height: 100%; }
+
+/* ===== Global polish: keyboard focus + motion ===== */
+:where(button, a, input, select, textarea, [tabindex], .card):focus-visible{
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+@media (prefers-reduced-motion: reduce){
+  html { scroll-behavior: auto; }
+  *, *::before, *::after{
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+  }
+}
 body {
   font-family: var(--ui);
   background: var(--bg);
@@ -71,6 +126,7 @@ a { color: var(--accent); }
 }
 .top h2 {
   margin: 0;
+  font-family: var(--display);
   font-size: 21px;
   font-weight: 700;
   letter-spacing: -.01em;
@@ -93,6 +149,7 @@ a { color: var(--accent); }
 /* ---------- 内容滚动区 ---------- */
 .bd {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
@@ -165,6 +222,7 @@ a { color: var(--accent); }
   background: var(--bg2);
   border: 1px solid var(--line);
   border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.18);
   overflow: hidden;
   position: relative;
   display: block; width: 100%;

@@ -4,92 +4,23 @@ var state = EagleViewer.state;
 var api = EagleViewer.modules.api;
 var render = EagleViewer.modules.render;
 var interactionModule = EagleViewer.modules.interactions = EagleViewer.modules.interactions || {};
-var canvasPrefs = { fit: 'cover', names: true, meta: true, badges: true, markers: true };
-var canvasPrefsDevice = '';
+// ===== Grid density (thumbnail size) =====
+// Shared by the desktop masonry/justified layout and the mobile density buttons.
+// Kept as a JS variable (no DOM element) so layout sizing works without the
+// removed canvas-settings panel.
+var gridDensity = 164;
+var gridDensityStorageKey = 'eagle-viewer-grid-density';
 
-function getCanvasDevice() {
-  return window.innerWidth <= 768 ? 'mobile' : 'desktop';
-}
-
-function getCanvasPrefsStorageKey() {
-  return 'eagle-viewer-canvas-prefs-' + getCanvasDevice();
-}
-
-function getDensityStorageKey() {
-  return 'eagle-viewer-grid-density-' + getCanvasDevice();
-}
-
-function normalizeCanvasPrefs(value) {
-  var raw = value && typeof value === 'object' ? value : {};
-  return {
-    fit: raw.fit === 'contain' ? 'contain' : 'cover',
-    names: raw.names !== false,
-    meta: raw.meta !== false,
-    badges: raw.badges !== false,
-    markers: raw.markers !== false
-  };
-}
-
-function syncCanvasSettings() {
-  var panel = document.getElementById('canvasSettingsPanel');
-  if (!panel) return;
-  panel.querySelectorAll('[data-canvas-layout]').forEach(function(btn) {
-    var active = btn.dataset.canvasLayout === state.viewMode;
-    btn.classList.toggle('active', active);
-    btn.setAttribute('aria-pressed', active ? 'true' : 'false');
-  });
-  panel.querySelectorAll('[data-canvas-fit]').forEach(function(btn) {
-    var active = btn.dataset.canvasFit === canvasPrefs.fit;
-    btn.classList.toggle('active', active);
-    btn.setAttribute('aria-pressed', active ? 'true' : 'false');
-  });
-  panel.querySelectorAll('[data-canvas-pref]').forEach(function(input) {
-    input.checked = canvasPrefs[input.dataset.canvasPref] !== false;
-  });
-  var mainDensity = document.getElementById('gridDensityRange');
-  var panelDensity = document.getElementById('canvasDensityRange');
-  var densityValue = mainDensity ? mainDensity.value : '164';
-  if (panelDensity) panelDensity.value = densityValue;
-  var output = document.getElementById('canvasDensityValue');
-  if (output) output.value = densityValue;
-  var device = document.getElementById('canvasSettingsDevice');
-  if (device) device.textContent = getCanvasDevice() === 'mobile' ? 'iPhone / 移动设备' : '桌面浏览器';
-}
-
-function applyCanvasPrefs(refreshLayout) {
-  var body = document.body;
-  if (!body) return;
-  body.classList.toggle('canvas-fit-contain', canvasPrefs.fit === 'contain');
-  body.classList.toggle('canvas-hide-names', !canvasPrefs.names);
-  body.classList.toggle('canvas-hide-meta', !canvasPrefs.meta);
-  body.classList.toggle('canvas-hide-badges', !canvasPrefs.badges);
-  body.classList.toggle('canvas-hide-markers', !canvasPrefs.markers);
-  syncCanvasSettings();
-  if (refreshLayout !== false && render && render.refreshMasonryLayout) requestAnimationFrame(render.refreshMasonryLayout);
-}
-
-function saveCanvasPrefs() {
-  try { localStorage.setItem(getCanvasPrefsStorageKey(), JSON.stringify(canvasPrefs)); } catch (e) {}
-}
-
-function loadCanvasPrefs() {
-  canvasPrefsDevice = getCanvasDevice();
-  var stored = null;
-  try { stored = JSON.parse(localStorage.getItem(getCanvasPrefsStorageKey()) || 'null'); } catch (e) {}
-  canvasPrefs = normalizeCanvasPrefs(stored);
-  var density = document.getElementById('gridDensityRange');
-  var savedDensity = null;
-  try { savedDensity = localStorage.getItem(getDensityStorageKey()) || localStorage.getItem('eagle-viewer-grid-density'); } catch (e2) {}
-  if (density) density.value = savedDensity || '164';
-  applyCanvasPrefs(false);
+function loadGridDensity() {
+  try {
+    var saved = localStorage.getItem(gridDensityStorageKey);
+    if (saved) gridDensity = Math.max(116, Math.min(260, Number(saved) || 164));
+  } catch (e) {}
 }
 
 function setCanvasDensity(value) {
-  var density = document.getElementById('gridDensityRange');
-  var normalized = String(Math.max(116, Math.min(260, Number(value) || 164)));
-  if (density) density.value = normalized;
-  try { localStorage.setItem(getDensityStorageKey(), normalized); } catch (e) {}
-  syncCanvasSettings();
+  gridDensity = Math.max(116, Math.min(260, Number(value) || 164));
+  try { localStorage.setItem(gridDensityStorageKey, String(gridDensity)); } catch (e) {}
   if (render && render.refreshMasonryLayout) render.refreshMasonryLayout();
 }
 
@@ -238,29 +169,37 @@ function setupListMarquee(wrap) {
 }
 
 // ===== Theme =====
-function setTheme(theme) {
-  theme = theme === 'light' ? 'light' : 'dark';
-  document.documentElement.setAttribute('data-theme', theme);
-  document.documentElement.style.colorScheme = theme;
-  var themeBtn = document.getElementById('themeToggle');
-  var nextThemeLabel = theme === 'dark' ? '切换到浅色主题' : '切换到深色主题';
-  if (themeBtn) {
-    themeBtn.innerHTML = theme === 'dark' ? iconSun() : iconMoon();
-    themeBtn.title = nextThemeLabel;
-    themeBtn.setAttribute('aria-label', nextThemeLabel);
-    themeBtn.dataset.theme = theme;
-  }
-  var mobileThemeIcon = document.getElementById('iconMobileMoreTheme');
-  if (mobileThemeIcon) mobileThemeIcon.innerHTML = theme === 'dark' ? iconSun() : iconMoon();
-  var mobileThemeButton = mobileThemeIcon && mobileThemeIcon.closest('[data-mobile-more-action="theme"]');
-  if (mobileThemeButton) {
-    var mobileThemeCopy = mobileThemeButton.querySelector('small');
-    if (mobileThemeCopy) mobileThemeCopy.textContent = nextThemeLabel.replace('主题', '');
-    mobileThemeButton.setAttribute('aria-label', nextThemeLabel);
-  }
+var THEMES = {
+  gallery:    { theme: 'light', accent: 'terra',  meta: '#fbfaf8', label: '画廊（浅色）' },
+  workbench:  { theme: 'dark',  accent: 'blue',   meta: '#1c1c1e', label: '工作台（深色蓝）' },
+  carbon:     { theme: 'dark',  accent: 'green',  meta: '#15170f', label: '碳工作室（深色绿）' }
+};
+function currentThemeName() {
+  var theme = document.documentElement.getAttribute('data-theme');
+  var accent = document.documentElement.getAttribute('data-accent');
+  if (theme === 'dark' && accent === 'green') return 'carbon';
+  if (theme === 'dark') return 'workbench';
+  return 'gallery';
+}
+function setTheme(name) {
+  if (!THEMES[name]) name = 'gallery';
+  var t = THEMES[name];
+  var root = document.documentElement;
+  root.setAttribute('data-theme', t.theme);
+  root.setAttribute('data-accent', t.accent);
+  root.style.colorScheme = t.theme;
+  document.querySelectorAll('.theme-swatch').forEach(function(btn) {
+    var on = btn.dataset.themeName === name;
+    btn.classList.toggle('active', on);
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
   var themeMeta = document.querySelector('meta[name="theme-color"]');
-  if (themeMeta) themeMeta.content = theme === 'dark' ? '#191a1d' : '#f4f4f1';
-  try { localStorage.setItem('eagle-viewer-theme', theme); } catch (e) {}
+  if (themeMeta) themeMeta.content = t.meta;
+  // Smooth, layout-neutral color transition while the theme switches.
+  root.classList.add('theme-transition');
+  clearTimeout(setTheme._t);
+  setTheme._t = setTimeout(function(){ root.classList.remove('theme-transition'); }, 260);
+  try { localStorage.setItem('eagle-viewer-theme', name); } catch (e) {}
 }
 
 // ===== Local app data =====
@@ -278,16 +217,9 @@ function getViewerStateSnapshot() {
   return {
     revision: state.viewerStateRevision || 0,
     savedViews: cloneJson(state.savedViews || [], []),
-    collections: {
-      favorite: (state.collectionIds.favorite || []).slice(),
-      later: (state.collectionIds.later || []).slice(),
-      done: (state.collectionIds.done || []).slice(),
-      recentViewed: (state.collectionIds.recentViewed || []).slice()
-    },
     ratings: cloneJson(state.itemRatings || {}, {}),
     notes: cloneJson(state.viewerNotes || {}, {}),
-    reviewMarkers: cloneJson(state.reviewMarkers || {}, {}),
-    workspaces: cloneJson(state.workspaces || [], [])
+    reviewMarkers: cloneJson(state.reviewMarkers || {}, {})
   };
 }
 
@@ -365,29 +297,6 @@ function mergeKeyedArray(remoteValue, localValue, baselineValue, keyName) {
   return order.filter(function(key) { return remoteByKey[key]; }).map(function(key) { return remoteByKey[key]; });
 }
 
-function mergeWorkspaces(remoteValue, localValue, baselineValue) {
-  var merged = mergeKeyedArray(remoteValue, localValue, baselineValue, 'id');
-  var remoteById = {};
-  var localById = {};
-  var baselineById = {};
-  (remoteValue || []).forEach(function(entry) { if (entry && entry.id) remoteById[entry.id] = entry; });
-  (localValue || []).forEach(function(entry) { if (entry && entry.id) localById[entry.id] = entry; });
-  (baselineValue || []).forEach(function(entry) { if (entry && entry.id) baselineById[entry.id] = entry; });
-  return merged.map(function(workspace) {
-    var local = localById[workspace.id];
-    var baseline = baselineById[workspace.id];
-    var remote = remoteById[workspace.id];
-    if (!local || !baseline || !remote) return workspace;
-    var out = cloneJson(remote, workspace);
-    ['name', 'color', 'createdAt'].forEach(function(key) {
-      if (!sameJson(local[key], baseline[key])) out[key] = local[key];
-    });
-    out.itemIds = mergeIdList(remote.itemIds, local.itemIds, baseline.itemIds);
-    out.updatedAt = Math.max(Number(remote.updatedAt) || 0, Number(local.updatedAt) || 0);
-    return out;
-  });
-}
-
 function mergeReviewMarkers(remoteValue, localValue, baselineValue) {
   var remote = remoteValue || {};
   var local = localValue || {};
@@ -405,23 +314,13 @@ function mergeReviewMarkers(remoteValue, localValue, baselineValue) {
 function mergePendingViewerState(remoteState, localState, baselineState) {
   var remote = remoteState || {};
   var local = localState || {};
-  var baseline = baselineState || { savedViews: [], collections: {}, ratings: {}, notes: {}, reviewMarkers: {}, workspaces: [] };
-  var remoteCollections = remote.collections || {};
-  var localCollections = local.collections || {};
-  var baselineCollections = baseline.collections || {};
+  var baseline = baselineState || { savedViews: [], ratings: {}, notes: {}, reviewMarkers: {} };
   return {
     revision: remote.revision || 0,
     savedViews: mergeKeyedArray(remote.savedViews, local.savedViews, baseline.savedViews, 'name'),
-    collections: {
-      favorite: mergeIdList(remoteCollections.favorite, localCollections.favorite, baselineCollections.favorite),
-      later: mergeIdList(remoteCollections.later, localCollections.later, baselineCollections.later),
-      done: mergeIdList(remoteCollections.done, localCollections.done, baselineCollections.done),
-      recentViewed: mergeIdList(remoteCollections.recentViewed, localCollections.recentViewed, baselineCollections.recentViewed)
-    },
     ratings: mergeObjectMap(remote.ratings, local.ratings, baseline.ratings),
     notes: mergeObjectMap(remote.notes, local.notes, baseline.notes),
-    reviewMarkers: mergeReviewMarkers(remote.reviewMarkers, local.reviewMarkers, baseline.reviewMarkers),
-    workspaces: mergeWorkspaces(remote.workspaces, local.workspaces, baseline.workspaces)
+    reviewMarkers: mergeReviewMarkers(remote.reviewMarkers, local.reviewMarkers, baseline.reviewMarkers)
   };
 }
 
@@ -444,21 +343,13 @@ function applyRemoteViewerState(remoteState, options) {
   state.itemRatings = normalizeRatingsMap(remoteState.ratings);
   state.viewerNotes = normalizeViewerNotes(remoteState.notes);
   state.reviewMarkers = normalizeReviewMarkers(remoteState.reviewMarkers);
-  state.workspaces = normalizeWorkspaces(remoteState.workspaces);
-  state.collectionIds = remoteState.collections || { favorite: [], later: [], done: [], recentViewed: [] };
-  state.collectionIds.favorite = state.collectionIds.favorite || [];
-  state.collectionIds.later = state.collectionIds.later || [];
-  state.collectionIds.done = state.collectionIds.done || [];
-  state.collectionIds.recentViewed = state.collectionIds.recentViewed || [];
-  state.collectionIds.items = state.collectionIds.items || {};
   saveLocalData(false);
   if (opts.updateBaseline !== false) persistViewerStateBaseline(getViewerStateSnapshot());
   renderSmartViewsSidebar();
-  renderWorkspaceSidebar();
 }
 
 function hasViewerState() {
-  return state.savedViews.length || state.workspaces.length || Object.keys(state.itemRatings || {}).length || Object.keys(state.viewerNotes || {}).length || Object.keys(state.reviewMarkers || {}).length || state.collectionIds.favorite.length || state.collectionIds.later.length || (state.collectionIds.done || []).length || (state.collectionIds.recentViewed || []).length;
+  return state.savedViews.length || Object.keys(state.itemRatings || {}).length || Object.keys(state.viewerNotes || {}).length || Object.keys(state.reviewMarkers || {}).length;
 }
 
 function normalizeRatingsMap(value) {
@@ -513,42 +404,13 @@ function normalizeReviewMarkers(value) {
   return out;
 }
 
-function normalizeWorkspaces(value) {
-  if (!Array.isArray(value)) return [];
-  var seen = {};
-  return value.slice(0, 50).map(function(raw) {
-    if (!raw || typeof raw !== 'object') return null;
-    var id = String(raw.id || '').trim().slice(0, 80);
-    var name = String(raw.name || '').trim().slice(0, 80);
-    if (!id || !name || seen[id]) return null;
-    seen[id] = true;
-    var color = /^#[0-9a-f]{6}$/i.test(String(raw.color || '')) ? String(raw.color).toLowerCase() : '#b06a3a';
-    return {
-      id: id,
-      name: name,
-      color: color,
-      itemIds: uniqueIdList(raw.itemIds).slice(0, 500),
-      createdAt: Math.max(0, Number(raw.createdAt) || 0),
-      updatedAt: Math.max(0, Number(raw.updatedAt) || 0)
-    };
-  }).filter(Boolean);
-}
-
 async function loadLocalData() {
-  loadCanvasPrefs();
+  loadGridDensity();
   try { state.savedViews = JSON.parse(localStorage.getItem('eagle-viewer-saved-views') || '[]'); } catch (e) { state.savedViews = []; }
-  try { state.collectionIds = JSON.parse(localStorage.getItem('eagle-viewer-collections') || '{"favorite":[],"later":[],"done":[],"recentViewed":[]}'); } catch (e2) { state.collectionIds = { favorite: [], later: [], done: [], recentViewed: [] }; }
   try { state.itemRatings = normalizeRatingsMap(JSON.parse(localStorage.getItem('eagle-viewer-ratings') || '{}')); } catch (ratingError) { state.itemRatings = {}; }
   try { state.viewerNotes = normalizeViewerNotes(JSON.parse(localStorage.getItem('eagle-viewer-notes') || '{}')); } catch (noteError) { state.viewerNotes = {}; }
   try { state.reviewMarkers = normalizeReviewMarkers(JSON.parse(localStorage.getItem('eagle-viewer-review-markers') || '{}')); } catch (markerError) { state.reviewMarkers = {}; }
-  try { state.workspaces = normalizeWorkspaces(JSON.parse(localStorage.getItem('eagle-viewer-workspaces') || '[]')); } catch (workspaceError) { state.workspaces = []; }
-  if (!state.collectionIds.favorite) state.collectionIds.favorite = [];
-  if (!state.collectionIds.later) state.collectionIds.later = [];
-  if (!state.collectionIds.done) state.collectionIds.done = [];
-  if (!state.collectionIds.recentViewed) state.collectionIds.recentViewed = [];
-  if (!state.collectionIds.items) state.collectionIds.items = {};
   renderSmartViewsSidebar();
-  renderWorkspaceSidebar();
   var pending = readStoredViewerState(VIEWER_STATE_PENDING_KEY);
   if (pending && pending.state) {
     applyRemoteViewerState(pending.state, { updateBaseline: false });
@@ -584,13 +446,10 @@ async function loadLocalData() {
 
 function saveLocalData(syncRemote) {
   try { localStorage.setItem('eagle-viewer-saved-views', JSON.stringify(state.savedViews)); } catch (e) {}
-  try { localStorage.setItem('eagle-viewer-collections', JSON.stringify(state.collectionIds)); } catch (e2) {}
   try { localStorage.setItem('eagle-viewer-ratings', JSON.stringify(state.itemRatings || {})); } catch (ratingError) {}
   try { localStorage.setItem('eagle-viewer-notes', JSON.stringify(state.viewerNotes || {})); } catch (noteError) {}
   try { localStorage.setItem('eagle-viewer-review-markers', JSON.stringify(state.reviewMarkers || {})); } catch (markerError) {}
-  try { localStorage.setItem('eagle-viewer-workspaces', JSON.stringify(state.workspaces || [])); } catch (workspaceError) {}
   renderSmartViewsSidebar();
-  renderWorkspaceSidebar();
   if (syncRemote !== false) {
     viewerStateMutationVersion++;
     persistPendingViewerState();
@@ -670,8 +529,9 @@ function closePanel(id) {
 }
 
 function toggleTheme() {
-  var cur = document.documentElement.getAttribute('data-theme') || 'light';
-  interactionModule.setTheme(cur === 'light' ? 'dark' : 'light');
+  var order = ['gallery', 'workbench', 'carbon'];
+  var idx = order.indexOf(currentThemeName());
+  interactionModule.setTheme(order[(idx + 1) % order.length]);
 }
 
 function readFiltersFromForm() {
@@ -865,9 +725,6 @@ function syncFilterForm() {
   setVal('filterSourceState', f.source_state);
   setVal('filterSourceDomain', f.source_domain);
   setVal('filterExt', f.ext);
-  setVal('filterFavoriteState', f.favorite_state);
-  setVal('filterLaterState', f.later_state);
-  setVal('filterDoneState', f.done_state);
   setVal('filterRatingMin', f.rating_min);
   var colorEnabled = document.getElementById('filterColorEnabled');
   var colorInput = document.getElementById('filterColor');
@@ -1009,140 +866,9 @@ function renderSmartViewsSidebar() {
   if (state.currentView === 'smart' && state.currentSmartViewName) markSmartViewActive(state.currentSmartViewName);
 }
 
-var workspaceContextItemIds = [];
 
-function getWorkspace(workspaceId) {
-  return (state.workspaces || []).find(function(workspace) { return workspace.id === workspaceId; }) || null;
-}
 
-function getWorkspaceFromCollection(collectionName) {
-  if (String(collectionName || '').indexOf('workspace:') !== 0) return null;
-  return getWorkspace(String(collectionName).substring(10));
-}
 
-function renderWorkspaceSidebar() {
-  var list = document.getElementById('workspaceSidebarList');
-  if (!list) return;
-  var workspaces = state.workspaces || [];
-  if (!workspaces.length) {
-    list.innerHTML = '<button type="button" class="workspace-sidebar-empty">＋ 新建第一个工作集</button>';
-    list.firstChild.onclick = function() { openWorkspacesPanel([]); };
-    return;
-  }
-  list.innerHTML = workspaces.map(function(workspace) {
-    return '<button type="button" class="workspace-sidebar-item" data-workspace-id="' + escapeHtml(workspace.id) + '" style="--workspace-color:' + escapeHtml(workspace.color) + '">' +
-      '<i aria-hidden="true"></i><span><strong>' + escapeHtml(workspace.name) + '</strong><small>' + workspace.itemIds.length + ' 项</small></span>' +
-    '</button>';
-  }).join('');
-  list.querySelectorAll('[data-workspace-id]').forEach(function(button) {
-    button.onclick = function() { showCollection('workspace:' + button.dataset.workspaceId); };
-  });
-  if (state.currentView === 'collection') {
-    var active = getWorkspaceFromCollection(state.currentCollection);
-    if (active) {
-      var activeButton = list.querySelector('[data-workspace-id="' + CSS.escape(active.id) + '"]');
-      if (activeButton) activeButton.classList.add('active');
-    }
-  }
-}
-
-function cacheWorkspaceItems(itemIds) {
-  state.collectionIds.items = state.collectionIds.items || {};
-  (itemIds || []).forEach(function(itemId) {
-    var item = findCurrentItem(itemId);
-    if (item && item.id) state.collectionIds.items[item.id] = item;
-  });
-}
-
-function toggleWorkspaceItems(workspaceId, itemIds) {
-  var workspace = getWorkspace(workspaceId);
-  var ids = uniqueIdList(itemIds).slice(0, 500);
-  if (!workspace || !ids.length) return;
-  var allIncluded = ids.every(function(id) { return workspace.itemIds.indexOf(id) >= 0; });
-  if (allIncluded) workspace.itemIds = workspace.itemIds.filter(function(id) { return ids.indexOf(id) < 0; });
-  else {
-    workspace.itemIds = mergeCollectionList(workspace.itemIds, ids).slice(0, 500);
-    cacheWorkspaceItems(ids);
-  }
-  workspace.updatedAt = Date.now();
-  saveLocalData();
-  ids.forEach(function(id) { if (render.updateCollectionMarkersInView) render.updateCollectionMarkersInView(id); });
-  syncMobileCollectionSurfaces();
-  renderWorkspacesPanel();
-  if (state.currentView === 'collection' && state.currentCollection === 'workspace:' + workspace.id) showCollection(state.currentCollection);
-  showToast((allIncluded ? '已从“' : '已加入“') + workspace.name + (allIncluded ? '”移出' : '”'), allIncluded ? '' : 'success');
-}
-
-function createWorkspace(name, color) {
-  var cleanName = String(name || '').trim().slice(0, 80);
-  if (!cleanName) {
-    showToast('请输入工作集名称', 'error');
-    return null;
-  }
-  var now = Date.now();
-  var workspace = {
-    id: 'ws-' + now.toString(36) + '-' + Math.random().toString(36).slice(2, 7),
-    name: cleanName,
-    color: /^#[0-9a-f]{6}$/i.test(String(color || '')) ? String(color).toLowerCase() : '#b06a3a',
-    itemIds: uniqueIdList(workspaceContextItemIds).slice(0, 500),
-    createdAt: now,
-    updatedAt: now
-  };
-  state.workspaces = (state.workspaces || []).concat([workspace]).slice(0, 50);
-  cacheWorkspaceItems(workspace.itemIds);
-  saveLocalData();
-  renderWorkspacesPanel();
-  showToast('已创建工作集：' + workspace.name, 'success');
-  return workspace;
-}
-
-function deleteWorkspace(workspaceId) {
-  var workspace = getWorkspace(workspaceId);
-  if (!workspace || !window.confirm('删除工作集“' + workspace.name + '”？素材仍保留在 Vault 中。')) return;
-  state.workspaces = (state.workspaces || []).filter(function(entry) { return entry.id !== workspaceId; });
-  saveLocalData();
-  renderWorkspacesPanel();
-  if (state.currentView === 'collection' && state.currentCollection === 'workspace:' + workspaceId) api.loadAllItems(true);
-  showToast('已删除工作集');
-}
-
-function renderWorkspacesPanel() {
-  var list = document.getElementById('workspaceList');
-  var context = document.getElementById('workspaceContext');
-  if (!list || !context) return;
-  var contextCount = workspaceContextItemIds.length;
-  context.hidden = !contextCount;
-  if (contextCount) context.innerHTML = '<span>ADD TO WORKSPACE</span><strong>将 ' + contextCount + ' 个素材加入工作集</strong><small>再次点击已包含全部素材的工作集可移出。</small>';
-  var workspaces = state.workspaces || [];
-  if (!workspaces.length) {
-    list.innerHTML = '<div class="workspace-empty"><strong>还没有工作集</strong><span>用工作集临时组织项目、灵感板或交付素材，不改变 Eagle 文件夹。</span></div>';
-    return;
-  }
-  list.innerHTML = workspaces.map(function(workspace) {
-    var includedCount = contextCount ? workspaceContextItemIds.filter(function(id) { return workspace.itemIds.indexOf(id) >= 0; }).length : 0;
-    var allIncluded = contextCount && includedCount === contextCount;
-    return '<article class="workspace-card" style="--workspace-color:' + escapeHtml(workspace.color) + '">' +
-      '<i class="workspace-card-color" aria-hidden="true"></i>' +
-      '<div><strong>' + escapeHtml(workspace.name) + '</strong><span>' + workspace.itemIds.length + ' 项' + (contextCount ? ' · 已包含 ' + includedCount + '/' + contextCount : '') + '</span></div>' +
-      '<div class="workspace-card-actions">' +
-        (contextCount ? '<button type="button" class="' + (allIncluded ? 'active' : 'primary') + '" data-workspace-toggle="' + escapeHtml(workspace.id) + '">' + (allIncluded ? '移出' : '加入') + '</button>' : '') +
-        '<button type="button" data-workspace-open="' + escapeHtml(workspace.id) + '">打开</button>' +
-        '<button type="button" class="danger" data-workspace-delete="' + escapeHtml(workspace.id) + '">删除</button>' +
-      '</div>' +
-    '</article>';
-  }).join('');
-  list.querySelectorAll('[data-workspace-toggle]').forEach(function(button) { button.onclick = function() { toggleWorkspaceItems(button.dataset.workspaceToggle, workspaceContextItemIds); }; });
-  list.querySelectorAll('[data-workspace-open]').forEach(function(button) { button.onclick = function() { closePanel('workspacesPanel'); showCollection('workspace:' + button.dataset.workspaceOpen); }; });
-  list.querySelectorAll('[data-workspace-delete]').forEach(function(button) { button.onclick = function() { deleteWorkspace(button.dataset.workspaceDelete); }; });
-}
-
-function openWorkspacesPanel(itemIds) {
-  workspaceContextItemIds = uniqueIdList(itemIds || []);
-  renderWorkspacesPanel();
-  openPanel('workspacesPanel');
-  var input = document.getElementById('workspaceName');
-  if (input && window.innerWidth > 768) setTimeout(function() { input.focus(); }, 40);
-}
 
 function renderSavedViews() {
   var list = document.getElementById('savedViewList');
@@ -1194,13 +920,12 @@ function buildCurrentViewUrl() {
   if (state.currentView === 'tag' && state.currentTagName) params.set('tag', state.currentTagName);
   if (state.currentView === 'recent') params.set('days', String(state.recentDays || 7));
   if (state.currentView === 'search' && state.searchQuery) params.set('q', state.searchQuery);
-  if (state.currentView === 'collection' && state.currentCollection) params.set('collection', state.currentCollection);
   if (state.currentView === 'smart' && state.currentSmartViewName) params.set('smart', state.currentSmartViewName);
   if (state.currentView === 'eagle-smart' && state.currentEagleSmartFolderId) params.set('eagleSmart', state.currentEagleSmartFolderId);
   if (state.currentView === 'random' && state.currentRandomSeed) params.set('seed', state.currentRandomSeed);
   (window.URL_FILTER_KEYS || [
     'min_size', 'max_size', 'min_width', 'min_height', 'mtime_from', 'mtime_to',
-    'shape', 'tag_state', 'annotation_state', 'viewer_note_state', 'source_state', 'favorite_state', 'later_state', 'done_state',
+    'shape', 'tag_state', 'annotation_state', 'viewer_note_state', 'source_state',
     'source_domain', 'ext', 'color', 'color_tolerance'
   ]).forEach(function(key) {
     var val = (state.advancedFilters || {})[key];
@@ -1261,15 +986,6 @@ function getCurrentViewShareTitle() {
     title = '最近 ' + (state.recentDays || 7) + ' 天';
   } else if (state.currentView === 'search') {
     title = state.searchQuery ? ('搜索：' + state.searchQuery) : '搜索结果';
-  } else if (state.currentView === 'collection') {
-    var collectionLabels = {
-      favorite: '收藏',
-      later: '待整理',
-      done: '已处理成果池',
-      recentViewed: '最近查看'
-    };
-    var workspace = getWorkspaceFromCollection(state.currentCollection);
-    title = workspace ? workspace.name + ' · 工作集' : (collectionLabels[state.currentCollection] || '清单');
   } else if (state.currentView === 'smart') {
     title = state.currentSmartViewName || '智能视图';
   } else if (state.currentView === 'eagle-smart') {
@@ -1365,84 +1081,7 @@ function uniqueIdList(ids) {
   });
 }
 
-function exportCollectionsConfig() {
-  var payload = {
-    app: 'eagle-viewer',
-    kind: 'collections',
-    exportedAt: new Date().toISOString(),
-    collections: state.collectionIds || { favorite: [], later: [], done: [], recentViewed: [], items: {} },
-    ratings: state.itemRatings || {},
-    notes: state.viewerNotes || {},
-    reviewMarkers: state.reviewMarkers || {},
-    workspaces: state.workspaces || []
-  };
-  var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-  var a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'eagle-viewer-collections.json';
-  a.click();
-  URL.revokeObjectURL(a.href);
-  if (window.showToast) showToast('整理清单已导出', 'success');
-}
 
-function normalizeImportedCollections(raw) {
-  var input = raw && raw.collections ? raw.collections : raw;
-  input = input && typeof input === 'object' ? input : {};
-  var collections = {
-    favorite: uniqueIdList(input.favorite),
-    later: uniqueIdList(input.later),
-    done: uniqueIdList(input.done),
-    recentViewed: uniqueIdList(input.recentViewed),
-    items: {}
-  };
-  var items = input.items && typeof input.items === 'object' ? input.items : {};
-  Object.keys(items).forEach(function(id) {
-    var item = items[id];
-    if (item && item.id) collections.items[item.id] = item;
-  });
-  return { collections: collections, ratings: normalizeRatingsMap(raw && raw.ratings), notes: normalizeViewerNotes(raw && raw.notes), reviewMarkers: normalizeReviewMarkers(raw && raw.reviewMarkers), workspaces: normalizeWorkspaces(raw && raw.workspaces) };
-}
-
-function mergeCollectionList(current, incoming) {
-  return uniqueIdList((current || []).concat(incoming || []));
-}
-
-async function importCollectionsFile(file) {
-  if (!file) return;
-  try {
-    var imported = normalizeImportedCollections(JSON.parse(await file.text()));
-    var incoming = imported.collections;
-    var total = incoming.favorite.length + incoming.later.length + incoming.done.length + incoming.recentViewed.length;
-    if (!total && !Object.keys(incoming.items || {}).length && !Object.keys(imported.ratings || {}).length && !Object.keys(imported.notes || {}).length && !Object.keys(imported.reviewMarkers || {}).length && !imported.workspaces.length) throw new Error('empty');
-    state.collectionIds = state.collectionIds || {};
-    state.collectionIds.favorite = mergeCollectionList(state.collectionIds.favorite, incoming.favorite);
-    state.collectionIds.later = mergeCollectionList(state.collectionIds.later, incoming.later);
-    state.collectionIds.done = mergeCollectionList(state.collectionIds.done, incoming.done);
-    state.collectionIds.recentViewed = mergeCollectionList(state.collectionIds.recentViewed, incoming.recentViewed).slice(0, 40);
-    state.collectionIds.items = Object.assign({}, state.collectionIds.items || {}, incoming.items || {});
-    state.itemRatings = Object.assign({}, state.itemRatings || {}, imported.ratings || {});
-    state.viewerNotes = Object.assign({}, state.viewerNotes || {}, imported.notes || {});
-    state.reviewMarkers = state.reviewMarkers || {};
-    Object.keys(imported.reviewMarkers || {}).forEach(function(itemId) {
-      state.reviewMarkers[itemId] = mergeKeyedArray(state.reviewMarkers[itemId], imported.reviewMarkers[itemId], [], 'id').slice(0, 100);
-    });
-    imported.workspaces.forEach(function(workspace) {
-      var existing = (state.workspaces || []).find(function(entry) { return entry.id === workspace.id; });
-      if (existing) {
-        existing.name = workspace.name;
-        existing.color = workspace.color;
-        existing.itemIds = mergeCollectionList(existing.itemIds, workspace.itemIds).slice(0, 500);
-        existing.updatedAt = Math.max(existing.updatedAt || 0, workspace.updatedAt || 0);
-      } else if ((state.workspaces || []).length < 50) state.workspaces.push(workspace);
-    });
-    saveLocalData();
-    if (render.updateSidebarCounts) render.updateSidebarCounts();
-    if (state.currentView === 'collection') showCollection(state.currentCollection || 'favorite');
-    if (window.showToast) showToast('已导入整理清单', 'success');
-  } catch (err) {
-    if (window.showToast) showToast('导入整理清单失败，请检查 JSON', 'error');
-  }
-}
 
 function captureCurrentView(name) {
   if (state.currentView === 'smart' && state.currentSmartViewName) {
@@ -1534,11 +1173,6 @@ async function runPendingLaunchAction() {
     if (window.showToast) window.showToast('已打开 Vault 搜索');
     return true;
   }
-  if (action === 'recent') {
-    await showCollection('recentViewed');
-    if (window.showToast) window.showToast('已打开最近查看');
-    return true;
-  }
   return false;
 }
 
@@ -1560,22 +1194,7 @@ function renderStatsPanel(stats) {
   grid.innerHTML = parts.map(function(p) { return '<span class="stat-pill"><strong>' + escapeHtml(p[0]) + '</strong> ' + escapeHtml(String(p[1] == null ? '-' : p[1])) + '</span>'; }).join('');
 }
 
-function collectionActionAffectsCurrentSmartView(listName) {
-  if (state.currentView !== 'smart') return false;
-  var filters = state.advancedFilters || {};
-  if (listName === 'favorite') return !!filters.favorite_state;
-  if (listName === 'later') return !!filters.later_state;
-  if (listName === 'done') return !!filters.done_state;
-  return false;
-}
 
-function refreshSmartQueueAfterCollectionChange(listName) {
-  if (!collectionActionAffectsCurrentSmartView(listName)) return false;
-  state.selectedIds.clear();
-  state.lastSelectedId = '';
-  api.refreshCurrentView();
-  return true;
-}
 
 var batchFeedbackTimer = null;
 
@@ -1607,186 +1226,9 @@ function flashBatchCompletion(message) {
   }
 }
 
-function syncMobileCollectionSurfaces() {
-  if (render.updateSidebarCounts) render.updateSidebarCounts();
-  if (render.updateMobileContinueRail) render.updateMobileContinueRail();
-  syncMobileTabbar();
-  renderMobileSearchQuick();
-  syncMobileMoreHandoff();
-}
 
-function toggleCollection(listName, id) {
-  if (listName !== 'favorite' && listName !== 'later' && listName !== 'done') return;
-  var list = state.collectionIds[listName] || [];
-  var idx = list.indexOf(id);
-  var added = idx < 0;
-  if (idx >= 0) list.splice(idx, 1);
-  else {
-    list.push(id);
-    var item = state.currentItems.find(function(it) { return it.id === id; }) || state.inspectorItem;
-    if (item && item.id === id) state.collectionIds.items[id] = item;
-  }
-  state.collectionIds[listName] = list;
-  saveLocalData();
-  syncMobileCollectionSurfaces();
-  if (render.updateCollectionMarkersInView) render.updateCollectionMarkersInView(id);
-  var label = listName === 'favorite' ? '收藏' : (listName === 'later' ? '待整理' : '已处理');
-  showToast((added ? '已加入' : '已移出') + label, added ? 'success' : '');
-  if (window.innerWidth <= 768) {
-    try { if (navigator.vibrate) navigator.vibrate(8); } catch (e) {}
-  }
-  refreshSmartQueueAfterCollectionChange(listName);
-}
 
-function applyBatchCollection(listName, mode) {
-  if (listName !== 'favorite' && listName !== 'later' && listName !== 'done') return;
-  var ids = Array.from(state.selectedIds || []);
-  if (!ids.length) return;
-  var list = state.collectionIds[listName] || [];
-  var changed = [];
-  ids.forEach(function(id) {
-    var idx = list.indexOf(id);
-    if (mode === 'remove') {
-      if (idx >= 0) {
-        list.splice(idx, 1);
-        changed.push(id);
-      }
-      return;
-    }
-    if (idx < 0) {
-      list.push(id);
-      changed.push(id);
-    }
-    var item = state.currentItems.find(function(it) { return it.id === id; }) ||
-      (state.collectionIds.items && state.collectionIds.items[id]);
-    if (item && item.id === id) state.collectionIds.items[id] = item;
-  });
-  state.collectionIds[listName] = list;
-  if (!changed.length) return;
-  saveLocalData();
-  syncMobileCollectionSurfaces();
-  changed.forEach(function(id) {
-    if (render.updateCollectionMarkersInView) render.updateCollectionMarkersInView(id);
-  });
-  var label = listName === 'favorite' ? '收藏' : (listName === 'later' ? '待整理' : '已处理');
-  var message = (mode === 'remove' ? '已移出 ' : '已加入 ') + changed.length + ' 个素材' + (mode === 'remove' ? '' : '到' + label);
-  showToast(message, mode === 'remove' ? '' : 'success');
-  if (mode === 'remove' && state.currentView === 'collection' && state.currentCollection === listName) {
-    state.selectedIds.clear();
-    showCollection(listName);
-    flashBatchCompletion(message);
-    return;
-  }
-  if (refreshSmartQueueAfterCollectionChange(listName)) return;
-  updateBatchBar();
-  updateCheckboxesInView();
-  flashBatchCompletion(message);
-}
 
-function rememberViewedItem(item) {
-  if (!item || !item.id) return;
-  var recent = state.collectionIds.recentViewed || [];
-  recent = recent.filter(function(id) { return id !== item.id; });
-  recent.unshift(item.id);
-  state.collectionIds.recentViewed = recent.slice(0, 40);
-  state.collectionIds.items = state.collectionIds.items || {};
-  state.collectionIds.items[item.id] = item;
-  saveLocalData();
-  syncMobileCollectionSurfaces();
-}
-
-async function showCollection(listName) {
-  var workspace = getWorkspaceFromCollection(listName);
-  if (listName !== 'favorite' && listName !== 'later' && listName !== 'done' && listName !== 'recentViewed' && !workspace) listName = 'favorite';
-  var leavingAnotherView = state.currentView !== 'collection' || state.currentCollection !== listName;
-  var ids = workspace ? workspace.itemIds : (state.collectionIds[listName] || []);
-  var itemMap = state.collectionIds.items || {};
-  state.currentView = 'collection';
-  state.currentCollection = listName;
-  state.currentSmartViewName = '';
-  state.currentFolderId = null;
-  state.currentTagName = null;
-  state.currentTitle = workspace ? workspace.name : (listName === 'favorite' ? '收藏' : (listName === 'later' ? '待整理' : (listName === 'done' ? '已处理' : '最近查看')));
-  state.currentSubfolders = [];
-  state.currentItems = ids.map(function(id) { return itemMap[id]; }).filter(Boolean);
-  state.currentTotal = state.currentItems.length;
-  state.currentEmptyMsg = workspace ? '从素材详情、右键菜单或长按面板把素材加入这个工作集' : (listName === 'recentViewed' ? '打开素材详情或预览后，会自动出现在这里' : (listName === 'done' ? '把素材标记为已处理后，会出现在这里' : '当前清单暂无素材'));
-  if (leavingAnotherView && state.inspectorItem && render.closeInspector) render.closeInspector();
-  render.renderContent();
-  if (render.syncActiveNavigationState) render.syncActiveNavigationState();
-  updateBatchBar();
-  updateCheckboxesInView();
-  updateUrlFromState();
-  syncMobileTabbar();
-  if (window.innerWidth <= 768 && window._closeMobileSidebar) window._closeMobileSidebar();
-  if (!ids.length) return;
-  var resolved = await api.resolveItems(ids);
-  if (state.currentView !== 'collection') return;
-  if (!resolved.length && state.currentItems.length) {
-    if (window.showToast) window.showToast('正在使用本地清单快照，重连后更新');
-    return;
-  }
-  resolved.forEach(function(item) { itemMap[item.id] = item; });
-  state.collectionIds.items = itemMap;
-  state.currentItems = resolved;
-  state.currentTotal = resolved.length;
-  saveLocalData(false);
-  render.renderContent();
-  if (render.syncActiveNavigationState) render.syncActiveNavigationState();
-  updateBatchBar();
-  updateCheckboxesInView();
-}
-
-async function getLastViewedResolvedItem() {
-  var recent = state.collectionIds.recentViewed || [];
-  var itemId = recent[0] || '';
-  if (!itemId) return null;
-  var item = findCurrentItem(itemId);
-  if (!item) {
-    var resolved = await api.resolveItems([itemId]);
-    item = resolved && resolved[0];
-  }
-  if (!item || !item.id) return null;
-  state.collectionIds.items = state.collectionIds.items || {};
-  state.collectionIds.items[item.id] = item;
-  saveLocalData(false);
-  return item;
-}
-
-async function resumeLastViewedItem() {
-  var recent = state.collectionIds.recentViewed || [];
-  if (!recent[0]) {
-    showCollection('recentViewed');
-    return;
-  }
-  var item = await getLastViewedResolvedItem();
-  if (!item) {
-    showToast('最近查看素材暂时不可用，已打开最近查看列表', 'error');
-    showCollection('recentViewed');
-    return;
-  }
-  render.openInspector(item);
-}
-
-async function previewLastViewedItem() {
-  var recent = state.collectionIds.recentViewed || [];
-  if (!recent[0]) {
-    startUndoneReview();
-    return;
-  }
-  var item = await getLastViewedResolvedItem();
-  if (!item) {
-    showToast('最近查看素材暂时不可用，已打开最近查看列表', 'error');
-    showCollection('recentViewed');
-    return;
-  }
-  if (!isItemPreviewable(item)) {
-    showToast('上次素材不可预览，已打开详情', 'error');
-    render.openInspector(item);
-    return;
-  }
-  render.previewItem(item, API + '/api/items/' + item.id + '/file');
-}
 
 function setMobileTabActive(activeId) {
   document.querySelectorAll('.mobile-tab').forEach(function(btn) {
@@ -1807,13 +1249,9 @@ function pulseMobileTab(btn) {
 
 function syncMobileTabbar() {
   var activeId = 'mobileLibraryBtn';
-  if (state.currentView === 'collection' && state.currentCollection === 'favorite') activeId = 'mobileFavoriteBtn';
-  else if (state.currentView === 'collection' && state.currentCollection === 'later') activeId = 'mobileLaterBtn';
-  else if (state.currentView === 'collection' && (state.currentCollection === 'done' || state.currentCollection === 'recentViewed')) activeId = 'mobileMoreBtn';
-  else if (state.currentView === 'search') activeId = 'mobileSearchBtn';
+  if (state.currentView === 'search') activeId = 'mobileSearchBtn';
   else if (state.currentView === 'smart') activeId = 'mobileMoreBtn';
   else if (state.currentView === 'eagle-smart') activeId = 'mobileMoreBtn';
-  else if (state.currentView === 'collection' && state.currentCollection && state.currentCollection.indexOf('workspace:') === 0) activeId = 'mobileMoreBtn';
   else if (state.currentView === 'duplicates') activeId = 'mobileMoreBtn';
   else if (state.currentView === 'colors') activeId = 'mobileMoreBtn';
   else if (state.currentView === 'random') activeId = 'mobileMoreBtn';
@@ -1830,19 +1268,13 @@ function buildCommandItems(query) {
     { title: '疑似重复', hint: '工具', run: function() { api.loadDuplicates(); } },
     { title: '全库色谱', hint: '工具 · 按颜色探索', run: function() { api.loadColorAtlas(); } },
     { title: '随机漫游', hint: '工具 · 从 Vault 重新发现', run: function() { api.loadRandomWalk('', true); } },
-    { title: '画布显示设置', hint: '工具 · 布局与素材信息', run: function() { syncCanvasSettings(); openPanel('canvasSettingsPanel'); } },
     { title: '索引状态', hint: '工具', run: function() { openPanel('statsPanel'); api.fetchStats().then(renderStatsPanel); } },
-    { title: '高级筛选', hint: '工具', run: function() { openPanel('advancedPanel'); } },
-    { title: '收藏清单', hint: '本地清单', run: function() { showCollection('favorite'); } },
-    { title: '待整理清单', hint: '本地清单', run: function() { showCollection('later'); } },
-    { title: '已处理清单', hint: '整理完成', run: function() { showCollection('done'); } },
-    { title: '最近查看', hint: '继续浏览', run: function() { showCollection('recentViewed'); } }
+    { title: '高级筛选', hint: '工具', run: function() { openPanel('advancedPanel'); } }
   ];
   getEagleSmartFolderQuickItems(80).forEach(function(item) {
     items.push({ title: item.title, hint: 'Eagle 智能文件夹 · ' + item.hint, run: item.run });
   });
   state.savedViews.forEach(function(view) { items.push({ title: view.name, hint: '保存视图', run: function() { applySavedView(view); } }); });
-  (state.workspaces || []).forEach(function(workspace) { items.push({ title: workspace.name, hint: '工作集 · ' + workspace.itemIds.length + ' 项', run: function() { showCollection('workspace:' + workspace.id); } }); });
   state.tagData.slice(0, 100).forEach(function(tag) { items.push({ title: tag.name, hint: '标签', run: function() { api.loadTagItems(tag.name); } }); });
   if (q) getFolderPathMatches(q, state.treeData, [], folderMatches);
   folderMatches.forEach(function(match) {
@@ -1963,7 +1395,6 @@ function setViewMode(mode, skipPersist) {
   if (gridBtn) gridBtn.classList.toggle('active', mode === 'grid');
   if (justifiedBtn) justifiedBtn.classList.toggle('active', mode === 'justified');
   if (listBtn) listBtn.classList.toggle('active', mode === 'list');
-  syncCanvasSettings();
 }
 
 // ===== Keyboard shortcuts =====
@@ -2260,11 +1691,7 @@ function getEagleSmartFolderQuickItems(limit) {
 }
 
 function getMobileSearchQuickItems() {
-  var recentCount = (state.collectionIds.recentViewed || []).length || 0;
-  var favoriteCount = (state.collectionIds.favorite || []).length || 0;
   return [
-    { key: 'recentViewed', group: 'continue', title: '最近查看', hint: recentCount + ' 项', meta: recentCount ? '继续' : '空', run: function() { showCollection('recentViewed'); } },
-    { key: 'favorite', group: 'browse', title: '收藏', hint: favoriteCount + ' 项', run: function() { showCollection('favorite'); } },
     { key: 'recent7', group: 'browse', title: '最近 7 天', hint: '新增素材', run: function() { api.loadRecentItems(7); } }
   ];
 }
@@ -2348,10 +1775,8 @@ function syncMobileSearchView() {
     btn.classList.toggle('active', active);
     btn.setAttribute('aria-pressed', active ? 'true' : 'false');
   });
-  var density = document.getElementById('gridDensityRange');
-  var value = density ? Number(density.value || 164) : 164;
   wrap.querySelectorAll('[data-mobile-density]').forEach(function(btn) {
-    var active = Number(btn.dataset.mobileDensity) === value;
+    var active = Number(btn.dataset.mobileDensity) === gridDensity;
     btn.classList.toggle('active', active);
     btn.setAttribute('aria-pressed', active ? 'true' : 'false');
   });
@@ -3107,18 +2532,11 @@ function setupMobileMoreSheet() {
         var nativeSection = document.getElementById('nativeSmartFolderSection');
         if (nativeSection) nativeSection.scrollIntoView({ block: 'center', behavior: 'smooth' });
       }, 120);
-    } else if (action === 'canvas') {
-      syncCanvasSettings();
-      openPanel('canvasSettingsPanel');
     } else if (action === 'smart') {
       renderSavedViews();
       openPanel('savedViewsPanel');
-    } else if (action === 'workspaces') {
-      openWorkspacesPanel([]);
     } else if (action === 'review-undone') {
       startUndoneReview();
-    } else if (action === 'recent-viewed') {
-      showCollection('recentViewed');
     } else if (action === 'filter') {
       syncFilterForm();
       openPanel('advancedPanel');
@@ -3151,8 +2569,6 @@ function setupMobileMoreSheet() {
       api.reloadLibrary();
     } else if (action === 'theme') {
       toggleTheme();
-    } else if (action === 'logout') {
-      window.location.href = '/logout';
     }
   });
   bindMobileSheetDrag(sheet, '.mobile-more-sheet', '.mobile-more-backdrop', closeMoreSheet);
@@ -3988,19 +3404,8 @@ function runItemAction(item, action, sourceEl) {
     if (selectSheet) updateQuickActionSheetState(selectSheet, item);
     var selectMenu = document.getElementById('itemContextMenu');
     if (selectMenu) updateDesktopContextMenuState(selectMenu, item);
-  } else if (action === 'favorite' || action === 'later' || action === 'done') {
-    toggleCollection(action, item.id);
-    var sheet = document.getElementById('quickActionSheet');
-    if (sheet) updateQuickActionSheetState(sheet, item);
-    var menu = document.getElementById('itemContextMenu');
-    if (menu) updateDesktopContextMenuState(menu, item);
-    if (state.inspectorItem && state.inspectorItem.id === item.id) render.openInspector(state.inspectorItem);
   } else if (action.indexOf('rating-') === 0) {
     setItemRating(item, action.substring(7));
-  } else if (action === 'workspace') {
-    closeQuickActionSheet();
-    closeDesktopContextMenu();
-    openWorkspacesPanel([item.id]);
   } else if (action === 'note') {
     closeQuickActionSheet();
     closeDesktopContextMenu();
@@ -4079,13 +3484,7 @@ function closeDesktopContextMenu() {
 function renderQuickActionStatePills(item) {
   var pills = [];
   if (state.selectedIds.has(item.id)) pills.push('<span class="quick-action-state-pill selected">' + iconCollection() + ' 已选中</span>');
-  if ((state.collectionIds.favorite || []).indexOf(item.id) >= 0) pills.push('<span class="quick-action-state-pill favorite">' + iconBookmark() + ' 已收藏</span>');
-  if ((state.collectionIds.later || []).indexOf(item.id) >= 0) pills.push('<span class="quick-action-state-pill later">' + iconClock() + ' 待整理</span>');
-  if ((state.collectionIds.done || []).indexOf(item.id) >= 0) pills.push('<span class="quick-action-state-pill done">' + iconCheck() + ' 已处理</span>');
   if (String((state.viewerNotes || {})[item.id] || '').trim()) pills.push('<span class="quick-action-state-pill note">' + iconInfo() + ' 有笔记</span>');
-  (state.workspaces || []).filter(function(workspace) { return (workspace.itemIds || []).indexOf(item.id) >= 0; }).slice(0, 2).forEach(function(workspace) {
-    pills.push('<span class="quick-action-state-pill workspace" style="--workspace-color:' + escapeHtml(workspace.color) + '">' + iconCollection() + ' ' + escapeHtml(workspace.name) + '</span>');
-  });
   if (!pills.length) pills.push('<span class="quick-action-state-pill muted">未加入清单</span>');
   return pills.join('');
 }
@@ -4431,12 +3830,18 @@ function setupCopyHandler() {
 
 // ===== Sync toolbar selects =====
 function syncToolbarSelects() {
-  document.getElementById('sortSelect').value = state.listSort;
-  document.getElementById('sortDirSelect').value = state.listDir;
-  document.getElementById('typeSelect').value = state.listType;
-  document.getElementById('ctSortSelect').value = state.listSort;
-  document.getElementById('ctSortDirSelect').value = state.listDir;
-  document.getElementById('ctTypeSelect').value = state.listType;
+  var map = {
+    'sortSelect': state.listSort,
+    'sortDirSelect': state.listDir,
+    'typeSelect': state.listType,
+    'ctSortSelect': state.listSort,
+    'ctSortDirSelect': state.listDir,
+    'ctTypeSelect': state.listType
+  };
+  Object.keys(map).forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.value = map[id];
+  });
   document.querySelectorAll('.quick-filter').forEach(function(btn) {
     btn.classList.toggle('active', btn.dataset.type === state.listType);
   });
@@ -4464,64 +3869,13 @@ function bindEvents() {
     state.currentTagName = null;
     api.loadRecentItems(30);
   };
-  document.getElementById('favoriteItems').onclick = function() {
-    clearAllActive();
-    this.classList.add('active');
-    showCollection('favorite');
-  };
-  document.getElementById('laterItems').onclick = function() {
-    clearAllActive();
-    this.classList.add('active');
-    showCollection('later');
-  };
-  document.getElementById('doneItems').onclick = function() {
-    clearAllActive();
-    this.classList.add('active');
-    showCollection('done');
-  };
-  document.getElementById('recentViewedItems').onclick = function() {
-    clearAllActive();
-    this.classList.add('active');
-    showCollection('recentViewed');
-  };
-  document.getElementById('sidebarDuplicates').onclick = function() {
-    clearAllActive();
-    this.classList.add('active');
-    api.loadDuplicates();
-  };
-  document.getElementById('sidebarColors').onclick = function() {
-    clearAllActive();
-    this.classList.add('active');
-    api.loadColorAtlas();
-  };
-  document.getElementById('sidebarRandom').onclick = function() {
-    clearAllActive();
-    this.classList.add('active');
-    api.loadRandomWalk('', true);
-  };
-  document.getElementById('sidebarSavedViews').onclick = function() {
-    renderSavedViews();
-    openPanel('savedViewsPanel');
-  };
-  document.getElementById('sidebarWorkspaces').onclick = function() { openWorkspacesPanel([]); };
-  document.getElementById('createWorkspaceBtn').onclick = function() {
-    var input = document.getElementById('workspaceName');
-    var color = document.getElementById('workspaceColor');
-    var created = createWorkspace(input.value, color.value);
-    if (created) input.value = '';
-  };
-  document.getElementById('workspaceName').onkeydown = function(e) {
-    if (e.key === 'Enter') document.getElementById('createWorkspaceBtn').click();
-  };
   document.getElementById('tagSearchInput').oninput = function() { render.renderTagList(); };
 
   var mobileLibraryBtn = document.getElementById('mobileLibraryBtn');
-  var mobileFavoriteBtn = document.getElementById('mobileFavoriteBtn');
-  var mobileLaterBtn = document.getElementById('mobileLaterBtn');
   var mobileSearchBtn = document.getElementById('mobileSearchBtn');
   var mobileMoreBtn = document.getElementById('mobileMoreBtn');
   var returnBtn = document.getElementById('returnToCurrentItemBtn');
-  [mobileLibraryBtn, mobileFavoriteBtn, mobileLaterBtn, mobileSearchBtn, mobileMoreBtn].forEach(function(btn) {
+  [mobileLibraryBtn, mobileSearchBtn, mobileMoreBtn].forEach(function(btn) {
     if (!btn || btn._tabFeedbackBound) return;
     btn._tabFeedbackBound = true;
     btn.addEventListener('pointerdown', function() { pulseMobileTab(btn); });
@@ -4547,16 +3901,6 @@ function bindEvents() {
     state.currentTagName = null;
     api.loadAllItems(true);
     syncMobileTabbar();
-  };
-  if (mobileFavoriteBtn) mobileFavoriteBtn.onclick = function() {
-    clearAllActive();
-    document.getElementById('favoriteItems').classList.add('active');
-    showCollection('favorite');
-  };
-  if (mobileLaterBtn) mobileLaterBtn.onclick = function() {
-    clearAllActive();
-    document.getElementById('laterItems').classList.add('active');
-    showCollection('later');
   };
   if (mobileSearchBtn) mobileSearchBtn.onclick = function() {
     if (window._openMobileSearchSheet) window._openMobileSearchSheet();
@@ -4645,159 +3989,22 @@ function bindEvents() {
     interactionModule.setViewMode('grid');
     if (state.currentItems.length || state.currentSubfolders.length) render.renderContent();
   };
-  document.getElementById('viewJustified').onclick = function() {
-    if (state.viewMode === 'justified') return;
-    interactionModule.setViewMode('justified');
-    if (state.currentItems.length || state.currentSubfolders.length) render.renderContent();
-  };
   document.getElementById('viewList').onclick = function() {
     if (state.viewMode === 'list') return;
     interactionModule.setViewMode('list');
     if (state.currentItems.length || state.currentSubfolders.length) render.renderContent();
   };
-  document.getElementById('layoutSettingsBtn').onclick = function() {
-    syncCanvasSettings();
-    openPanel('canvasSettingsPanel');
-  };
-  var densityRange = document.getElementById('gridDensityRange');
-  if (densityRange) {
-    densityRange.oninput = function() {
-      setCanvasDensity(this.value);
-    };
-  }
-  document.querySelectorAll('[data-canvas-layout]').forEach(function(btn) {
-    btn.onclick = function() {
-      var mode = btn.dataset.canvasLayout || 'grid';
-      if (state.viewMode !== mode) {
-        setViewMode(mode);
-        if (state.currentItems.length || state.currentSubfolders.length) render.renderContent();
-      }
-      syncCanvasSettings();
-    };
-  });
-  document.querySelectorAll('[data-canvas-fit]').forEach(function(btn) {
-    btn.onclick = function() {
-      canvasPrefs.fit = btn.dataset.canvasFit === 'contain' ? 'contain' : 'cover';
-      saveCanvasPrefs();
-      applyCanvasPrefs();
-    };
-  });
-  document.querySelectorAll('[data-canvas-pref]').forEach(function(input) {
-    input.onchange = function() {
-      canvasPrefs[input.dataset.canvasPref] = input.checked;
-      saveCanvasPrefs();
-      applyCanvasPrefs();
-    };
-  });
-  var canvasDensityRange = document.getElementById('canvasDensityRange');
-  if (canvasDensityRange) canvasDensityRange.oninput = function() { setCanvasDensity(this.value); };
-  window.addEventListener('resize', function() {
-    if (canvasPrefsDevice === getCanvasDevice()) return;
-    loadCanvasPrefs();
-    setViewMode(api.getPreferredViewMode(), true);
-    if (state.currentItems.length || state.currentSubfolders.length) render.renderContent();
-  });
 
-  // Theme
-  document.getElementById('themeToggle').onclick = function() {
-    toggleTheme();
-  };
+  // Theme switcher (three themes, top-right)
+  document.querySelectorAll('.theme-swatch').forEach(function(btn) {
+    btn.onclick = function() { setTheme(btn.dataset.themeName); };
+  });
 
   // Export
-  document.getElementById('exportListBtn').onclick = function() { exportList('csv'); };
-  document.getElementById('exportListBtn').oncontextmenu = function(e) {
-    e.preventDefault();
-    exportList('json');
-  };
-  document.getElementById('exportSelectedBtn').onclick = function() { exportSelected('csv'); };
-  document.getElementById('exportSelectedBtn').oncontextmenu = function(e) {
-    e.preventDefault();
-    exportSelected('json');
-  };
-  document.getElementById('reloadLibraryBtn').onclick = function() { api.reloadLibrary(); };
-  document.getElementById('filterPanelBtn').onclick = function() { syncFilterForm(); openPanel('advancedPanel'); };
-  document.getElementById('filterColorTolerance').oninput = function() {
-    document.getElementById('filterColorToleranceValue').value = this.value;
-    renderAdvancedFilterSummary(readFiltersFromForm(), true);
-  };
-  document.querySelectorAll('#advancedPanel input, #advancedPanel select').forEach(function(input) {
-    if (input.id === 'filterColorTolerance') return;
-    input.addEventListener('input', function() { renderAdvancedFilterSummary(readFiltersFromForm(), true); });
-    input.addEventListener('change', function() { renderAdvancedFilterSummary(readFiltersFromForm(), true); });
-  });
-  document.getElementById('savedViewsBtn').onclick = function() { renderSavedViews(); openPanel('savedViewsPanel'); };
-  document.getElementById('statsBtn').onclick = function() { openPanel('statsPanel'); api.fetchStats().then(renderStatsPanel); };
-  document.getElementById('duplicatesBtn').onclick = function() { api.loadDuplicates(); };
-  document.getElementById('commandBtn').onclick = openCommandPalette;
   var copyCurrentViewBtn = document.getElementById('copyCurrentViewBtn');
   if (copyCurrentViewBtn) copyCurrentViewBtn.onclick = function() { copyCurrentViewLink(copyCurrentViewBtn); };
   document.querySelectorAll('[data-close-panel]').forEach(function(btn) {
     btn.onclick = function() { closePanel(btn.dataset.closePanel); };
-  });
-  document.getElementById('applyFiltersBtn').onclick = function() {
-    state.advancedFilters = readFiltersFromForm();
-    syncFilterForm();
-    closePanel('advancedPanel');
-    api.refreshCurrentView();
-  };
-  document.getElementById('clearFiltersBtn').onclick = function() {
-    state.advancedFilters = {};
-    syncFilterForm();
-    closePanel('advancedPanel');
-    api.refreshCurrentView();
-  };
-  document.getElementById('saveCurrentViewBtn').onclick = function() {
-    var input = document.getElementById('savedViewName');
-    var name = (input.value || '').trim();
-    if (!name) return;
-    saveCurrentViewAsSmartView(name);
-    input.value = '';
-  };
-  var exportSavedViewsBtn = document.getElementById('exportSavedViewsBtn');
-  if (exportSavedViewsBtn) exportSavedViewsBtn.onclick = exportSavedViewsConfig;
-  var importSavedViewsBtn = document.getElementById('importSavedViewsBtn');
-  var importSavedViewsInput = document.getElementById('importSavedViewsInput');
-  if (importSavedViewsBtn && importSavedViewsInput) {
-    importSavedViewsBtn.onclick = function() { importSavedViewsInput.click(); };
-    importSavedViewsInput.onchange = function() {
-      var file = importSavedViewsInput.files && importSavedViewsInput.files[0];
-      importSavedViewsFile(file);
-      importSavedViewsInput.value = '';
-    };
-  }
-  var exportCollectionsBtn = document.getElementById('exportCollectionsBtn');
-  if (exportCollectionsBtn) exportCollectionsBtn.onclick = exportCollectionsConfig;
-  var importCollectionsBtn = document.getElementById('importCollectionsBtn');
-  var importCollectionsInput = document.getElementById('importCollectionsInput');
-  if (importCollectionsBtn && importCollectionsInput) {
-    importCollectionsBtn.onclick = function() { importCollectionsInput.click(); };
-    importCollectionsInput.onchange = function() {
-      var file = importCollectionsInput.files && importCollectionsInput.files[0];
-      importCollectionsFile(file);
-      importCollectionsInput.value = '';
-    };
-  }
-  document.getElementById('commandOverlay').onclick = function(e) {
-    if (e.target.id === 'commandOverlay') closeCommandPalette();
-  };
-  document.getElementById('commandInput').oninput = renderCommandList;
-  document.getElementById('commandInput').onkeydown = function(e) {
-    if (e.key === 'Escape') {
-      closeCommandPalette();
-      e.preventDefault();
-    }
-  };
-  document.body.addEventListener('click', function(e) {
-    var btn = e.target.closest('.btn-collection');
-    if (!btn) return;
-    toggleCollection(btn.dataset.list, btn.dataset.id);
-    if (state.inspectorItem && btn.dataset.id === state.inspectorItem.id) render.openInspector(state.inspectorItem);
-  });
-  document.body.addEventListener('click', function(e) {
-    var btn = e.target.closest('.btn-workspace');
-    if (!btn) return;
-    var item = findCurrentItem(btn.dataset.id);
-    if (item) runItemAction(item, 'workspace', btn);
   });
   document.body.addEventListener('click', function(e) {
     var btn = e.target.closest('[data-item-rating]');
@@ -4932,22 +4139,6 @@ function bindEvents() {
     }
   });
   document.body.addEventListener('click', function(e) {
-    var btn = e.target.closest('[data-mobile-continue-action]');
-    if (!btn) return;
-    var action = btn.dataset.mobileContinueAction;
-    if (action === 'preview-last') {
-      previewLastViewedItem();
-    } else if (action === 'review') {
-      startUndoneReview();
-    } else if (action === 'resume') {
-      resumeLastViewedItem();
-    } else if (action === 'later') {
-      showCollection('later');
-    } else if (action === 'snapshot') {
-      api.warmCurrentOfflineSnapshot();
-    }
-  });
-  document.body.addEventListener('click', function(e) {
     var btn = e.target.closest('[data-list-mobile-action]');
     if (!btn) return;
     e.preventDefault();
@@ -5016,10 +4207,6 @@ function bindEvents() {
         (state.collectionIds.items && state.collectionIds.items[itemId]) ||
         (state.inspectorItem && state.inspectorItem.id === itemId ? state.inspectorItem : null);
       if (!item) return;
-      if (action === 'favorite' || action === 'later' || action === 'done') {
-        toggleCollection(action, itemId);
-        return;
-      }
       if (action === 'inspect') {
         if (!state.selectedIds.size) render.openInspector(item);
         return;
@@ -5169,8 +4356,6 @@ function bindEvents() {
       api.loadTagItems(crumb.dataset.crumbTag).then(function() {
         if (render.syncActiveNavigationState) render.syncActiveNavigationState();
       });
-    } else if (crumb.dataset.crumbCollection) {
-      showCollection(crumb.dataset.crumbCollection);
     } else if (crumb.dataset.crumbSmart) {
       openSmartViewByName(crumb.dataset.crumbSmart);
     } else if (crumb.dataset.crumbEagleSmart) {
@@ -5201,8 +4386,6 @@ function bindEvents() {
       var nativeSection = document.getElementById('nativeSmartFolderSection');
       if (window.innerWidth <= 768 && window._openMobileSidebar) window._openMobileSidebar();
       if (nativeSection) nativeSection.scrollIntoView({ block: 'center', behavior: 'smooth' });
-    } else if (crumb.dataset.crumbAction === 'workspaces') {
-      openWorkspacesPanel([]);
     } else {
       api.loadAllItems(true);
     }
@@ -5235,39 +4418,8 @@ function bindEvents() {
     updateCheckboxesInView();
     closeBatchOutputSheet();
   };
-  document.getElementById('batchCompareBtn').onclick = function() {
-    render.openCompare(getSelectedItems());
-  };
-  document.getElementById('batchFavoriteBtn').onclick = function() {
-    applyBatchCollection('favorite', 'add');
-  };
-  document.getElementById('batchLaterBtn').onclick = function() {
-    applyBatchCollection('later', 'add');
-  };
-  document.getElementById('batchDoneBtn').onclick = function() {
-    applyBatchCollection('done', 'add');
-  };
-  document.getElementById('batchWorkspaceBtn').onclick = function() {
-    openWorkspacesPanel(Array.from(state.selectedIds || []));
-  };
-  document.getElementById('batchRemoveCollectionBtn').onclick = function() {
-    if (state.currentView !== 'collection' || !state.currentCollection) return;
-    var workspace = getWorkspaceFromCollection(state.currentCollection);
-    if (workspace) {
-      toggleWorkspaceItems(workspace.id, Array.from(state.selectedIds || []));
-      state.selectedIds.clear();
-      return;
-    }
-    applyBatchCollection(state.currentCollection, 'remove');
-  };
   document.getElementById('batchCopyLinksBtn').onclick = function() {
     copySelectedLinks(this);
-  };
-  document.getElementById('batchCopyInfoBtn').onclick = function() {
-    copySelectedInfo(this);
-  };
-  document.getElementById('batchCopyRefsBtn').onclick = function() {
-    copySelectedReferences(this);
   };
   var batchMobileOutputBtn = document.getElementById('batchMobileOutputBtn');
   if (batchMobileOutputBtn) batchMobileOutputBtn.onclick = openBatchOutputSheet;
@@ -5329,9 +4481,13 @@ function bindEvents() {
   if (inspectorMobileBackdrop) inspectorMobileBackdrop.onclick = render.closeInspector;
 
   // Toolbar sort/filter selects
-  document.getElementById('sortSelect').onchange = function() { onSortChange(this.value); };
-  document.getElementById('sortDirSelect').onchange = function() { onDirChange(this.value); };
-  document.getElementById('typeSelect').onchange = function() { onTypeChange(this.value); };
+  ['sortSelect', 'sortDirSelect', 'typeSelect'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    if (id === 'sortSelect') el.onchange = function() { onSortChange(this.value); };
+    else if (id === 'sortDirSelect') el.onchange = function() { onDirChange(this.value); };
+    else if (id === 'typeSelect') el.onchange = function() { onTypeChange(this.value); };
+  });
   document.getElementById('ctSortSelect').onchange = function() { onSortChange(this.value); };
   document.getElementById('ctSortDirSelect').onchange = function() { onDirChange(this.value); };
   document.getElementById('ctTypeSelect').onchange = function() { onTypeChange(this.value); };
@@ -5385,8 +4541,6 @@ Object.assign(interactionModule, {
   openSmartViewByName: openSmartViewByName,
   startUndoneReview: startUndoneReview,
   runPendingLaunchAction: runPendingLaunchAction,
-  showCollection: showCollection,
-  rememberViewedItem: rememberViewedItem,
   openOfflineSnapshotRoute: openOfflineSnapshotRoute,
   restorePendingInspector: restorePendingInspector,
   bindEvents: bindEvents

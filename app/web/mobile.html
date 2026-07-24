@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN" data-theme="dark">
+<html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
@@ -10,7 +10,7 @@
   <link rel="manifest" href="/manifest.json" />
   <link rel="apple-touch-icon" href="/static/icon-192.png" />
   <title>Eagle Vault Viewer</title>
-  <link rel="stylesheet" href="/static/mobile.css?v=1.96" />
+  <link rel="stylesheet" href="/static/mobile.css?v=1.97" />
 </head>
 <body>
   <div id="app">
@@ -53,7 +53,7 @@
       </button>
     </div>
     <div class="pv-stage" id="pvStage">
-      <img class="pv-img" id="pvImg" alt="" />
+      <img class="pv-img" id="pvImg" alt="" decoding="async" />
     </div>
     <div class="pv-bottom">
       <div class="nm" id="pvName">—</div>
@@ -63,10 +63,14 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14"/></svg>
           下载
         </a>
+        <button id="pvSave" class="primary" style="display:none">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><path d="M5 7h3l2-2h4l2 2h3v12H5z"/><circle cx="12" cy="13" r="3.2"/></svg>
+          保存相册
+        </button>
       </div>
     </div>
   </div>
 
-  <script src="/static/mobile.js?v=1.96"></script>
+  <script src="/static/mobile.js?v=1.97"></script>
 </body>
 </html>

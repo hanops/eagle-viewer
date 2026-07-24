@@ -15,14 +15,14 @@ def test_static_shell_uses_one_asset_revision():
     service_worker = read("app/web/sw.js")
     mobile = read("app/web/mobile.html")
     for asset in ("styles.css", "core.js", "render.js", "api.js", "interactions.js", "bootstrap.js"):
-        versioned = f"/static/{asset}?v=1.96"
+        versioned = f"/static/{asset}?v=1.97"
         assert versioned in index
         assert versioned in service_worker
     for asset in ("mobile.css", "mobile.js"):
-        versioned = f"/static/{asset}?v=1.96"
+        versioned = f"/static/{asset}?v=1.97"
         assert versioned in mobile
         assert versioned in service_worker
-    assert "eagle-viewer-shell-v42" in service_worker
+    assert "eagle-viewer-shell-v43" in service_worker
 
 
 def test_service_worker_only_caches_the_app_shell():
@@ -38,17 +38,40 @@ def test_navigation_exposes_only_basic_product_surfaces():
     index = read("app/web/index.html")
     styles = read("app/web/styles.css")
     assert "[data-feature-removed]" in styles
+    # Advanced/collection surfaces have been fully removed from the shell.
     for element_id in (
         "advancedPanel",
+        "savedViewsPanel",
+        "statsPanel",
+        "commandOverlay",
         "savedViewsBtn",
         "duplicatesBtn",
         "statsBtn",
         "commandBtn",
         "viewJustified",
+        "filterPanelBtn",
+        "exportListBtn",
+        "sidebarSavedViews",
+        "nativeSmartFolderSection",
+        "sidebarDuplicates",
+        "sidebarColors",
+        "sidebarRandom",
+        "batchCompareBtn",
+        "batchCopyInfoBtn",
+        "batchCopyRefsBtn",
+        "exportSelectedBtn",
+        "mobileContinueRail",
+    ):
+        assert f'id="{element_id}"' not in index
+    # Basic product surfaces must remain.
+    for element_id in (
+        "viewGrid",
+        "viewList",
+        "allItems",
+        "searchInput",
+        "themeSwitcher",
     ):
         assert f'id="{element_id}"' in index
-    assert 'id="viewJustified" title="自适应画廊" data-feature-removed' in index
-    assert 'data-canvas-layout="justified" data-feature-removed' in index
 
 
 def test_layout_preferences_are_limited_to_grid_and_list():
@@ -96,15 +119,13 @@ def test_image_preview_toolbar_is_basic():
     assert 'data-preview-tool="flip"' not in simplified
 
 
-def test_state_sync_contains_only_favorites_and_recently_viewed():
-    state_store = read("app/state_store.py")
+def test_state_sync_no_longer_contains_collections():
     api = read("app/web/api.js")
-    assert '"favorite": []' in state_store
-    assert '"recentViewed": []' in state_store
-    for removed in ("savedViews", "ratings", "notes", "reviewMarkers", "workspaces"):
-        assert f'"{removed}"' not in state_store
-    assert "favorite: (state.collectionIds.favorite || []).slice()" in api
-    assert "recentViewed: (state.collectionIds.recentViewed || []).slice()" in api
+    # The collections system (favorite / later / done / workspace / recentViewed) was
+    # removed from the frontend, so the viewer-state sync must never carry it.
+    assert "favorite: (state.collectionIds.favorite || []).slice()" not in api
+    assert "recentViewed: (state.collectionIds.recentViewed || []).slice()" not in api
+    assert "state.collectionIds" not in api
 
 
 def test_removed_backend_endpoints_are_not_registered():
@@ -119,15 +140,21 @@ def test_removed_backend_endpoints_are_not_registered():
 def test_manifest_keeps_only_basic_shortcuts():
     manifest = json.loads(read("app/web/manifest.json"))
     names = [shortcut["name"] for shortcut in manifest.get("shortcuts", [])]
-    assert names == ["全部素材", "搜索 Vault", "最近查看", "收藏"]
+    assert names == ["全部素材", "搜索 Vault"]
 
 
 def test_theme_and_mobile_navigation_remain_available():
     index = read("app/web/index.html")
     interactions = read("app/web/interactions.js")
-    assert 'id="themeToggle"' in index
-    assert "setAttribute('data-theme', theme)" in interactions
-    for element_id in ("mobileLibraryBtn", "mobileFavoriteBtn", "mobileSearchBtn", "mobileMoreBtn"):
+    # 右上角三主题切换器（Gallery / Workbench / Carbon）
+    assert 'id="themeSwitcher"' in index
+    assert 'class="theme-switcher"' in index
+    for name in ("gallery", "workbench", "carbon"):
+        assert f'data-theme-name="{name}"' in index
+    # 主题切换仍写入 data-theme / data-accent
+    assert "setAttribute('data-theme'" in interactions
+    assert "setAttribute('data-accent'" in interactions
+    for element_id in ("mobileLibraryBtn", "mobileSearchBtn", "mobileMoreBtn"):
         assert f'id="{element_id}"' in index
 
 

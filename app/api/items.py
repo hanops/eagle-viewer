@@ -84,11 +84,15 @@ def api_item_file(item_id: str, download: bool = False):
         raise HTTPException(status_code=404, detail="File not found")
     media_type = mimetypes.guess_type(str(path))[0] or "application/octet-stream"
     filename = f"{item.name}.{item.ext}" if item.ext else path.name
+    # 预览（inline）允许浏览器缓存整图，避免每次左右切换都重新从远端挂载拉全图导致卡顿；
+    # 下载（attachment）不缓存。SW 仍不缓存 /api，此处仅设置 HTTP 响应头，不违反 PWA 契约。
+    headers = {"Cache-Control": "private, max-age=86400"} if not download else None
     return FileResponse(
         path,
         media_type=media_type,
         filename=filename,
         content_disposition_type="attachment" if download else "inline",
+        headers=headers,
     )
 
 

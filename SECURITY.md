@@ -16,7 +16,6 @@ when possible.
 
 - Eagle Vault Viewer is intended to be read-only against Eagle libraries.
 - Use `VIEWER_PASSWORD` and a strong `VIEWER_SECRET_KEY` when exposing the app beyond a trusted local network.
-- Signing out clears the browser's private API/thumbnail caches and local Viewer state; use the Viewer logout action before handing a shared device to another person.
 - Keep `VIEWER_API_TOKEN` only in a password manager, automation secret store, or server-side secret store; rotate it if credentials are exposed.
 - Do not run the Docker container with write access to the Eagle library unless you intentionally accept that risk.
 - Eagle password-protected folders and their descendants are excluded before the remote index is built. The Viewer never accepts or stores Eagle folder passwords; unlock those folders only in the local Eagle app.

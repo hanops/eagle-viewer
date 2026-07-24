@@ -14,9 +14,30 @@
   const pvName = document.getElementById('pvName');
   const pvMeta = document.getElementById('pvMeta');
   const pvDownload = document.getElementById('pvDownload');
+  const pvSave = document.getElementById('pvSave');
   const pvClose = document.getElementById('pvClose');
   const pvShare = document.getElementById('pvShare');
   const pvStage = document.getElementById('pvStage');
+
+  // ---------- 跟随桌面端主题选择 ----------
+  // 桌面端把 gallery/workbench/carbon 存进 localStorage['eagle-viewer-theme']，
+  // 这里复用同一把钥匙，让手机端配色与桌面端保持一致（无选择时沿用系统偏好）。
+  (function syncTheme() {
+    try {
+      var name = localStorage.getItem('eagle-viewer-theme');
+      if (!name) return;
+      var map = {
+        gallery:   { theme: 'light', accent: 'terra' },
+        workbench: { theme: 'dark',  accent: 'blue'  },
+        carbon:    { theme: 'dark',  accent: 'green' }
+      };
+      var t = map[name];
+      if (!t) return;
+      var root = document.documentElement;
+      root.setAttribute('data-theme', t.theme);
+      root.setAttribute('data-accent', t.accent);
+    } catch (e) {}
+  })();
 
   // ---------- 缩略图 IndexedDB 缓存（弱网 / 离线复用已浏览缩略图）----------
   // 仅作应用层缓存，绕开 SW 的 /api 不缓存契约；原生支持 Blob，失效以全局
@@ -265,12 +286,14 @@
     const connected = !!status.ok;
     const dotCls = !connected ? 'bad' : (changed ? 'warn' : '');
     const stats = status.stats || {};
+    const connText = connected ? (changed ? '已连接 · 远程有变更' : 'CONNECTED') : 'DISCONNECTED';
+    const verText = status.version ? ' · v' + esc(status.version) : '';
     viewBody.innerHTML =
       '<div class="strip ' + (changed ? 'changed' : '') + '" id="strip">' +
         '<span class="dot ' + dotCls + '"></span>' +
         '<div class="meta">' +
           '<span class="nm">Eagle 资源库</span>' +
-          '<span class="mono">' + (connected ? (changed ? '已连接 · 远程有变更' : 'CONNECTED') : 'DISCONNECTED') + '</span>' +
+          '<span class="mono">' + connText + verText + '</span>' +
         '</div>' + chevSVG +
       '</div>' +
       '<div class="counts">' +
@@ -520,7 +543,39 @@
     const sz = fmtSize(it.size);
     pvMeta.textContent = dims + (it.ext || '').toUpperCase() + (sz ? ' · ' + sz : '');
     pvDownload.href = '/api/items/' + it.id + '/file?download=true';
+    // 图片/视频才显示「保存到相册」（iOS 只能通过分享面板「存储到照片」写入相册）。
+    pvSave.style.display = (isImageExt(it.ext) || isVideoExt(it.ext)) ? '' : 'none';
     updatePeeks();
+    preloadAdjacent();
+  }
+  function normExt(ext) { return (ext || '').toLowerCase().replace(/^\./, ''); }
+  function isImageExt(ext) { return ['bmp', 'gif', 'heic', 'heif', 'ico', 'jpeg', 'jpg', 'png', 'svg', 'tif', 'tiff', 'webp', 'avif', 'jfif', 'jxl'].includes(normExt(ext)); }
+  function isVideoExt(ext) { return ['mp4', 'mov', 'avi', 'mkv', 'webm', 'm4v', 'mpg', 'mpeg', 'wmv', 'flv', '3gp'].includes(normExt(ext)); }
+  // 取文件 Blob 并通过 Web Share API 以 File 形式分享——iOS 分享面板才会提供「存储到照片 / 存储视频」。
+  async function shareFile(it) {
+    const url = location.origin + '/api/items/' + it.id + '/file';
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error('fetch-failed');
+    const blob = await resp.blob();
+    const ext = normExt(it.ext) || (blob.type.split('/')[1] || '').toLowerCase() || 'bin';
+    const fname = (it.name || 'eagle') + '.' + ext;
+    const file = new File([blob], fname, { type: blob.type || undefined });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: it.name || fname });
+    } else if (navigator.share) {
+      await navigator.share({ title: it.name || fname, url });
+    } else {
+      throw new Error('no-share');
+    }
+  }
+  function preloadAdjacent() {
+    // 预载相邻图（前 1 + 后 2），让左右切换时目标图已在浏览器缓存中，消除滑完后的网络等待卡顿。
+    const list = S.preview.list, i = S.preview.index;
+    if (!list || !list.length) return;
+    for (const j of [i - 1, i + 1, i + 2]) {
+      const it = list[j];
+      if (it) { const im = new Image(); im.decoding = 'async'; im.src = '/api/items/' + it.id + '/file'; }
+    }
   }
   function showPreviewItemAnimated(dir) {
     pvImg.style.transition = 'transform .18s ease';
@@ -600,13 +655,51 @@
   pvStage.addEventListener('pointercancel', endPointer);
 
   pvClose.onclick = closePreview;
-  pvDownload.onclick = () => { /* 浏览器原生下载，无需额外处理 */ };
+  pvDownload.onclick = (e) => {
+    // 用 Blob 方式触发下载：强制浏览器弹出「存储为…」保存窗口，避免 Safari 把文件内联预览（Finder/Quick Look）。
+    e.preventDefault();
+    const it = S.preview.list[S.preview.index];
+    if (!it) return;
+    const url = '/api/items/' + it.id + '/file?download=true';
+    const fname = (it.name || 'eagle') + '.' + (normExt(it.ext) || 'bin');
+    fetch(url).then((r) => r.blob()).then((blob) => {
+      const bUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = bUrl; a.download = fname;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(bUrl), 5000);
+    }).catch(() => { window.location.href = url; });
+  };
+  pvSave.onclick = async () => {
+    const it = S.preview.list[S.preview.index];
+    if (!it) return;
+    try {
+      // iOS 分享面板会提供「存储到照片 / 存储视频」；用户取消 share 视为正常退出。
+      await shareFile(it);
+    } catch (e) {
+      if (e && e.name === 'AbortError') return;
+      // 不支持以文件形式分享时，回退为下载到「文件」App（安卓下通常仍能被相册扫描到）。
+      try {
+        const a = document.createElement('a');
+        a.href = '/api/items/' + it.id + '/file?download=true';
+        a.download = (it.name || 'eagle') + '.' + (normExt(it.ext) || '');
+        document.body.appendChild(a); a.click(); a.remove();
+        toast('已下载到「文件」，可在相册中查看');
+      } catch (e2) { toast('保存失败'); }
+    }
+  };
   pvShare.onclick = async () => {
     const it = S.preview.list[S.preview.index];
     if (!it) return;
-    const url = location.origin + '/api/items/' + it.id + '/file';
-    if (navigator.share) { try { await navigator.share({ title: it.name, url }); } catch (e) {} }
-    else { try { await navigator.clipboard.writeText(url); toast('链接已复制'); } catch (e) { toast('分享不可用'); } }
+    try {
+      // 以文件形式分享，iOS 面板才会提供「存储到照片」；取消分享视为正常。
+      await shareFile(it);
+    } catch (e) {
+      if (e && e.name === 'AbortError') return;
+      const url = location.origin + '/api/items/' + it.id + '/file';
+      try { await navigator.clipboard.writeText(url); toast('链接已复制'); }
+      catch (e2) { toast('分享不可用'); }
+    }
   };
 
   // ---------- toast ----------

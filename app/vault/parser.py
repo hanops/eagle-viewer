@@ -15,6 +15,13 @@ from urllib.parse import urlparse
 from app.config import VAULT_ROOT
 from app.vault.models import FolderNode, ItemInfo, SmartFolderNode
 
+# 应用版本（单一来源 = pyproject.toml），用于前端展示；解析失败回退 "dev"。
+try:
+    from importlib.metadata import version as _pkg_version
+    APP_VERSION = _pkg_version("eagle-viewer")
+except Exception:  # pragma: no cover - 仅未安装包时触发
+    APP_VERSION = "dev"
+
 # In-memory cache (filled on first request or startup)
 _folder_tree: list[FolderNode] = []
 _folder_by_id: dict[str, FolderNode] = {}  # folder_id -> node (for path lookup)
@@ -579,6 +586,7 @@ def get_library_status(deep: bool = False) -> dict[str, Any]:
         "mode": "deep" if deep else "shallow",
         "revision": cached_revision,
         "observedRevision": observed_revision,
+        "version": APP_VERSION,
         "loadedAt": int(_last_load_stats.get("loadedAt") or 0),
         "stats": {
             "folders": int(_last_load_stats.get("folders") or 0),

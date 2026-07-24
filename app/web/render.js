@@ -7,24 +7,14 @@ var renderModule = EagleViewer.modules.render = EagleViewer.modules.render || {}
 // ===== Sidebar rendering =====
 function renderFolder(f, depth) {
   var div = document.createElement('div');
-  div.className = 'folder-node';
+  div.className = 'folder-node' + (state.folderExpanded[f.id] ? ' expanded' : '');
   div.dataset.folderId = f.id;
+  div.setAttribute('role', 'treeitem');
+  div.setAttribute('aria-expanded', state.folderExpanded[f.id] ? 'true' : 'false');
   var row = document.createElement('div');
-  row.className = 'sidebar-item' + (f.locked ? ' locked' : '');
-  row.style.paddingLeft = (16 + depth * 12) + 'px';
+  row.className = 'sidebar-item folder-row' + (f.locked ? ' locked' : '');
+  row.style.paddingLeft = '12px';
   var hasChildren = f.children && f.children.length > 0;
-
-  var toggle = document.createElement('span');
-  toggle.className = 'folder-toggle' + (state.folderExpanded[f.id] ? ' expanded' : '');
-  toggle.innerHTML = hasChildren ? iconChevronRight() : '';
-  toggle.style.visibility = hasChildren ? 'visible' : 'hidden';
-  toggle.onclick = function(e) {
-    e.stopPropagation();
-    if (!hasChildren) return;
-    state.folderExpanded[f.id] = !state.folderExpanded[f.id];
-    childrenEl.classList.toggle('collapsed', !state.folderExpanded[f.id]);
-    toggle.classList.toggle('expanded', state.folderExpanded[f.id]);
-  };
 
   var icon = document.createElement('span');
   icon.className = 'sidebar-item-icon';
@@ -38,23 +28,40 @@ function renderFolder(f, depth) {
   count.className = 'sidebar-item-count';
   count.textContent = f.locked ? '受保护' : ((f.count != null ? f.count : 0) + '');
 
-  row.appendChild(toggle);
   row.appendChild(icon);
   row.appendChild(name);
   row.appendChild(count);
 
-  row.onclick = function(e) {
-    if (e.target.closest('.folder-toggle')) return;
-    e.stopPropagation();
-    if (f.locked) {
-      showLockedFolderNotice(f);
-      return;
-    }
-    document.getElementById('searchInput').value = '';
+  function openFolder() {
+    if (f.locked) { showLockedFolderNotice(f); return; }
+    var searchInput = document.getElementById('searchInput');
+    if (searchInput) searchInput.value = '';
     clearAllActive();
     row.classList.add('active');
     state.currentTagName = null;
     api.loadFolderItems(f.id);
+  }
+  function toggleExpand() {
+    if (!hasChildren) return;
+    state.folderExpanded[f.id] = !state.folderExpanded[f.id];
+    if (childrenEl) childrenEl.classList.toggle('collapsed', !state.folderExpanded[f.id]);
+    div.classList.toggle('expanded', state.folderExpanded[f.id]);
+    div.setAttribute('aria-expanded', state.folderExpanded[f.id] ? 'true' : 'false');
+  }
+
+  row.tabIndex = 0;
+  row.onclick = function(e) {
+    e.stopPropagation();
+    if (hasChildren) toggleExpand();
+    openFolder();
+  };
+  row.ondblclick = function(e) {
+    e.stopPropagation();
+    openFolder();
+  };
+  row.onkeydown = function(e) {
+    if (e.key === 'Enter') { e.preventDefault(); openFolder(); }
+    else if (e.key === ' ') { e.preventDefault(); if (hasChildren) toggleExpand(); }
   };
   if (f.locked) {
     row.setAttribute('aria-label', (f.name || '文件夹') + ' · Eagle 密码保护');
@@ -188,17 +195,7 @@ function syncActiveNavigationState() {
     if (randomRow) randomRow.classList.add('active');
     return;
   }
-  if (state.currentView === 'collection' && state.currentCollection) {
-    if (state.currentCollection.indexOf('workspace:') === 0) {
-      var workspaceId = state.currentCollection.substring(10);
-      var workspaceRow = document.querySelector('[data-workspace-id="' + CSS.escape(workspaceId) + '"]');
-      if (workspaceRow) workspaceRow.classList.add('active');
-      return;
-    }
-    var collectionRow = document.getElementById(state.currentCollection === 'later' ? 'laterItems' : (state.currentCollection === 'done' ? 'doneItems' : (state.currentCollection === 'recentViewed' ? 'recentViewedItems' : 'favoriteItems')));
-    if (collectionRow) collectionRow.classList.add('active');
-    return;
-  }
+
   if (state.currentView === 'recent') {
     setRecentActive(state.recentDays);
     return;
@@ -1152,7 +1149,6 @@ function openInspector(item) {
   var downloadDisabled = isRemoteAccessUnavailableForRender();
   actionsHtml += '<button type="button" class="btn-download-original' + (downloadDisabled ? ' requires-remote' : '') + '" data-id="' + escapeHtml(item.id) + '"' + (downloadDisabled ? ' disabled title="下载原文件需要连接远程 Vault"' : '') + '>' + iconDownload() + ' ' + (downloadDisabled ? '需联网' : '下载') + '</button>';
   actionsHtml += '<button type="button" class="btn-share-link" data-id="' + escapeHtml(item.id) + '">' + iconExternalLink() + ' 分享链接</button>';
-  actionsHtml += '<button type="button" class="btn-collection" data-list="favorite" data-id="' + escapeHtml(item.id) + '">收藏</button>';
   if (canCopyImage(item.ext)) actionsHtml += '<button type="button" class="btn-copy" data-id="' + escapeHtml(item.id) + '">' + iconCopy() + ' 复制</button>';
   actionsHtml += '</div></details>';
   actions.innerHTML = actionsHtml;
@@ -1194,39 +1190,11 @@ function closeInspector() {
 }
 
 // ===== Card rendering (masonry) =====
-function isInCollection(listName, itemId) {
-  return (state.collectionIds[listName] || []).indexOf(itemId) >= 0;
-}
-
-function renderCollectionMarkerIcons(itemId) {
-  var html = '';
-  if (isInCollection('favorite', itemId)) {
-    html += '<span class="collection-marker favorite" title="收藏" aria-label="已收藏">' + iconBookmark() + '<span>收藏</span></span>';
-  }
-  return html;
-}
-
 function renderCardQuickActions(item) {
-  var favoriteActive = isInCollection('favorite', item.id) ? ' active' : '';
   return '<div class="card-quick-actions" aria-label="卡片快捷操作">' +
     '<button type="button" class="card-quick-action" data-card-action="preview" data-id="' + escapeHtml(item.id) + '" title="' + (isItemPreviewable(item) ? '预览' : '打开') + '" aria-label="' + (isItemPreviewable(item) ? '预览' : '打开') + '">' + iconEye() + '</button>' +
     '<button type="button" class="card-quick-action" data-card-action="inspect" data-id="' + escapeHtml(item.id) + '" title="详情" aria-label="详情">' + iconInfo() + '</button>' +
-    '<button type="button" class="card-quick-action favorite' + favoriteActive + '" data-card-action="favorite" data-id="' + escapeHtml(item.id) + '" title="收藏" aria-label="收藏">' + iconBookmark() + '</button>' +
   '</div>';
-}
-
-function updateCollectionMarkersInView(itemId) {
-  var targets = document.querySelectorAll('[data-collection-markers-for]');
-  targets.forEach(function(el) {
-    if (el.dataset.collectionMarkersFor !== itemId) return;
-    el.innerHTML = renderCollectionMarkerIcons(itemId);
-    el.classList.toggle('has-markers', !!el.innerHTML);
-  });
-  document.querySelectorAll('[data-card-action][data-id="' + itemId + '"]').forEach(function(btn) {
-    if (btn.dataset.cardAction === 'favorite') btn.classList.toggle('active', isInCollection('favorite', itemId));
-    if (btn.dataset.cardAction === 'later') btn.classList.toggle('active', isInCollection('later', itemId));
-    if (btn.dataset.cardAction === 'done') btn.classList.toggle('active', isInCollection('done', itemId));
-  });
 }
 
 function renderItemCard(item, container) {
@@ -1287,13 +1255,6 @@ function renderItemCard(item, container) {
   overlay.className = 'card-overlay';
   overlay.innerHTML = '<div class="card-overlay-name">' + escapeHtml(item.name) + (item.ext ? '.' + item.ext : '') + '</div>';
   thumb.appendChild(overlay);
-
-  var collectionMarkers = document.createElement('div');
-  collectionMarkers.className = 'collection-markers';
-  collectionMarkers.dataset.collectionMarkersFor = item.id;
-  collectionMarkers.innerHTML = renderCollectionMarkerIcons(item.id);
-  collectionMarkers.classList.toggle('has-markers', !!collectionMarkers.innerHTML);
-  thumb.appendChild(collectionMarkers);
 
   var quickActions = document.createElement('div');
   quickActions.innerHTML = renderCardQuickActions(item);
@@ -1427,7 +1388,6 @@ function renderListRow(item, tbody) {
   if (sourceDomain) mobileMeta.push(sourceDomain);
   nameCell.innerHTML = '<div class="list-name-wrap">' +
     '<span class="list-name-text" title="' + escapeHtml(item.name) + '">' + escapeHtml(item.name) + '</span>' +
-    '<span class="list-collection-markers" data-collection-markers-for="' + escapeHtml(item.id) + '">' + renderCollectionMarkerIcons(item.id) + '</span>' +
     '</div>' +
     (mobileMeta.length ? '<div class="list-mobile-meta">' + mobileMeta.map(function(part) { return '<span>' + escapeHtml(part) + '</span>'; }).join('') + '</div>' : '') +
     '<div class="list-mobile-actions">' +
@@ -1436,8 +1396,6 @@ function renderListRow(item, tbody) {
       '<button type="button" data-list-mobile-action="select" data-id="' + escapeHtml(item.id) + '" aria-pressed="' + (state.selectedIds.has(item.id) ? 'true' : 'false') + '" class="' + (state.selectedIds.has(item.id) ? 'is-selected' : '') + '">' + (state.selectedIds.has(item.id) ? '取消选择' : '选择') + '</button>' +
     '</div>' +
     (sourceDomain ? '<span class="list-source-domain">' + iconExternalLink() + '<span>' + escapeHtml(sourceDomain) + '</span></span>' : '');
-  var listMarkers = nameCell.querySelector('.list-collection-markers');
-  if (listMarkers) listMarkers.classList.toggle('has-markers', !!listMarkers.innerHTML);
   nameCell.style.cursor = 'pointer';
   nameCell.onclick = function(e) {
     if (e.target.closest('[data-item-rating], [data-source-domain], [data-list-mobile-action]')) return;
@@ -1783,40 +1741,6 @@ function getLastViewedItemForMobile() {
   return id ? itemMap[id] : null;
 }
 
-function updateMobileContinueRail() {
-  var rail = document.getElementById('mobileContinueRail');
-  if (!rail) return;
-  var recent = (state.collectionIds && state.collectionIds.recentViewed) || [];
-  var remote = getMobileWorkbarRemoteState();
-  var snapshotLabel = getMobileSnapshotLabel();
-  var lastViewed = getLastViewedItemForMobile();
-  var resumeLabel = lastViewed && lastViewed.name ? lastViewed.name : ((recent.length || 0) + ' 项');
-  var previewLabel = lastViewed && isItemPreviewable(lastViewed) ? (lastViewed.ext || '预览').toUpperCase() : '详情';
-  var loaded = (state.currentItems || []).length;
-  var total = Number(state.currentTotal || 0);
-  var countLabel = total > 0 && loaded && loaded < total ? (loaded + '/' + total) : ((total || loaded || 0) + ' 项');
-  rail.hidden = false;
-  rail.dataset.state = remote.state;
-  rail.innerHTML =
-    '<button type="button" class="mobile-continue-hero" data-mobile-continue-action="preview-last">' +
-      '<span class="mobile-continue-hero-mark">' + iconEye() + '</span>' +
-      '<span class="mobile-continue-hero-copy">' +
-        '<em>继续预览</em>' +
-        '<strong>' + escapeHtml(resumeLabel) + '</strong>' +
-        '<small>' + escapeHtml(getMobileWorkbarKind()) + ' · ' + escapeHtml(getMobileWorkbarTitle()) + ' · ' + escapeHtml(countLabel) + '</small>' +
-      '</span>' +
-      '<span class="mobile-continue-hero-pill">' + escapeHtml(previewLabel) + '</span>' +
-    '</button>' +
-    '<div class="mobile-continue-status" aria-label="移动端 Vault 状态">' +
-      '<span data-state="' + escapeHtml(remote.state) + '"><i></i>' + escapeHtml(remote.label) + '</span>' +
-      '<span><i></i>快照 ' + escapeHtml(snapshotLabel) + '</span>' +
-    '</div>' +
-    '<div class="mobile-continue-actions">' +
-      '<button type="button" data-mobile-continue-action="resume"><span>上次</span><strong>' + escapeHtml(resumeLabel) + '</strong></button>' +
-      '<button type="button" data-mobile-continue-action="snapshot"><span>离线</span><strong>' + escapeHtml(snapshotLabel) + '</strong></button>' +
-    '</div>';
-}
-
 function updateMobileWorkbar() {
   var el = document.getElementById('mobileWorkbar');
   if (!el) return;
@@ -1852,7 +1776,6 @@ function updateMobileWorkbar() {
       '<button type="button" data-mobile-workbar-action="more" aria-label="打开更多">' + iconSliders() + '</button>' +
     '</div>' +
     filterHtml;
-  updateMobileContinueRail();
 }
 
 function getSourceDomain(url) {
@@ -1884,32 +1807,10 @@ function updateContentTitle() {
 
 function updateSidebarCounts() {
   var allCount = document.getElementById('allItemsCount');
-  var favoriteCount = document.getElementById('favoriteItemsCount');
-  var laterCount = document.getElementById('laterItemsCount');
-  var doneCount = document.getElementById('doneItemsCount');
-  var recentViewedCount = document.getElementById('recentViewedItemsCount');
   var savedCount = document.getElementById('savedViewsCount');
-  var mobileFavoriteBadge = document.getElementById('mobileFavoriteBadge');
-  var mobileLaterBadge = document.getElementById('mobileLaterBadge');
   var mobileMoreBadge = document.getElementById('mobileMoreBadge');
-  var favoriteTotal = (state.collectionIds.favorite || []).length;
-  var laterTotal = (state.collectionIds.later || []).length;
-  var doneTotal = (state.collectionIds.done || []).length;
-  var recentViewedTotal = (state.collectionIds.recentViewed || []).length;
   if (allCount && state.currentView === 'all') allCount.textContent = state.currentTotal || '';
-  if (favoriteCount) favoriteCount.textContent = favoriteTotal || '';
-  if (laterCount) laterCount.textContent = laterTotal || '';
-  if (doneCount) doneCount.textContent = doneTotal || '';
-  if (recentViewedCount) recentViewedCount.textContent = recentViewedTotal || '';
   if (savedCount) savedCount.textContent = (state.savedViews || []).length || '';
-  if (mobileFavoriteBadge) {
-    mobileFavoriteBadge.textContent = favoriteTotal ? String(favoriteTotal) : '';
-    mobileFavoriteBadge.hidden = !favoriteTotal;
-  }
-  if (mobileLaterBadge) {
-    mobileLaterBadge.textContent = laterTotal ? String(laterTotal) : '';
-    mobileLaterBadge.hidden = !laterTotal;
-  }
   if (mobileMoreBadge) {
     mobileMoreBadge.textContent = '';
     mobileMoreBadge.hidden = true;
@@ -1962,37 +1863,26 @@ function appendItemsToGrid(items) {
   return true;
 }
 
-function getMasonryBaseColumnCount() {
-  var width = window.innerWidth;
-  var body = document.getElementById('contentBody');
-  var available = body ? body.clientWidth - 24 : width;
-  var density = document.getElementById('gridDensityRange');
-  var target = density ? Number(density.value) : 164;
-  if (width <= 768) {
-    var mobileAvailable = body ? body.clientWidth - 16 : width - 16;
-    var mobileColumns = Math.round((mobileAvailable + 8) / (target + 8));
-    return Math.max(1, Math.min(width <= 400 ? 3 : 4, mobileColumns));
+function getGridThumbWidth() {
+  var w = gridDensity;
+  if (window.innerWidth <= 768) {
+    // 移动端用更紧凑的单元格宽度，密度滑块仍控制相对大小。
+    w = Math.max(96, Math.min(168, Math.round(w * 0.72)));
   }
-  return Math.max(3, Math.min(10, Math.round((available + 10) / (target + 10))));
+  return w;
 }
 
 function applyMasonryColumnCount(masonry, itemCount) {
+  // 统一网格：密度滑块驱动单元格宽度（--thumb-w），列数由 CSS grid 的 auto-fill 自适应。
   if (!masonry) return;
-  if (masonry.classList.contains('compact-grid')) {
-    masonry.style.columnCount = '';
-    masonry.style.maxWidth = '';
-    masonry.style.margin = '';
-    return;
-  }
-  var baseColumns = getMasonryBaseColumnCount();
-  masonry.style.columnCount = String(baseColumns);
+  masonry.style.columnCount = '';
   masonry.style.maxWidth = '';
   masonry.style.margin = '';
+  masonry.style.setProperty('--thumb-w', getGridThumbWidth() + 'px');
 }
 
 function getJustifiedTargetHeight() {
-  var density = document.getElementById('gridDensityRange');
-  var raw = density ? Number(density.value || 164) : 164;
+  var raw = gridDensity;
   return window.innerWidth <= 768 ? Math.max(104, Math.min(178, raw * 0.78)) : Math.max(116, Math.min(260, raw));
 }
 
@@ -3655,7 +3545,6 @@ Object.assign(renderModule, {
   closeInspector: closeInspector,
   renderContent: renderContent,
   updateSidebarCounts: updateSidebarCounts,
-  updateCollectionMarkersInView: updateCollectionMarkersInView,
   renderDuplicates: renderDuplicates,
   renderColorAtlas: renderColorAtlas,
   renderRandomWalk: renderRandomWalk,
@@ -3671,7 +3560,6 @@ Object.assign(renderModule, {
   refreshMasonryLayout: refreshMasonryLayout,
   updateContentTitle: updateContentTitle,
   updateMobileWorkbar: updateMobileWorkbar,
-  updateMobileContinueRail: updateMobileContinueRail,
   refreshOpenPreviewMobileActions: refreshOpenPreviewMobileActions,
   updateItemRatingsInView: updateItemRatingsInView,
   renderItemRatingControl: renderItemRatingControl,

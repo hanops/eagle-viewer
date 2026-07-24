@@ -17,41 +17,6 @@ from app.vault import load_vault, get_cache_stats, get_library_status
 
 logger = logging.getLogger(__name__)
 
-_LOGOUT_CLEANUP_HTML = """<!doctype html>
-<html lang="zh-CN">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <meta http-equiv="refresh" content="3;url=__TARGET__" />
-  <title>正在退出 Eagle Vault Viewer</title>
-</head>
-<body>
-  <p>正在清除本机离线 Vault 数据…</p>
-  <script>
-    (async function() {
-      try {
-        if ('caches' in window) {
-          await Promise.all([
-            caches.delete('eagle-viewer-thumbs-v1'),
-            caches.delete('eagle-viewer-api-v1')
-          ]);
-        }
-        try {
-          Object.keys(localStorage).forEach(function(key) {
-            if (key.indexOf('eagle-viewer-') === 0 && key !== 'eagle-viewer-theme') {
-              localStorage.removeItem(key);
-            }
-          });
-        } catch (error) {}
-      } finally {
-        window.location.replace('__TARGET__');
-      }
-    })();
-  </script>
-</body>
-</html>
-"""
-
 
 def has_valid_api_token(headers: list[tuple[bytes, bytes]], token: str) -> bool:
     """Constant-time validation for an optional API-client Bearer token."""
@@ -86,7 +51,7 @@ class AuthMiddleware:
                 return
             await self.app(scope, receive, send)
             return
-        if path == "/login" or path == "/logout":
+        if path == "/login":
             await self.app(scope, receive, send)
             return
         # Session 由 SessionMiddleware 填充，需在 Auth 之前执行
@@ -186,19 +151,6 @@ def login_submit(request: Request, password: str = Form(default="")):
         request.session["logged_in"] = True
         return RedirectResponse(url="/", status_code=302)
     return RedirectResponse(url="/login?error=1", status_code=302)
-
-
-@app.get("/logout")
-@app.post("/logout")
-def logout(request: Request):
-    """Clear the server session and private browser-side offline data."""
-    target = "/login" if VIEWER_PASSWORD else "/"
-    if VIEWER_PASSWORD:
-        request.session.clear()
-    return HTMLResponse(
-        _LOGOUT_CLEANUP_HTML.replace("__TARGET__", target),
-        headers={"Cache-Control": "no-store"},
-    )
 
 
 @app.get("/")

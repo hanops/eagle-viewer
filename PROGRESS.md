@@ -4,7 +4,7 @@
 > 与 `CHANGELOG.md`（记录“已发布了什么”）、`AGENTS.md`（通用结构与命令）互补。
 > 每次做出会影响后续迭代的决策或踩到新坑，请追加到此文件。
 
-最后更新：2026-07-23 · 当前版本：**2.0.3（已发布）**
+最后更新：2026-07-24 · 当前版本：**2.0.4（已发布）**
 
 ---
 
@@ -12,6 +12,7 @@
 
 - **v2.0.2 已发布**：tag `v2.0.2` 已推送，GitHub Release 已建。此版本主要为桌面端视觉重做。
 - **v2.0.3 已发布**：tag `v2.0.3` 已推送，GitHub Release 已建。此版本修复移动端三处体验（锁文件夹拦截提示、预览背景透出其它搜索结果、搜索页返回主页按钮）与桌面浅色卡片边框缺失。静态资源 revision 升至 `1.96`、SW shell 缓存升至 `eagle-viewer-shell-v42`。改动均未碰后端 `/api`。
+- **v2.0.4 已发布**：tag `v2.0.4` 已推送，GitHub Release 已建。本轮为桌面 + 移动端全面去工业风重做：移除孤立的画布设置面板、登出入口与整套集合系统（收藏/稍后/完成/工作集/最近查看）；桌面三套主题同源（gallery 暖陶土浅、workbench 深蓝、carbon 深绿），深色卡片补描边/阴影、侧栏与背景分隔；移动端 token 改为暖陶土并与桌面主题共享 `eagle-viewer-theme`，移除硬编码 `data-theme` 以尊重系统深色偏好；品牌名「Eagle Vault Viewer」+ 圆形 logo 取代旧 banner。静态资源 revision 升至 `1.97`、SW shell 缓存升至 `eagle-viewer-shell-v43`。后端仅加预览图 HTTP 缓存头与 `/api/library/status` 的 `version` 字段，未改鉴权逻辑。
 - 版本号一致性由 `make check` 的 version-check 保证，**只比对三处**：`pyproject.toml`、`README.md`、`app/web/core.js`。改版本号时这三处必须同步（`uv.lock` 里项目自身版本也需一致，`uv sync` 会带出）。
 - 工作树中 `docs/mockups/web-desktop-redesign.html` 是**有意保留**的设计参考稿（untracked），不是临时文件，勿删。
 

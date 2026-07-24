@@ -12,7 +12,7 @@ async function init() {
   await interactions.loadLocalData();
   interactions.setViewMode(api.getPreferredViewMode(), true);
 
-  var savedTheme = localStorage.getItem('eagle-viewer-theme') || 'light';
+  var savedTheme = localStorage.getItem('eagle-viewer-theme') || 'gallery';
   interactions.setTheme(savedTheme);
 
   interactions.setupSidebarResize();
@@ -39,9 +39,7 @@ async function init() {
     render.renderTagList();
 
     if (applyStateFromUrl() && state.currentView) {
-      var supportedCollection = state.currentCollection === 'favorite' || state.currentCollection === 'recentViewed';
-      if ((state.currentView === 'collection' && !supportedCollection) ||
-          ['smart', 'eagle-smart', 'duplicates', 'colors', 'random'].indexOf(state.currentView) >= 0) {
+      if (['smart', 'eagle-smart', 'duplicates', 'colors', 'random'].indexOf(state.currentView) >= 0) {
         state.currentView = 'all';
         state.currentCollection = '';
         state.currentSmartViewName = '';
@@ -60,8 +58,6 @@ async function init() {
       } else if (state.currentView === 'search' && state.searchQuery) {
         document.getElementById('searchInput').value = state.searchQuery;
         await api.doSearch();
-      } else if (state.currentView === 'collection' && state.currentCollection) {
-        await interactions.showCollection(state.currentCollection);
       } else {
         await api.loadAllItems(true);
       }

@@ -1,5 +1,4 @@
 from fastapi.responses import PlainTextResponse
-from starlette.requests import Request
 from starlette.testclient import TestClient
 
 import app.main as main
@@ -41,17 +40,4 @@ def test_api_info_declares_native_capabilities(monkeypatch):
     assert "sharedState" not in info["features"]
 
 
-def test_logout_clears_private_offline_browser_data(monkeypatch):
-    monkeypatch.setattr(main, "VIEWER_PASSWORD", "web-password")
-    session = {"logged_in": True}
-    request = Request({"type": "http", "method": "GET", "path": "/logout", "headers": [], "session": session})
-    response = main.logout(request)
-    body = response.body.decode("utf-8")
 
-    assert response.status_code == 200
-    assert session == {}
-    assert response.headers["cache-control"] == "no-store"
-    assert "caches.delete('eagle-viewer-thumbs-v1')" in body
-    assert "caches.delete('eagle-viewer-api-v1')" in body
-    assert "localStorage.removeItem(key)" in body
-    assert "window.location.replace('/login')" in body

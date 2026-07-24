@@ -3,8 +3,8 @@
 var EagleViewer = window.EagleViewer = window.EagleViewer || {};
 
 var API = '';
-var VERSION = '2.0.3';
-var VERSION_DATE = '2026-07-23';
+var VERSION = '2.0.4';
+var VERSION_DATE = '2026-07-24';
 var PREVIEW_IMAGE_EXTS = ['jpg','jpeg','png','gif','webp','svg','bmp'];
 var PREVIEW_VIDEO_EXTS = ['mp4','webm','mov','m4v'];
 var PREVIEW_AUDIO_EXTS = ['mp3','wav','m4a','aac','flac','ogg'];
@@ -126,9 +126,6 @@ function injectIcons() {
   el = document.getElementById('viewGrid'); if (el) el.innerHTML = iconGrid();
   el = document.getElementById('viewJustified'); if (el) el.innerHTML = iconJustified();
   el = document.getElementById('viewList'); if (el) el.innerHTML = iconList();
-  el = document.getElementById('layoutSettingsBtn'); if (el) el.innerHTML = iconSliders();
-  el = document.getElementById('reloadLibraryBtn'); if (el) el.innerHTML = iconRefresh();
-  el = document.getElementById('themeToggle'); if (el) el.innerHTML = iconSun();
   el = document.getElementById('filterPanelBtn'); if (el) el.innerHTML = iconSliders();
   el = document.getElementById('savedViewsBtn'); if (el) el.innerHTML = iconBookmark();
   el = document.getElementById('statsBtn'); if (el) el.innerHTML = iconInfo();
@@ -154,7 +151,6 @@ function injectIcons() {
   el = document.getElementById('iconMobileSearchSheet'); if (el) el.innerHTML = iconSearch();
   el = document.getElementById('iconMobileMore'); if (el) el.innerHTML = iconMenu();
   el = document.getElementById('iconMobileMoreSidebar'); if (el) el.innerHTML = iconMenu();
-  el = document.getElementById('iconMobileMoreCanvas'); if (el) el.innerHTML = iconJustified();
   el = document.getElementById('iconMobileMoreEagleSmart'); if (el) el.innerHTML = iconSliders();
   el = document.getElementById('iconMobileMoreSmart'); if (el) el.innerHTML = iconSliders();
   el = document.getElementById('iconMobileMoreReview'); if (el) el.innerHTML = iconEye();
@@ -244,7 +240,7 @@ var routeHistoryInitialized = false;
 var routeHistorySuspended = 0;
 var URL_FILTER_KEYS = [
   'min_size', 'max_size', 'min_width', 'min_height', 'mtime_from', 'mtime_to',
-  'shape', 'tag_state', 'annotation_state', 'viewer_note_state', 'source_state', 'favorite_state', 'later_state', 'done_state',
+  'shape', 'tag_state', 'annotation_state', 'viewer_note_state', 'source_state',
   'source_domain', 'ext', 'rating_min', 'color', 'color_tolerance'
 ];
 var NUMERIC_FILTER_KEYS = ['min_size', 'max_size', 'min_width', 'min_height', 'mtime_from', 'mtime_to', 'rating_min', 'color_tolerance'];
@@ -301,7 +297,7 @@ Object.defineProperties(EagleViewer.state, {
   activeListRequest: { get: function() { return activeListRequest; }, set: function(v) { activeListRequest = v; }, enumerable: true },
   advancedFilters: { get: function() { return advancedFilters; }, set: function(v) { advancedFilters = v || {}; }, enumerable: true },
   savedViews: { get: function() { return savedViews; }, set: function(v) { savedViews = v || []; }, enumerable: true },
-  collectionIds: { get: function() { return collectionIds; }, set: function(v) { collectionIds = v || { favorite: [], later: [], done: [], recentViewed: [] }; }, enumerable: true },
+  collectionIds: { get: function() { return collectionIds; }, set: function(v) { collectionIds = v || { favorite: [], later: [], done: [], recentViewed: [], items: {} }; }, enumerable: true },
   itemRatings: { get: function() { return itemRatings; }, set: function(v) { itemRatings = v && typeof v === 'object' ? v : {}; }, enumerable: true },
   viewerNotes: { get: function() { return viewerNotes; }, set: function(v) { viewerNotes = v && typeof v === 'object' ? v : {}; }, enumerable: true },
   reviewMarkers: { get: function() { return reviewMarkers; }, set: function(v) { reviewMarkers = v && typeof v === 'object' ? v : {}; }, enumerable: true },
@@ -321,7 +317,7 @@ function buildListQuery() {
   params.set('dir', listDir);
   params.set('type', listType);
   Object.keys(advancedFilters || {}).forEach(function(key) {
-    if (key === 'favorite_state' || key === 'later_state' || key === 'done_state' || key === 'rating_min' || key === 'viewer_note_state') return;
+    if (key === 'rating_min' || key === 'viewer_note_state') return;
     var val = advancedFilters[key];
     if (val !== null && val !== undefined && val !== '') params.set(key, val);
   });
@@ -338,7 +334,6 @@ function updateUrlFromState() {
   if (currentView === 'tag' && currentTagName) params.set('tag', currentTagName);
   if (currentView === 'recent') params.set('days', String(recentDays));
   if (currentView === 'search' && searchQuery) params.set('q', searchQuery);
-  if (currentView === 'collection' && currentCollection) params.set('collection', currentCollection);
   if (currentView === 'smart' && currentSmartViewName) params.set('smart', currentSmartViewName);
   if (currentView === 'eagle-smart' && currentEagleSmartFolderId) params.set('eagleSmart', currentEagleSmartFolderId);
   if (currentView === 'random' && currentRandomSeed) params.set('seed', currentRandomSeed);
@@ -385,7 +380,6 @@ function getRouteHistoryIdentity(params) {
   else if (view === 'tag') identity.push(params.get('tag') || '');
   else if (view === 'recent') identity.push(params.get('days') || '7');
   else if (view === 'search') identity.push(params.get('q') || '');
-  else if (view === 'collection') identity.push(params.get('collection') || '');
   else if (view === 'smart') identity.push(params.get('smart') || '');
   else if (view === 'eagle-smart') identity.push(params.get('eagleSmart') || '');
   else if (view === 'random') identity.push(params.get('seed') || '');
@@ -422,7 +416,6 @@ function applyStateFromHash(rawHash) {
   listType = params.get('type') || 'all';
   currentFolderId = params.get('id') || null;
   currentTagName = params.get('tag') || null;
-  currentCollection = params.get('collection') || '';
   currentSmartViewName = params.get('smart') || '';
   currentEagleSmartFolderId = params.get('eagleSmart') || '';
   currentRandomSeed = params.get('seed') || '';
