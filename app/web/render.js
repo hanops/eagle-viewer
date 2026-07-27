@@ -87,31 +87,6 @@ function renderSidebar() {
   state.treeData.forEach(function(f) { folderTree.appendChild(renderFolder(f, 0)); });
 }
 
-function renderEagleSmartFolders() {
-  var section = document.getElementById('nativeSmartFolderSection');
-  var list = document.getElementById('nativeSmartFolderList');
-  if (!section || !list) return;
-  list.innerHTML = '';
-  section.hidden = !state.eagleSmartFolders.length;
-  if (!state.eagleSmartFolders.length) return;
-
-  function appendNode(node, depth) {
-    var button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'native-smart-folder-item';
-    button.dataset.eagleSmartFolderId = node.id;
-    button.style.setProperty('--smart-depth', String(Math.min(depth, 4)));
-    button.title = (node.description || node.ruleSummary || node.name || '').trim();
-    button.innerHTML = '<span class="native-smart-folder-icon">⌁</span>' +
-      '<span class="native-smart-folder-copy"><strong>' + escapeHtml(node.name || '(未命名)') + '</strong><small>' + escapeHtml(node.ruleSummary || 'Eagle 自动规则') + '</small></span>' +
-      '<span class="native-smart-folder-count">' + Number(node.count || 0) + '</span>';
-    button.onclick = function() { api.loadEagleSmartFolderItems(node.id); };
-    list.appendChild(button);
-    (node.children || []).forEach(function(child) { appendNode(child, depth + 1); });
-  }
-  state.eagleSmartFolders.forEach(function(node) { appendNode(node, 0); });
-}
-
 function expandFolderPathTo(folderId, nodes) {
   for (var i = 0; i < nodes.length; i++) {
     var node = nodes[i];
@@ -164,9 +139,6 @@ function renderTagList() {
 
 function clearAllActive() {
   document.querySelectorAll('.sidebar-item.active').forEach(function(el) { el.classList.remove('active'); });
-  document.querySelectorAll('.smart-view-item.active').forEach(function(el) { el.classList.remove('active'); });
-  document.querySelectorAll('.native-smart-folder-item.active').forEach(function(el) { el.classList.remove('active'); });
-  document.querySelectorAll('.workspace-sidebar-item.active').forEach(function(el) { el.classList.remove('active'); });
   document.querySelectorAll('.tag-chip.active').forEach(function(el) { el.classList.remove('active'); });
 }
 
@@ -185,30 +157,8 @@ function syncActiveNavigationState() {
     if (allRow) allRow.classList.add('active');
     return;
   }
-  if (state.currentView === 'colors') {
-    var colorsRow = document.getElementById('sidebarColors');
-    if (colorsRow) colorsRow.classList.add('active');
-    return;
-  }
-  if (state.currentView === 'random') {
-    var randomRow = document.getElementById('sidebarRandom');
-    if (randomRow) randomRow.classList.add('active');
-    return;
-  }
-
   if (state.currentView === 'recent') {
     setRecentActive(state.recentDays);
-    return;
-  }
-  if (state.currentView === 'smart' && state.currentSmartViewName) {
-    Array.prototype.forEach.call(document.querySelectorAll('.smart-view-item'), function(row) {
-      if (row.dataset.smartViewName === state.currentSmartViewName) row.classList.add('active');
-    });
-    return;
-  }
-  if (state.currentView === 'eagle-smart' && state.currentEagleSmartFolderId) {
-    var eagleSmartRow = document.querySelector('[data-eagle-smart-folder-id="' + CSS.escape(state.currentEagleSmartFolderId) + '"]');
-    if (eagleSmartRow) eagleSmartRow.classList.add('active');
     return;
   }
   if (state.currentView === 'folder' && state.currentFolderId) {
@@ -249,18 +199,6 @@ function getViewCrumbs() {
   } else if (state.currentView === 'search') {
     crumbs.push({ label: '搜索', action: 'search-root' });
     if (state.searchQuery) crumbs.push({ label: state.searchQuery, search: state.searchQuery });
-  } else if (state.currentView === 'smart') {
-    crumbs.push({ label: '智能视图', action: 'smart-root' });
-    if (state.currentSmartViewName) crumbs.push({ label: state.currentSmartViewName, smart: state.currentSmartViewName });
-  } else if (state.currentView === 'eagle-smart') {
-    crumbs.push({ label: 'Eagle 智能文件夹', action: 'eagle-smart-root' });
-    if (state.currentTitle) crumbs.push({ label: state.currentTitle, eagleSmart: state.currentEagleSmartFolderId });
-  } else if (state.currentView === 'duplicates') {
-    crumbs.push({ label: '疑似重复', action: 'duplicates' });
-  } else if (state.currentView === 'colors') {
-    crumbs.push({ label: '全库色谱', action: 'colors' });
-  } else if (state.currentView === 'random') {
-    crumbs.push({ label: '随机漫游', action: 'random' });
   } else if (state.currentTitle && state.currentView !== 'all') {
     crumbs.push({ label: state.currentTitle, action: state.currentView });
   }
@@ -275,9 +213,6 @@ function renderContentCrumbs() {
     var attrs = '';
     if (crumb.folderId) attrs += ' data-crumb-folder="' + escapeHtml(crumb.folderId) + '"';
     if (crumb.tag) attrs += ' data-crumb-tag="' + escapeHtml(crumb.tag) + '"';
-    if (crumb.collection) attrs += ' data-crumb-collection="' + escapeHtml(crumb.collection) + '"';
-    if (crumb.smart) attrs += ' data-crumb-smart="' + escapeHtml(crumb.smart) + '"';
-    if (crumb.eagleSmart) attrs += ' data-crumb-eagle-smart="' + escapeHtml(crumb.eagleSmart) + '"';
     if (crumb.recentDays) attrs += ' data-crumb-recent="' + escapeHtml(String(crumb.recentDays)) + '"';
     if (crumb.search) attrs += ' data-crumb-search="' + escapeHtml(crumb.search) + '"';
     if (crumb.action) attrs += ' data-crumb-action="' + escapeHtml(crumb.action) + '"';
@@ -297,9 +232,6 @@ function updateBatchBar() {
   var scopeEl = document.getElementById('selectedScope');
   var hintEl = document.getElementById('selectedHint');
   var previewRail = document.getElementById('selectedPreviewRail');
-  var favoriteBtn = document.getElementById('batchFavoriteBtn');
-  var laterBtn = document.getElementById('batchLaterBtn');
-  var doneBtn = document.getElementById('batchDoneBtn');
   var compareBtn = document.getElementById('batchCompareBtn');
   var removeCollectionBtn = document.getElementById('batchRemoveCollectionBtn');
   var downloadBtn = document.getElementById('batchDownloadBtn');
@@ -744,17 +676,6 @@ function formatMediaDuration(seconds) {
   return (hours ? hours + ':' + String(minutes).padStart(2, '0') : String(minutes)) + ':' + String(secs).padStart(2, '0');
 }
 
-function renderPaletteSwatches(palettes, limit) {
-  var max = limit || 9;
-  return (palettes || []).slice(0, max).map(function(entry) {
-    var color = entry && entry.color;
-    if (!Array.isArray(color) || color.length !== 3) return '';
-    var rgb = color.map(function(channel) { return Math.max(0, Math.min(255, Number(channel) || 0)); });
-    var hex = '#' + rgb.map(function(channel) { return Math.round(channel).toString(16).padStart(2, '0'); }).join('');
-    return '<button type="button" class="palette-swatch" data-inspector-color="' + escapeHtml(hex) + '" style="background:' + hex + '" title="筛选相近主色：' + escapeHtml(hex) + '" aria-label="筛选相近主色 ' + escapeHtml(hex) + '"></button>';
-  }).join('');
-}
-
 function renderInspectorFolderLinks(item) {
   var paths = item.folderPaths || [];
   var folderIds = item.folders || [];
@@ -839,92 +760,11 @@ function getInspectorTypeLabel(item) {
   return '通用文件';
 }
 
-function renderItemRatingControl(item, extraClass) {
-  if (!item || !item.id) return '';
-  var rating = Math.max(0, Math.min(5, Number((state.itemRatings || {})[item.id] || 0)));
-  var stars = '';
-  for (var i = 1; i <= 5; i++) {
-    stars += '<button type="button" data-item-rating="' + i + '" data-id="' + escapeHtml(item.id) + '" class="' + (i <= rating ? 'active' : '') + '" aria-label="评为 ' + i + ' 星" aria-pressed="' + (i <= rating ? 'true' : 'false') + '" title="' + i + ' 星">★</button>';
-  }
-  return '<div class="item-rating' + (extraClass ? ' ' + extraClass : '') + '" data-rating-for="' + escapeHtml(item.id) + '" data-rating="' + rating + '" aria-label="评分：' + (rating ? rating + ' 星' : '未评分') + '">' + stars + '<span>' + (rating ? rating + '.0' : '未评分') + '</span></div>';
-}
-
 function renderInspectorStatusPills(item) {
   var pills = [];
-  var inFavorite = (state.collectionIds.favorite || []).indexOf(item.id) >= 0;
-  if (inFavorite) pills.push('<span class="inspector-status-pill favorite">' + iconBookmark() + ' 收藏</span>');
   if (item.tags && item.tags.length) pills.push('<span class="inspector-status-pill"># ' + escapeHtml(item.tags.length + ' 标签') + '</span>');
   if (item.url) pills.push('<span class="inspector-status-pill sourced">' + iconExternalLink() + ' 有来源</span>');
   return pills.join('');
-}
-
-function formatReviewMarkerTime(seconds) {
-  var value = Math.max(0, Number(seconds) || 0);
-  var minutes = Math.floor(value / 60);
-  var secs = Math.floor(value % 60);
-  return String(minutes).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
-}
-
-function renderInspectorReviewMarkers(item) {
-  var markers = ((state.reviewMarkers || {})[item.id] || []).slice();
-  var kind = getViewMediaKind(item);
-  var controls = '<div class="review-marker-compose" data-review-marker-compose="' + escapeHtml(item.id) + '">' +
-    '<textarea maxlength="1000" placeholder="写下需要调整、确认或交付的具体意见…"></textarea>' +
-    '<div class="review-marker-compose-actions">' +
-      '<button type="button" data-review-marker-add="general">添加评论</button>' +
-      (kind === 'image' ? '<button type="button" class="primary" data-review-marker-mode="point">◎ 在画面定位</button>' : '') +
-      ((kind === 'video' || kind === 'audio') ? '<label><span>时间点</span><input type="text" data-review-marker-time value="00:00" inputmode="decimal" aria-label="时间点，格式为分:秒"></label><button type="button" class="primary" data-review-marker-add="time">＋ 时间标记</button>' : '') +
-    '</div><small data-review-marker-hint>' + (kind === 'image' ? '先写意见，再点“在画面定位”并选择图片位置。' : '标记保存在 Viewer，不写入 Eagle Vault。') + '</small>' +
-  '</div>';
-  var list = markers.length ? '<div class="review-marker-list">' + markers.map(function(marker, index) {
-    var meta = marker.kind === 'point' ? ('画面点位 · ' + Math.round((marker.x || 0) * 100) + '% / ' + Math.round((marker.y || 0) * 100) + '%') :
-      (marker.kind === 'time' ? ('时间点 · ' + formatReviewMarkerTime(marker.time)) : '整项评论');
-    return '<article class="review-marker-row" data-review-marker-id="' + escapeHtml(marker.id) + '">' +
-      '<button type="button" class="review-marker-index" data-review-marker-focus="' + escapeHtml(marker.id) + '" aria-label="定位标记 ' + (index + 1) + '">' + (index + 1) + '</button>' +
-      '<div><span>' + escapeHtml(meta) + '</span><p>' + escapeHtml(marker.text) + '</p></div>' +
-      '<button type="button" class="review-marker-delete" data-review-marker-delete="' + escapeHtml(marker.id) + '" aria-label="删除标记">×</button>' +
-    '</article>';
-  }).join('') + '</div>' : '<div class="review-marker-empty"><span>◎</span><div><strong>还没有审片标记</strong><small>适合在 iPhone 或远程设备上指出具体修改位置。</small></div></div>';
-  return '<div class="review-marker-panel" data-review-marker-panel="' + escapeHtml(item.id) + '">' + controls + list + '</div>';
-}
-
-function renderInspectorReviewMarkerOverlay(item) {
-  var preview = document.getElementById('inspectorPreview');
-  if (!preview) return;
-  var existing = preview.querySelector('.review-marker-overlay');
-  if (existing) existing.remove();
-  var markers = ((state.reviewMarkers || {})[item.id] || []).filter(function(marker) { return marker.kind === 'point'; });
-  var img = preview.querySelector('img');
-  if (!img || !markers.length) return;
-  var overlay = document.createElement('div');
-  overlay.className = 'review-marker-overlay';
-  overlay.innerHTML = markers.map(function(marker, index) {
-    var allMarkers = (state.reviewMarkers || {})[item.id] || [];
-    var displayIndex = allMarkers.findIndex(function(entry) { return entry.id === marker.id; }) + 1;
-    return '<button type="button" data-review-marker-focus="' + escapeHtml(marker.id) + '" style="--marker-x:' + ((marker.x || 0) * 100) + '%;--marker-y:' + ((marker.y || 0) * 100) + '%" aria-label="查看标记 ' + displayIndex + '">' + displayIndex + '</button>';
-  }).join('');
-  preview.appendChild(overlay);
-  function positionOverlay() {
-    if (!img.isConnected || !overlay.isConnected) return;
-    var box = preview.getBoundingClientRect();
-    var naturalRatio = (img.naturalWidth || item.width || 1) / (img.naturalHeight || item.height || 1);
-    var boxRatio = box.width / Math.max(1, box.height);
-    var width = box.width;
-    var height = box.height;
-    if (naturalRatio > boxRatio) height = width / naturalRatio;
-    else width = height * naturalRatio;
-    overlay.style.left = ((box.width - width) / 2) + 'px';
-    overlay.style.top = ((box.height - height) / 2) + 'px';
-    overlay.style.width = width + 'px';
-    overlay.style.height = height + 'px';
-  }
-  img.addEventListener('load', positionOverlay, { once: true });
-  requestAnimationFrame(positionOverlay);
-  if (window.ResizeObserver) {
-    var observer = new ResizeObserver(positionOverlay);
-    observer.observe(preview);
-    preview._reviewMarkerObserver = observer;
-  }
 }
 
 function getInspectorMetaLine(item) {
@@ -956,13 +796,6 @@ function bindInspectorPreviewAction(item, fileUrl) {
   if (!isItemPreviewable(item)) return;
   preview.onclick = function(e) {
     if (e.target && e.target.closest && e.target.closest('button, a')) return;
-    if (preview.dataset.reviewMarkerMode === 'point') {
-      e.preventDefault();
-      e.stopPropagation();
-      var interactions = EagleViewer.modules.interactions;
-      if (interactions && interactions.commitPointReviewMarker) interactions.commitPointReviewMarker(item, e, preview);
-      return;
-    }
     renderModule.previewItem(item, fileUrl);
   };
   preview.onkeydown = function(e) {
@@ -1013,49 +846,6 @@ function renderInspectorRelatedLinks(item) {
   return links.length ? '<div class="inspector-related-grid">' + links.join('') + '</div>' : '';
 }
 
-function renderInspectorSimilarPlaceholder(item) {
-  return '<div class="inspector-similar" data-similar-for="' + escapeHtml(item.id) + '">' +
-    '<div class="inspector-similar-loading"><span></span><div><strong>正在匹配相似素材</strong><small>分析主色、构图、尺寸、格式与标签</small></div></div>' +
-  '</div>';
-}
-
-function renderInspectorSimilarCard(item) {
-  var signals = (item.similaritySignals || []).slice(0, 3).map(function(signal) {
-    return '<span>' + escapeHtml(signal) + '</span>';
-  }).join('');
-  var score = Math.max(0, Math.min(100, Number(item.similarityScore) || 0));
-  var thumbUrl = API + '/api/items/' + encodeURIComponent(item.id) + '/thumbnail';
-  return '<button type="button" class="inspector-similar-card" data-similar-item-id="' + escapeHtml(item.id) + '" title="打开 ' + escapeHtml(item.name || '未命名素材') + '">' +
-    '<span class="inspector-similar-thumb"><img src="' + thumbUrl + '" alt="" loading="lazy"><b style="--similarity:' + score + '%">' + score + '</b></span>' +
-    '<span class="inspector-similar-copy"><strong>' + escapeHtml(item.name || '未命名素材') + '</strong><small>' + escapeHtml((item.ext || 'FILE').toUpperCase()) + (item.width && item.height ? ' · ' + escapeHtml(item.width + '×' + item.height) : '') + '</small></span>' +
-    (signals ? '<span class="inspector-similar-signals">' + signals + '</span>' : '') +
-  '</button>';
-}
-
-async function loadInspectorSimilarItems(item) {
-  var rail = document.querySelector('.inspector-similar[data-similar-for="' + CSS.escape(String(item.id)) + '"]');
-  if (!rail || !api || !api.fetchSimilarItems) return;
-  try {
-    var items = await api.fetchSimilarItems(item.id, 12);
-    if (!state.inspectorItem || state.inspectorItem.id !== item.id || !rail.isConnected) return;
-    if (!items.length) {
-      rail.innerHTML = '<div class="inspector-similar-empty">当前 Vault 中没有足够接近的素材</div>';
-      return;
-    }
-    rail.innerHTML = '<div class="inspector-similar-track">' + items.map(renderInspectorSimilarCard).join('') + '</div>' +
-      '<div class="inspector-similar-legend"><span>LOCAL MATCH</span><small>仅分析只读索引元数据</small></div>';
-    Array.prototype.forEach.call(rail.querySelectorAll('[data-similar-item-id]'), function(card) {
-      card.onclick = function() {
-        var next = items.find(function(candidate) { return candidate.id === card.dataset.similarItemId; });
-        if (next) openInspector(next);
-      };
-    });
-  } catch (err) {
-    if (!state.inspectorItem || state.inspectorItem.id !== item.id || !rail.isConnected) return;
-    rail.innerHTML = '<div class="inspector-similar-empty">相似素材需要连接远程 Vault</div>';
-  }
-}
-
 function isRemoteAccessUnavailableForRender() {
   var strip = document.getElementById('remoteStatusStrip');
   return navigator.onLine === false || !!(strip && !strip.hidden && strip.dataset.state === 'offline');
@@ -1070,8 +860,6 @@ function openInspector(item) {
   state.inspectorItem = item;
   state.pendingItemId = item && item.id ? item.id : '';
   rememberFocusedItem(item);
-  var previousPreview = document.getElementById('inspectorPreview');
-  if (previousPreview && previousPreview._reviewMarkerObserver) previousPreview._reviewMarkerObserver.disconnect();
   var panel = document.getElementById('inspector');
   var inner = document.getElementById('inspectorInner');
   var actions = document.getElementById('inspectorActions');
@@ -1157,8 +945,6 @@ window._previewInspectorItem = function() {
 
 function closeInspector() {
   var focusItemId = state.inspectorItem && state.inspectorItem.id;
-  var preview = document.getElementById('inspectorPreview');
-  if (preview && preview._reviewMarkerObserver) preview._reviewMarkerObserver.disconnect();
   var panel = document.getElementById('inspector');
   panel.classList.remove('open', 'mobile-expanded', 'sheet-dragging');
   panel.style.transform = '';
@@ -1267,7 +1053,7 @@ function renderItemCard(item, container) {
   }
 
   card.onclick = function(e) {
-    if (e.target.closest('.card-checkbox, [data-item-rating], [data-inspector-color], [data-item-folder], [data-item-ext], [data-item-tag], [data-source-domain], .card-quick-action')) return;
+    if (e.target.closest('.card-checkbox, [data-item-folder], [data-item-ext], [data-item-tag], [data-source-domain], .card-quick-action')) return;
     if (isBatchSelectionMode()) {
       toggleSelect(item.id);
       return;
@@ -1276,7 +1062,7 @@ function renderItemCard(item, container) {
   };
 
   card.addEventListener('dblclick', function(e) {
-    if (e.target.closest('.card-checkbox, [data-item-rating], [data-inspector-color], [data-item-folder], [data-item-ext], [data-item-tag], [data-source-domain], .card-quick-action')) return;
+    if (e.target.closest('.card-checkbox, [data-item-folder], [data-item-ext], [data-item-tag], [data-source-domain], .card-quick-action')) return;
     if (isBatchSelectionMode()) return;
     if (isItemPreviewable(item)) renderModule.previewItem(item, fileUrl);
     else window.open(fileUrl, '_blank');
@@ -1382,7 +1168,7 @@ function renderListRow(item, tbody) {
     (sourceDomain ? '<span class="list-source-domain">' + iconExternalLink() + '<span>' + escapeHtml(sourceDomain) + '</span></span>' : '');
   nameCell.style.cursor = 'pointer';
   nameCell.onclick = function(e) {
-    if (e.target.closest('[data-item-rating], [data-source-domain], [data-list-mobile-action]')) return;
+    if (e.target.closest('[data-source-domain], [data-list-mobile-action]')) return;
     if (isBatchSelectionMode()) {
       toggleSelect(item.id);
       return;
@@ -1613,7 +1399,7 @@ function renderViewSummary() {
     }
   });
   var parts = [];
-  if (state.incrementalHasMore && ['all', 'recent', 'folder', 'tag', 'search', 'eagle-smart'].indexOf(state.currentView) >= 0) {
+  if (state.incrementalHasMore && ['all', 'recent', 'folder', 'tag', 'search'].indexOf(state.currentView) >= 0) {
     parts.push(['已载入', items.length + ' / ' + (state.currentTotal || items.length)]);
   }
   parts.push(['大小', totalSize ? formatSize(totalSize) : '0 B']);
@@ -1642,22 +1428,10 @@ function getMobileWorkbarTitle() {
 }
 
 function getMobileWorkbarKind() {
-  if (state.currentView === 'collection') {
-    if (state.currentCollection && state.currentCollection.indexOf('workspace:') === 0) return '工作集';
-    return state.currentCollection === 'favorite' ? '收藏清单' :
-      (state.currentCollection === 'later' ? '待整理清单' :
-      (state.currentCollection === 'done' ? '成果池' :
-      (state.currentCollection === 'recentViewed' ? '最近查看' : '清单')));
-  }
   if (state.currentView === 'folder') return '文件夹';
   if (state.currentView === 'tag') return '标签';
   if (state.currentView === 'recent') return '最近素材';
   if (state.currentView === 'search') return '搜索结果';
-  if (state.currentView === 'smart') return '智能视图';
-  if (state.currentView === 'eagle-smart') return 'Eagle 智能文件夹';
-  if (state.currentView === 'duplicates') return '重复项';
-  if (state.currentView === 'colors') return '颜色索引';
-  if (state.currentView === 'random') return '随机发现';
   return '资料库';
 }
 
@@ -1666,11 +1440,6 @@ function getMobileWorkbarMeta() {
   var subfolders = (state.currentSubfolders || []).length;
   var total = Number(state.currentTotal || 0);
   var parts = [];
-  if (state.currentView === 'random') {
-    parts.push('已抽取 ' + loaded + (total ? (' / ' + total) : ''));
-    parts.push('Seed ' + String(state.currentRandomSeed || '—').slice(0, 8));
-    return parts.join(' · ');
-  }
   if (total > 0 && loaded && loaded < total) parts.push('已载入 ' + loaded + '/' + total);
   else if (loaded || total) parts.push((total || loaded) + ' 项');
   else parts.push('暂无素材');
@@ -1784,10 +1553,8 @@ function updateContentTitle() {
 
 function updateSidebarCounts() {
   var allCount = document.getElementById('allItemsCount');
-  var savedCount = document.getElementById('savedViewsCount');
   var mobileMoreBadge = document.getElementById('mobileMoreBadge');
   if (allCount && state.currentView === 'all') allCount.textContent = state.currentTotal || '';
-  if (savedCount) savedCount.textContent = (state.savedViews || []).length || '';
   if (mobileMoreBadge) {
     mobileMoreBadge.textContent = '';
     mobileMoreBadge.hidden = true;
@@ -1925,30 +1692,6 @@ function useCompactGridLayout() {
   });
 }
 
-function getSmartEmptyState() {
-  if (state.currentView !== 'smart') return null;
-  var filters = state.advancedFilters || {};
-  var title = state.currentSmartViewName ? '「' + state.currentSmartViewName + '」暂无素材' : '当前智能视图暂无素材';
-  var message = '可以调整筛选条件，或回到资料库继续浏览远程 Vault。';
-  if (filters.done_state === 'not_done') {
-    title = '没有未处理素材';
-    message = '这个队列已经清空了。继续浏览资料库，或切到成果池回看已处理素材。';
-  } else if (filters.done_state === 'done') {
-    title = '成果池还是空的';
-    message = '在卡片、详情或预览里点“已处理”，完成的素材会出现在这里。';
-  } else if (filters.later_state === 'later') {
-    title = '待整理队列为空';
-    message = '把素材加入待整理后，这里会变成你的下一步处理列表。';
-  } else if (filters.tag_state === 'untagged') {
-    title = '没有未标签素材';
-    message = '当前资料库的标签状态看起来很健康，可以继续检查来源或备注。';
-  } else if (filters.source_state === 'unsourced') {
-    title = '没有未来源素材';
-    message = '当前筛选下没有缺来源的素材，可以换一个队列继续整理。';
-  }
-  return { title: title, message: message };
-}
-
 // ===== Main render =====
 function renderContent() {
   var body = document.getElementById('contentBody');
@@ -1970,24 +1713,6 @@ function renderContent() {
   body.innerHTML = '';
 
   if (!state.currentSubfolders.length && !state.currentItems.length) {
-    if (state.currentView === 'smart') {
-      var smartEmpty = getSmartEmptyState();
-      body.innerHTML = '<div class="empty-state smart-empty">' + iconSliders() + '<strong>' + escapeHtml(smartEmpty.title) + '</strong><span>' + escapeHtml(smartEmpty.message) + '</span><div class="empty-actions"><button type="button" id="smartEmptyFilterBtn">调整筛选</button><button type="button" id="smartEmptyBrowseBtn">浏览资料库</button></div></div>';
-      var smartFilterBtn = document.getElementById('smartEmptyFilterBtn');
-      if (smartFilterBtn) smartFilterBtn.onclick = function() {
-        if (EagleViewer.modules.interactions && EagleViewer.modules.interactions.syncFilterForm) EagleViewer.modules.interactions.syncFilterForm();
-        if (EagleViewer.modules.interactions && EagleViewer.modules.interactions.openPanel) EagleViewer.modules.interactions.openPanel('advancedPanel');
-      };
-      var smartBrowseBtn = document.getElementById('smartEmptyBrowseBtn');
-      if (smartBrowseBtn) smartBrowseBtn.onclick = function() {
-        var search = document.getElementById('searchInput');
-        if (search) search.value = '';
-        state.advancedFilters = {};
-        state.currentSmartViewName = '';
-        renderModule.closeInspector();
-        api.loadAllItems(true);
-      };
-    } else {
       var remoteStrip = document.getElementById('remoteStatusStrip');
       var remoteOffline = navigator.onLine === false || (remoteStrip && !remoteStrip.hidden && remoteStrip.dataset.state === 'offline');
       var snapshotMeta = null;
@@ -2014,7 +1739,6 @@ function renderContent() {
       } else {
         body.innerHTML = '<div class="empty-state">' + iconFolderOutline() + '<span>' + (state.currentEmptyMsg || '暂无素材') + '</span></div>';
       }
-    }
     return;
   }
 
@@ -2061,130 +1785,12 @@ function renderContent() {
   updateReturnToCurrentItemButton();
 }
 
-function renderDuplicates() {
-  var body = document.getElementById('contentBody');
-  document.getElementById('contentToolbar').style.display = 'flex';
-  updateContentTitle();
-  body.innerHTML = '';
-  if (!state.duplicateGroups.length) {
-    body.innerHTML = '<div class="empty-state">' + iconFolderOutline() + '<span>暂无疑似重复素材</span></div>';
-    return;
-  }
-  state.duplicateGroups.forEach(function(group, idx) {
-    var section = document.createElement('div');
-    section.className = 'duplicate-group';
-    var meta = group.key || {};
-    section.innerHTML = '<div class="duplicate-title">重复组 ' + (idx + 1) + ' · ' + group.count + ' 项 · ' + formatSize(meta.size || 0) + '</div>';
-    var masonry = document.createElement('div');
-    masonry.className = 'masonry compact-grid';
-    (group.items || []).forEach(function(item) { renderItemCard(item, masonry); });
-    section.appendChild(masonry);
-    body.appendChild(section);
-  });
-  updateCheckboxesInView();
-}
-
-function renderColorAtlas(data) {
-  var atlas = data || {};
-  var clusters = atlas.clusters || [];
-  var body = document.getElementById('contentBody');
-  document.getElementById('contentToolbar').style.display = 'none';
-  updateContentTitle();
-  if (!clusters.length) {
-    body.innerHTML = '<div class="empty-state">' + iconPalette() + '<strong>还没有颜色索引</strong><span>当前 Vault 的素材没有 Eagle 色板元数据。</span></div>';
-    return;
-  }
-  var ribbon = clusters.map(function(cluster) {
-    return '<button type="button" data-atlas-color="' + escapeHtml(cluster.hex) + '" style="--atlas-color:' + escapeHtml(cluster.hex) + ';--atlas-weight:' + Math.max(1, Number(cluster.itemCount || 1)) + '" title="筛选 ' + escapeHtml(cluster.label) + '"><span></span></button>';
-  }).join('');
-  var cards = clusters.map(function(cluster) {
-    var samples = (cluster.samples || []).slice(0, 4).map(function(item) {
-      var thumb = (item.hasThumbnail || isImageExt(item.ext)) ?
-        '<img src="' + API + '/api/items/' + encodeURIComponent(item.id) + '/thumbnail" alt="" loading="lazy" decoding="async" />' :
-        '<span>' + escapeHtml((item.ext || '?').slice(0, 4).toUpperCase()) + '</span>';
-      return '<span class="color-atlas-sample" title="' + escapeHtml(item.name || item.id) + '">' + thumb + '</span>';
-    }).join('');
-    return '<button type="button" class="color-atlas-card" data-atlas-color="' + escapeHtml(cluster.hex) + '" style="--atlas-color:' + escapeHtml(cluster.hex) + '">' +
-      '<span class="color-atlas-swatch"><i></i><em>' + escapeHtml(cluster.hex) + '</em></span>' +
-      '<span class="color-atlas-card-copy"><small>' + escapeHtml(cluster.label) + '</small><strong>' + cluster.itemCount + ' 项素材</strong><span>' + Number(cluster.weight || 0).toFixed(0) + '% 色板权重</span></span>' +
-      '<span class="color-atlas-samples">' + samples + '</span>' +
-      '<span class="color-atlas-open">筛选此色 <b>↗</b></span>' +
-    '</button>';
-  }).join('');
-  body.innerHTML = '<section class="color-atlas" aria-labelledby="colorAtlasTitle">' +
-    '<header class="color-atlas-hero"><div><span>CHROMATIC INDEX / 只读分析</span><h2 id="colorAtlasTitle">全库色谱</h2><p>从 Eagle 的素材色板聚合而来。选择一种颜色，立即筛出相近素材。</p></div>' +
-      '<dl><div><dt>有色板素材</dt><dd>' + Number(atlas.coloredItems || 0) + '</dd></div><div><dt>色谱分组</dt><dd>' + Number(atlas.totalClusters || clusters.length) + '</dd></div><div><dt>色板采样</dt><dd>' + Number(atlas.paletteSamples || 0) + '</dd></div></dl></header>' +
-    '<div class="color-atlas-ribbon" aria-label="色谱快速筛选">' + ribbon + '</div>' +
-    '<div class="color-atlas-section-head"><span>COLOR FAMILIES</span><strong>按色相与明度浏览</strong><small>点击色组进入 ±72 容差筛选</small></div>' +
-    '<div class="color-atlas-grid">' + cards + '</div>' +
-  '</section>';
-  body.querySelectorAll('[data-atlas-color]').forEach(function(button) {
-    button.onclick = function() {
-      var interactions = EagleViewer.modules.interactions;
-      if (interactions && interactions.openPaletteColorView) interactions.openPaletteColorView(button.dataset.atlasColor);
-    };
-  });
-}
-
-function renderRandomWalk(data) {
-  var result = data || {};
-  var body = document.getElementById('contentBody');
-  document.getElementById('contentToolbar').style.display = 'none';
-  updateContentTitle();
-  var items = result.items || state.currentItems || [];
-  var seed = String(result.seed || state.currentRandomSeed || '');
-  var shortSeed = seed.slice(0, 12) || '—';
-  var typeOptions = [
-    ['all', '全部'], ['image', '图片'], ['video', '视频'], ['document', '文档'], ['audio', '音频']
-  ];
-  body.innerHTML = '<section class="random-walk" aria-labelledby="randomWalkTitle">' +
-    '<header class="random-walk-hero"><div class="random-walk-kicker"><span>RANDOM WALK</span><em>SEED ' + escapeHtml(shortSeed) + '</em></div>' +
-      '<div class="random-walk-heading"><div><h2 id="randomWalkTitle">从 Vault 偶遇</h2><p>打破文件夹与时间顺序，抽取一组可以分享、恢复和离线保存的素材路径。</p></div>' +
-      '<button type="button" class="random-shuffle-primary" data-random-shuffle>' + iconShuffle() + '<span>再洗牌</span></button></div>' +
-      '<div class="random-walk-meta"><span><strong>' + items.length + '</strong> 本次抽取</span><span><strong>' + Number(result.totalEligible != null ? result.totalEligible : state.currentTotal || 0) + '</strong> 可选素材</span><span><strong>' + escapeHtml(shortSeed) + '</strong> 可复现路径</span></div>' +
-      '<div class="random-type-scopes" aria-label="随机素材类型">' + typeOptions.map(function(option) {
-        return '<button type="button" data-random-type="' + option[0] + '" class="' + (state.listType === option[0] ? 'active' : '') + '">' + option[1] + '</button>';
-      }).join('') + '</div></header>' +
-    '<div class="random-contact-sheet" aria-label="随机素材接触表"></div>' +
-    '<footer class="random-walk-footer"><span>END OF WALK / ' + escapeHtml(shortSeed) + '</span><button type="button" data-random-shuffle>' + iconShuffle() + ' 换一条路径</button></footer>' +
-  '</section>';
-  var sheet = body.querySelector('.random-contact-sheet');
-  if (!items.length) {
-    sheet.innerHTML = '<div class="empty-state">' + iconShuffle() + '<strong>这一类暂时没有素材</strong><span>切换类型，或重新洗牌。</span></div>';
-  } else {
-    items.forEach(function(item, index) {
-      renderItemCard(item, sheet);
-      var card = sheet.lastElementChild;
-      if (!card) return;
-      card.classList.add('random-card');
-      card.style.setProperty('--random-index', index);
-      var ordinal = document.createElement('span');
-      ordinal.className = 'random-card-ordinal';
-      ordinal.textContent = String(index + 1).padStart(2, '0');
-      card.appendChild(ordinal);
-    });
-  }
-  body.querySelectorAll('[data-random-shuffle]').forEach(function(button) {
-    button.onclick = function() { api.loadRandomWalk('', true); };
-  });
-  body.querySelectorAll('[data-random-type]').forEach(function(button) {
-    button.onclick = function() {
-      state.listType = button.dataset.randomType || 'all';
-      if (EagleViewer.modules.interactions && EagleViewer.modules.interactions.syncToolbarSelects) EagleViewer.modules.interactions.syncToolbarSelects();
-      api.loadRandomWalk('', true);
-    };
-  });
-  updateCheckboxesInView();
-  updateMobileWorkbar();
-}
-
 function showEmptyState() {
   state.currentView = 'none';
   state.currentItems = [];
   state.currentSubfolders = [];
   state.currentFolderId = null;
   state.currentTagName = null;
-  state.currentSmartViewName = '';
   state.currentTitle = '';
   state.currentTotal = 0;
   var body = document.getElementById('contentBody');
@@ -2782,29 +2388,6 @@ function resetPreviewDismissOffset(overlay) {
   restorePreviewContentBaseTransform(content);
 }
 
-function getNextPreviewCandidateAfter(item) {
-  var items = getPreviewableItems();
-  var idx = getPreviewIndex(item, items);
-  if (idx < 0 || !items.length) return null;
-  return items[idx + 1] || items[idx - 1] || null;
-}
-
-function shouldAdvancePreviewAfterDone(item, wasDone) {
-  if (!item || wasDone) return false;
-  var filters = state.advancedFilters || {};
-  return state.currentView === 'smart' && filters.done_state === 'not_done';
-}
-
-function advancePreviewAfterDone(overlay, nextItem) {
-  if (nextItem) {
-    if (overlay && overlay.dataset) overlay.dataset.suppressReturnFocus = '1';
-    transitionToPreviewItem(nextItem);
-    return;
-  }
-  closePreviewOverlay(overlay);
-  if (api && api.refreshCurrentView) api.refreshCurrentView();
-}
-
 function addPreviewNavigation(overlay, item) {
   var items = getPreviewableItems();
   var idx = getPreviewIndex(item, items);
@@ -2973,12 +2556,6 @@ function addPreviewInfoHud(overlay, item) {
   if (item.duration) meta.push(pill(escapeHtml(formatMediaDuration(item.duration))));
   if (item.width && item.height) meta.push(pill(escapeHtml(item.width + ' × ' + item.height)));
   if (item.size) meta.push(pill(escapeHtml(formatSize(item.size))));
-  var favorite = (state.collectionIds.favorite || []).indexOf(item.id) >= 0;
-  var later = (state.collectionIds.later || []).indexOf(item.id) >= 0;
-  var done = (state.collectionIds.done || []).indexOf(item.id) >= 0;
-  if (favorite) meta.push(pill(iconBookmark() + '<span>收藏</span>', ' class="preview-state-pill favorite"'));
-  if (later) meta.push(pill(iconClock() + '<span>待整理</span>', ' class="preview-state-pill later"'));
-  if (done) meta.push(pill(iconCheck() + '<span>已处理</span>', ' class="preview-state-pill done"'));
   var folderLabel = '未归档';
   var folderId = '';
   if (item.folderPaths && item.folderPaths.length) {
@@ -3009,19 +2586,6 @@ function refreshPreviewInfoHud(overlay, item) {
   var oldHud = overlay.querySelector('.preview-info-hud');
   if (oldHud) oldHud.remove();
   addPreviewInfoHud(overlay, item);
-}
-
-function updateItemRatingsInView(item) {
-  if (!item || !item.id) return;
-  document.querySelectorAll('[data-rating-for="' + CSS.escape(item.id) + '"]').forEach(function(control) {
-    var replacement = document.createElement('div');
-    var extraClass = Array.from(control.classList).filter(function(name) { return name !== 'item-rating'; }).join(' ');
-    replacement.innerHTML = renderItemRatingControl(item, extraClass);
-    control.replaceWith(replacement.firstChild);
-  });
-  document.querySelectorAll('.preview-overlay').forEach(function(overlay) {
-    if (overlay.dataset.previewItemId === item.id) refreshPreviewInfoHud(overlay, item);
-  });
 }
 
 function getPreviewRemoteSnapshotMeta() {
@@ -3076,14 +2640,8 @@ function refreshPreviewRemoteNotice(overlay) {
 
 function refreshPreviewMobileActions(bar, item) {
   if (!bar || !item) return;
-  var favorite = (state.collectionIds.favorite || []).indexOf(item.id) >= 0;
   var offline = isRemoteAccessUnavailableForRender();
-  var favBtn = bar.querySelector('[data-preview-action="favorite"]');
   var downloadBtn = bar.querySelector('[data-preview-more-action="download"]');
-  if (favBtn) {
-    favBtn.classList.toggle('active', favorite);
-    favBtn.querySelector('span').textContent = favorite ? '已收藏' : '收藏';
-  }
   if (downloadBtn) {
     downloadBtn.classList.toggle('requires-remote', offline);
     downloadBtn.disabled = offline;
@@ -3099,7 +2657,7 @@ function findPreviewItemForOverlay(overlay) {
   for (var i = 0; i < (state.currentItems || []).length; i++) {
     if (state.currentItems[i] && state.currentItems[i].id === itemId) return state.currentItems[i];
   }
-  return state.collectionIds && state.collectionIds.items ? state.collectionIds.items[itemId] : null;
+  return null;
 }
 
 function refreshOpenPreviewMobileActions() {
@@ -3127,7 +2685,6 @@ function addPreviewMobileActions(overlay, item) {
   bar.className = 'preview-mobile-actions';
   bar.innerHTML =
     '<button type="button" data-preview-action="inspect">' + iconInfo() + '<span>详情</span></button>' +
-    '<button type="button" data-preview-action="favorite">' + iconBookmark() + '<span>收藏</span></button>' +
     '<button type="button" data-preview-action="more" aria-expanded="false" aria-controls="previewMobileMoreMenu">' + iconMenu() + '<span>更多</span></button>' +
     '<div class="preview-mobile-more" id="previewMobileMoreMenu" role="menu" aria-label="预览更多操作" hidden>' +
       '<button type="button" data-preview-more-action="share">' + iconExternalLink() + '<span>分享页面链接</span></button>' +
@@ -3163,18 +2720,7 @@ function addPreviewMobileActions(overlay, item) {
       renderModule.openInspector(item);
       return;
     }
-    if (typeof window._runItemAction === 'function') {
-      var wasDone = (state.collectionIds.done || []).indexOf(item.id) >= 0;
-      var nextAfterDone = action === 'done' && shouldAdvancePreviewAfterDone(item, wasDone) ? getNextPreviewCandidateAfter(item) : null;
-      window._runItemAction(item, action, btn);
-      if (action === 'favorite' || action === 'later' || action === 'done') {
-        refreshPreviewMobileActions(bar, item);
-        refreshPreviewInfoHud(overlay, item);
-      }
-      if (action === 'done' && shouldAdvancePreviewAfterDone(item, wasDone)) {
-        setTimeout(function() { advancePreviewAfterDone(overlay, nextAfterDone); }, 120);
-      }
-    }
+    if (typeof window._runItemAction === 'function') window._runItemAction(item, action, btn);
   };
   overlay.appendChild(bar);
   refreshPreviewRemoteNotice(overlay);
@@ -3502,7 +3048,6 @@ function hideHoverPreview() {
 Object.assign(renderModule, {
   renderSidebar: renderSidebar,
   showLockedFolderNotice: showLockedFolderNotice,
-  renderEagleSmartFolders: renderEagleSmartFolders,
   renderTagList: renderTagList,
   syncActiveNavigationState: syncActiveNavigationState,
   updateBatchBar: updateBatchBar,
@@ -3510,10 +3055,6 @@ Object.assign(renderModule, {
   closeInspector: closeInspector,
   renderContent: renderContent,
   updateSidebarCounts: updateSidebarCounts,
-  renderDuplicates: renderDuplicates,
-  renderColorAtlas: renderColorAtlas,
-  renderRandomWalk: renderRandomWalk,
-  renderInspectorReviewMarkerOverlay: renderInspectorReviewMarkerOverlay,
   showEmptyState: showEmptyState,
   previewItem: previewItem,
   openCompare: openCompare,
@@ -3526,8 +3067,6 @@ Object.assign(renderModule, {
   updateContentTitle: updateContentTitle,
   updateMobileWorkbar: updateMobileWorkbar,
   refreshOpenPreviewMobileActions: refreshOpenPreviewMobileActions,
-  updateItemRatingsInView: updateItemRatingsInView,
-  renderItemRatingControl: renderItemRatingControl,
   appendItemsToGrid: appendItemsToGrid
 });
 renderModule.focusPendingItemWhenLoaded = focusPendingItemWhenLoaded;

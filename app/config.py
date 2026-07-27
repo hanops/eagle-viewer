@@ -3,8 +3,6 @@ import os
 VAULT_ROOT = os.environ.get("EAGLE_VAULT_ROOT", "/vault")
 HOST = os.environ.get("HOST", "0.0.0.0")
 PORT = int(os.environ.get("PORT", "8000"))
-# Store viewer-only state outside the read-only Eagle library mount.
-VIEWER_STATE_PATH = os.environ.get("VIEWER_STATE_PATH", "data/eagle-viewer-state.json")
 
 # 访问密码：设置后打开页面需先登录；不设置则无需认证
 VIEWER_PASSWORD = os.environ.get("VIEWER_PASSWORD", "").strip()

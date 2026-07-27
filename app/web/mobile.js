@@ -19,6 +19,69 @@
   const pvShare = document.getElementById('pvShare');
   const pvStage = document.getElementById('pvStage');
 
+  // ---------- 中英文 ----------
+  const COPY = {
+    zh: {
+      library: '资源库', folders: '目录', search: '搜索', status: '连接状态',
+      tabLibrary: '资料库', tabFolders: '文件夹', tabSearch: '搜索',
+      close: '关闭', share: '分享', download: '下载', saveAlbum: '保存相册',
+      loadFailed: '加载失败：{error}', connectedChanged: '已连接 · 远程有变更',
+      connected: '已连接', disconnected: '未连接', vault: 'Eagle 资源库',
+      items: '素材', foldersLabel: '文件夹', tags: '标签',
+      searchPlaceholder: '搜索素材、标签、标注…', recent: '最近添加',
+      locked: '该文件夹被 Eagle 锁定，无法在远程查看',
+      subfolders: '子文件夹', noFolders: '没有文件夹',
+      searchStart: '输入关键词开始搜索', searchFailed: '搜索失败：{error}',
+      results: '{count} 个结果 · {seconds}s', indexedAt: '已索引于',
+      remoteChangedTitle: '检测到远程变更',
+      remoteChangedBody: '资源库自上次索引后有改动，重新加载以同步。',
+      reload: '重新加载索引', loading: '加载中…', reloadFailed: '重新加载失败',
+      downloaded: '已下载到「文件」，可在相册中查看', saveFailed: '保存失败',
+      copied: '链接已复制', shareUnavailable: '分享不可用', language: 'English'
+    },
+    en: {
+      library: 'Library', folders: 'Folders', search: 'Search', status: 'Connection',
+      tabLibrary: 'Library', tabFolders: 'Folders', tabSearch: 'Search',
+      close: 'Close', share: 'Share', download: 'Download', saveAlbum: 'Save to Photos',
+      loadFailed: 'Could not load: {error}', connectedChanged: 'Connected · Remote changes',
+      connected: 'Connected', disconnected: 'Disconnected', vault: 'Eagle Vault',
+      items: 'Items', foldersLabel: 'Folders', tags: 'Tags',
+      searchPlaceholder: 'Search assets, tags, or notes…', recent: 'Recently added',
+      locked: 'This folder is locked in Eagle and cannot be viewed remotely.',
+      subfolders: 'Subfolders', noFolders: 'No folders',
+      searchStart: 'Enter a keyword to search', searchFailed: 'Search failed: {error}',
+      results: '{count} results · {seconds}s', indexedAt: 'Indexed at',
+      remoteChangedTitle: 'Remote changes detected',
+      remoteChangedBody: 'The Vault changed after the last index. Reload to sync it.',
+      reload: 'Reload index', loading: 'Loading…', reloadFailed: 'Reload failed',
+      downloaded: 'Downloaded to Files. You can open it in Photos.',
+      saveFailed: 'Could not save', copied: 'Link copied',
+      shareUnavailable: 'Sharing is unavailable', language: '中文'
+    }
+  };
+  let lang = 'zh';
+  try {
+    const saved = localStorage.getItem('eagle-viewer-lang');
+    lang = saved === 'en' || saved === 'zh' ? saved : (/^en\b/i.test(navigator.language || '') ? 'en' : 'zh');
+  } catch (e) {}
+
+  function tr(key, values) {
+    let text = (COPY[lang] && COPY[lang][key]) || COPY.zh[key] || key;
+    Object.keys(values || {}).forEach(k => { text = text.replace('{' + k + '}', values[k]); });
+    return text;
+  }
+
+  function applyLanguage() {
+    document.documentElement.lang = lang === 'en' ? 'en' : 'zh-CN';
+    document.getElementById('tabLibrary').textContent = tr('tabLibrary');
+    document.getElementById('tabFolders').textContent = tr('tabFolders');
+    document.getElementById('tabSearch').textContent = tr('tabSearch');
+    document.getElementById('pvDownloadLabel').textContent = tr('download');
+    document.getElementById('pvSaveLabel').textContent = tr('saveAlbum');
+    pvClose.setAttribute('aria-label', tr('close'));
+    pvShare.setAttribute('aria-label', tr('share'));
+  }
+
   // ---------- 跟随桌面端主题选择 ----------
   // 桌面端把 gallery/workbench/carbon 存进 localStorage['eagle-viewer-theme']，
   // 这里复用同一把钥匙，让手机端配色与桌面端保持一致（无选择时沿用系统偏好）。
@@ -236,20 +299,30 @@
           '<span class="seg ' + (i === S.folderStack.length - 1 ? 'cur' : '') + '">' + esc(s.name) + '</span>' +
           (i < S.folderStack.length - 1 ? '<span class="sep">/</span>' : '')).join('') + '</div>';
       } else {
-        html += '<h2>目录</h2>';
+        html += '<h2>' + tr('folders') + '</h2>';
       }
     } else if (S.view === 'search') {
-      html += '<button class="back" id="backBtn">' + backSVG + '</button><h2>搜索</h2>';
+      html += '<button class="back" id="backBtn">' + backSVG + '</button><h2>' + tr('search') + '</h2>';
     } else if (S.view === 'status') {
-      html += '<button class="back" id="backBtn">' + backSVG + '</button><h2>连接状态</h2>';
+      html += '<button class="back" id="backBtn">' + backSVG + '</button><h2>' + tr('status') + '</h2>';
     } else {
-      html += '<h2>资源库</h2>';
+      html += '<h2>' + tr('library') + '</h2>';
     }
+    html += '<span class="top-spacer"></span><button class="lang" id="langBtn" aria-label="' + esc(tr('language')) + '">' + esc(tr('language')) + '</button>';
     topbar.innerHTML = html;
     const bb = topbar.querySelector('#backBtn');
     if (bb) bb.onclick = () => {
       if (S.view === 'status' || S.view === 'search') { S.view = 'library'; setTabActive('library'); renderLibrary(); }
       else if (S.view === 'folders' && S.folderStack.length) { S.folderStack.pop(); renderFolders(); }
+    };
+    topbar.querySelector('#langBtn').onclick = () => {
+      lang = lang === 'zh' ? 'en' : 'zh';
+      try { localStorage.setItem('eagle-viewer-lang', lang); } catch (e) {}
+      applyLanguage();
+      if (S.view === 'folders') renderFolders();
+      else if (S.view === 'search') renderSearch();
+      else if (S.view === 'status') goStatus();
+      else renderLibrary();
     };
   }
 
@@ -274,7 +347,7 @@
     let status, recent;
     try {
       [status, recent] = await Promise.all([API.status(false), API.recent()]);
-    } catch (e) { if (e.message === 'unauthorized') return; viewBody.innerHTML = '<div class="errbox">加载失败：' + esc(e.message) + '</div>'; return; }
+    } catch (e) { if (e.message === 'unauthorized') return; viewBody.innerHTML = '<div class="errbox">' + esc(tr('loadFailed', { error: e.message })) + '</div>'; return; }
     S.recents = recent.items || [];
     S.status = status;
     if (status.revision) {
@@ -286,23 +359,23 @@
     const connected = !!status.ok;
     const dotCls = !connected ? 'bad' : (changed ? 'warn' : '');
     const stats = status.stats || {};
-    const connText = connected ? (changed ? '已连接 · 远程有变更' : 'CONNECTED') : 'DISCONNECTED';
+    const connText = connected ? (changed ? tr('connectedChanged') : tr('connected')) : tr('disconnected');
     const verText = status.version ? ' v' + esc(status.version) : '';
     viewBody.innerHTML =
       '<div class="strip ' + (changed ? 'changed' : '') + '" id="strip">' +
         '<span class="dot ' + dotCls + '"></span>' +
         '<div class="meta">' +
-          '<span class="nm">Eagle 资源库</span>' +
+          '<span class="nm">' + tr('vault') + '</span>' +
           '<span class="mono">' + connText + verText + '</span>' +
         '</div>' + chevSVG +
       '</div>' +
       '<div class="counts">' +
-        '<div class="c"><b>' + (stats.items || 0) + '</b><span>ITEMS</span></div>' +
-        '<div class="c"><b>' + (stats.folders || 0) + '</b><span>FOLDERS</span></div>' +
-        '<div class="c"><b>' + (stats.tags || 0) + '</b><span>TAGS</span></div>' +
+        '<div class="c"><b>' + (stats.items || 0) + '</b><span>' + tr('items') + '</span></div>' +
+        '<div class="c"><b>' + (stats.folders || 0) + '</b><span>' + tr('foldersLabel') + '</span></div>' +
+        '<div class="c"><b>' + (stats.tags || 0) + '</b><span>' + tr('tags') + '</span></div>' +
       '</div>' +
-      '<div class="srch" id="srchEntry">' + searchSVG + '<input id="srchInput" placeholder="搜索素材、标签、标注…" /></div>' +
-      '<div class="lbl">最近添加</div>' +
+      '<div class="srch" id="srchEntry">' + searchSVG + '<input id="srchInput" placeholder="' + esc(tr('searchPlaceholder')) + '" /></div>' +
+      '<div class="lbl">' + tr('recent') + '</div>' +
       '<div class="mas" id="recentMas">' + S.recents.map(thumbItem).join('') + '</div>';
     S.currentGallery = S.recents;
     bindThumbs(viewBody);
@@ -332,7 +405,7 @@
       }
     } catch (e) {
       if (e.message === 'unauthorized') return;
-      const msg = e.message === 'HTTP 423' ? '该文件夹被 Eagle 锁定，无法在远程查看' : ('加载失败：' + esc(e.message));
+      const msg = e.message === 'HTTP 423' ? tr('locked') : tr('loadFailed', { error: e.message });
       viewBody.innerHTML = '<div class="errbox">' + msg + '</div>';
       return;
     }
@@ -341,7 +414,7 @@
     S.folderHasMore = hasMore; S.folderOffset = offset;
 
     let html = '';
-    if (!atRoot && subfolders.length) html += '<div class="lbl">子文件夹</div>';
+    if (!atRoot && subfolders.length) html += '<div class="lbl">' + tr('subfolders') + '</div>';
     if (subfolders.length) {
       html += subfolders.map(f =>
         '<button class="fr' + (f.locked ? ' locked' : '') + '" data-fid="' + esc(f.id) + '" data-fname="' + esc(f.name) + '"' + (f.locked ? ' data-locked="1"' : '') + '>' +
@@ -350,16 +423,16 @@
           '<span class="ct">' + (f.locked ? lockSVG : (f.count != null ? f.count : '')) + '</span>' + chevSVG +
         '</button>').join('');
     } else if (atRoot) {
-      html += '<div class="empty">没有文件夹</div>';
+      html += '<div class="empty">' + tr('noFolders') + '</div>';
     }
     if (items.length) {
-      html += '<div class="lbl">素材</div><div class="mas" id="folderMas">' + items.map(thumbItem).join('') + '</div>';
+      html += '<div class="lbl">' + tr('items') + '</div><div class="mas" id="folderMas">' + items.map(thumbItem).join('') + '</div>';
       if (hasMore) html += '<div class="sentinel" id="folderSentinel"></div>';
     }
     viewBody.innerHTML = html;
 
     viewBody.querySelectorAll('.fr').forEach(b => b.onclick = () => {
-      if (b.dataset.locked) { toast('该文件夹被 Eagle 锁定，无法在远程查看'); return; }
+      if (b.dataset.locked) { toast(tr('locked')); return; }
       S.folderStack.push({ id: b.dataset.fid, name: b.dataset.fname });
       renderFolders();
       scrollTop();
@@ -400,7 +473,7 @@
     renderTop();
     disconnectIO();
     viewBody.innerHTML =
-      '<div class="srch" style="margin-top:4px">' + searchSVG + '<input id="srchInput2" placeholder="搜索素材、标签、标注…" value="' + esc(S.searchQuery) + '" autofocus /></div>' +
+      '<div class="srch" style="margin-top:4px">' + searchSVG + '<input id="srchInput2" placeholder="' + esc(tr('searchPlaceholder')) + '" value="' + esc(S.searchQuery) + '" autofocus /></div>' +
       '<div class="sr-head" id="srHead"></div>' +
       '<div class="mas" id="searchMas"></div>' +
       '<div class="sentinel" id="searchSentinel" style="display:none"></div>';
@@ -411,7 +484,7 @@
       t = setTimeout(() => { S.searchQuery = input.value.trim(); doSearch(true); }, 300);
     });
     if (S.searchQuery) doSearch(true);
-    else document.getElementById('srHead').textContent = '输入关键词开始搜索';
+    else document.getElementById('srHead').textContent = tr('searchStart');
   }
 
   async function doSearch(reset) {
@@ -419,19 +492,19 @@
     const q = S.searchQuery;
     const head = document.getElementById('srHead');
     const mas = document.getElementById('searchMas');
-    if (!q) { if (head) head.textContent = '输入关键词开始搜索'; if (mas) mas.innerHTML = ''; return; }
+    if (!q) { if (head) head.textContent = tr('searchStart'); if (mas) mas.innerHTML = ''; return; }
     if (reset && mas) mas.innerHTML = '<div class="spinner"></div>';
     const t0 = performance.now();
     let data;
     try { data = await API.search(q, S.searchOffset); }
-    catch (e) { if (e.message === 'unauthorized') return; if (head) head.textContent = '搜索失败：' + e.message; return; }
+    catch (e) { if (e.message === 'unauthorized') return; if (head) head.textContent = tr('searchFailed', { error: e.message }); return; }
     if (reset) S.searchItems = [];
     S.searchItems = S.searchItems.concat(data.items || []);
     S.searchOffset = data.nextOffset || 0;
     S.searchHasMore = !!data.hasMore;
     S.searchTotal = data.total || 0;
     S.searchElapsed = performance.now() - t0;
-    if (head) head.innerHTML = '<b>' + S.searchTotal + '</b> 个结果 · ' + (S.searchElapsed / 1000).toFixed(2) + 's';
+    if (head) head.innerHTML = tr('results', { count: '<b>' + S.searchTotal + '</b>', seconds: (S.searchElapsed / 1000).toFixed(2) });
     if (mas) mas.innerHTML = S.searchItems.map(thumbItem).join('');
     const sent = document.getElementById('searchSentinel');
     if (sent) sent.style.display = S.searchHasMore ? 'block' : 'none';
@@ -475,23 +548,23 @@
     disconnectIO();
     viewBody.innerHTML = '<div class="spinner"></div>';
     let st;
-    try { st = await API.status(true); } catch (e) { if (e.message === 'unauthorized') return; viewBody.innerHTML = '<div class="errbox">加载失败：' + esc(e.message) + '</div>'; return; }
+    try { st = await API.status(true); } catch (e) { if (e.message === 'unauthorized') return; viewBody.innerHTML = '<div class="errbox">' + esc(tr('loadFailed', { error: e.message })) + '</div>'; return; }
     S.status = st;
-    const fmtTime = ms => ms ? new Date(ms).toLocaleString('zh-CN', { hour12: false }) : '—';
+    const fmtTime = ms => ms ? new Date(ms).toLocaleString(lang === 'en' ? 'en-US' : 'zh-CN', { hour12: false }) : '—';
     const stats = st.stats || {};
     viewBody.innerHTML =
-      '<div class="kv"><span class="k">连接状态</span><span class="v ' + (!st.ok ? 'bad' : (st.changed ? 'warn' : 'ok')) + '">' + (st.ok ? (st.changed ? '已连接 · 远程有变更' : '已连接') : '未连接') + '</span></div>' +
-      '<div class="kv"><span class="k">已索引于</span><span class="v">' + fmtTime(st.loadedAt) + '</span></div>' +
-      '<div class="kv"><span class="k">素材</span><span class="v">' + (stats.items || 0) + '</span></div>' +
-      '<div class="kv"><span class="k">文件夹</span><span class="v">' + (stats.folders || 0) + '</span></div>' +
-      '<div class="kv"><span class="k">标签</span><span class="v">' + (stats.tags || 0) + '</span></div>' +
-      (st.changed ? '<div class="warnrow"><b>检测到远程变更</b><br>资源库自上次索引后有改动，重新加载以同步。</div>' : '') +
-      '<button class="actbtn" id="reloadBtn">' + refreshSVG + ' 重新加载索引</button>';
+      '<div class="kv"><span class="k">' + tr('status') + '</span><span class="v ' + (!st.ok ? 'bad' : (st.changed ? 'warn' : 'ok')) + '">' + (st.ok ? (st.changed ? tr('connectedChanged') : tr('connected')) : tr('disconnected')) + '</span></div>' +
+      '<div class="kv"><span class="k">' + tr('indexedAt') + '</span><span class="v">' + fmtTime(st.loadedAt) + '</span></div>' +
+      '<div class="kv"><span class="k">' + tr('items') + '</span><span class="v">' + (stats.items || 0) + '</span></div>' +
+      '<div class="kv"><span class="k">' + tr('foldersLabel') + '</span><span class="v">' + (stats.folders || 0) + '</span></div>' +
+      '<div class="kv"><span class="k">' + tr('tags') + '</span><span class="v">' + (stats.tags || 0) + '</span></div>' +
+      (st.changed ? '<div class="warnrow"><b>' + tr('remoteChangedTitle') + '</b><br>' + tr('remoteChangedBody') + '</div>' : '') +
+      '<button class="actbtn" id="reloadBtn">' + refreshSVG + ' ' + tr('reload') + '</button>';
     const btn = document.getElementById('reloadBtn');
     btn.onclick = async () => {
-      btn.disabled = true; btn.textContent = '加载中…';
+      btn.disabled = true; btn.textContent = tr('loading');
       try { await API.reload(); goStatus(); }
-      catch (e) { if (e.message !== 'unauthorized') { btn.disabled = false; btn.textContent = '重新加载索引'; toast('重新加载失败'); } }
+      catch (e) { if (e.message !== 'unauthorized') { btn.disabled = false; btn.textContent = tr('reload'); toast(tr('reloadFailed')); } }
     };
   }
 
@@ -684,8 +757,8 @@
         a.href = '/api/items/' + it.id + '/file?download=true';
         a.download = (it.name || 'eagle') + '.' + (normExt(it.ext) || '');
         document.body.appendChild(a); a.click(); a.remove();
-        toast('已下载到「文件」，可在相册中查看');
-      } catch (e2) { toast('保存失败'); }
+        toast(tr('downloaded'));
+      } catch (e2) { toast(tr('saveFailed')); }
     }
   };
   pvShare.onclick = async () => {
@@ -697,8 +770,8 @@
     } catch (e) {
       if (e && e.name === 'AbortError') return;
       const url = location.origin + '/api/items/' + it.id + '/file';
-      try { await navigator.clipboard.writeText(url); toast('链接已复制'); }
-      catch (e2) { toast('分享不可用'); }
+      try { await navigator.clipboard.writeText(url); toast(tr('copied')); }
+      catch (e2) { toast(tr('shareUnavailable')); }
     }
   };
 
@@ -718,6 +791,7 @@
   tabs.addEventListener('click', e => { const b = e.target.closest('.tb'); if (b) switchTab(b.dataset.view); });
 
   // ---------- 启动 ----------
+  applyLanguage();
   switchTab('library');
 
   // PWA：注册 service worker（若存在）

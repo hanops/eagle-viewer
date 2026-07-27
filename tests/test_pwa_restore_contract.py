@@ -15,14 +15,39 @@ def test_static_shell_uses_one_asset_revision():
     service_worker = read("app/web/sw.js")
     mobile = read("app/web/mobile.html")
     for asset in ("styles.css", "core.js", "render.js", "api.js", "interactions.js", "bootstrap.js"):
-        versioned = f"/static/{asset}?v=1.98"
+        versioned = f"/static/{asset}?v=1.101"
         assert versioned in index
         assert versioned in service_worker
     for asset in ("mobile.css", "mobile.js"):
-        versioned = f"/static/{asset}?v=1.98"
+        versioned = f"/static/{asset}?v=1.101"
         assert versioned in mobile
         assert versioned in service_worker
-    assert "eagle-viewer-shell-v45" in service_worker
+    assert "eagle-viewer-shell-v49" in service_worker
+
+
+def test_mobile_shell_declares_its_favicon():
+    mobile = read("app/web/mobile.html")
+
+    assert '<link rel="icon" href="/static/icon.svg" type="image/svg+xml" />' in mobile
+
+
+def test_mobile_shell_supports_shared_chinese_english_preference():
+    mobile = read("app/web/mobile.html")
+    script = read("app/web/mobile.js")
+
+    for element_id in (
+        "tabLibrary",
+        "tabFolders",
+        "tabSearch",
+        "pvDownloadLabel",
+        "pvSaveLabel",
+    ):
+        assert f'id="{element_id}"' in mobile
+    assert "eagle-viewer-lang" in script
+    assert "const COPY = {" in script
+    assert "document.documentElement.lang =" in script
+    assert "localStorage.setItem('eagle-viewer-lang', lang)" in script
+    assert "applyLanguage();" in script
 
 
 def test_service_worker_only_caches_the_app_shell():
@@ -119,13 +144,18 @@ def test_image_preview_toolbar_is_basic():
     assert 'data-preview-tool="flip"' not in simplified
 
 
-def test_state_sync_no_longer_contains_collections():
+def test_removed_viewer_state_contract_is_absent():
     api = read("app/web/api.js")
-    # The collections system (favorite / later / done / workspace / recentViewed) was
-    # removed from the frontend, so the viewer-state sync must never carry it.
-    assert "favorite: (state.collectionIds.favorite || []).slice()" not in api
-    assert "recentViewed: (state.collectionIds.recentViewed || []).slice()" not in api
+    main = read("app/main.py")
+    readme = read("README.md")
+    readme_zh = read("README.zh.md")
+
     assert "state.collectionIds" not in api
+    assert "fetchViewerState" not in api
+    assert "saveViewerState" not in api
+    assert "/api/state" not in main
+    assert "/api/state" not in readme
+    assert "/api/state" not in readme_zh
 
 
 def test_removed_backend_endpoints_are_not_registered():

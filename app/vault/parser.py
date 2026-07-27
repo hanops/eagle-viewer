@@ -2,10 +2,8 @@
 Parse Eagle vault on disk: library metadata.json (folder tree) and
 images/*.info/metadata.json (items). Build in-memory cache for API.
 """
-import colorsys
 import hashlib
 import json
-import math
 import threading
 import time
 from pathlib import Path
@@ -13,7 +11,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 from app.config import VAULT_ROOT
-from app.vault.models import FolderNode, ItemInfo, SmartFolderNode
+from app.vault.models import FolderNode, ItemInfo
 
 # 应用版本（单一来源 = pyproject.toml），用于前端展示。
 try:
@@ -37,8 +35,6 @@ _items_by_tag: dict[str, list[ItemInfo]] = {}
 _tag_summary: list[dict] = []
 _folder_counts: dict[str, int] = {}
 _locked_folder_ids: set[str] = set()
-_smart_folder_tree: list[SmartFolderNode] = []
-_smart_folder_by_id: dict[str, SmartFolderNode] = {}
 _last_load_stats: dict[str, Any] = {}
 _loaded = False
 _load_lock = threading.RLock()
@@ -49,7 +45,7 @@ def _source_revision(deep: bool = False) -> str:
 
     The shallow form is intentionally cheap enough for foreground polling. The
     deep form also includes every item metadata file and is used less often to
-    catch tag, note, and palette edits that do not add a new ``.info`` folder.
+    catch tag or note edits that do not add a new ``.info`` folder.
     """
     root = Path(VAULT_ROOT)
     images_dir = root / "images"
@@ -212,39 +208,6 @@ def _build_folder_tree(folders_data: list[dict], locked_folder_ids: set[str]) ->
     return roots
 
 
-def _normalize_smart_folders_data(lib: dict[str, Any]) -> list[dict]:
-    raw = lib.get("smartFolders")
-    if isinstance(raw, list):
-        return [entry for entry in raw if isinstance(entry, dict)]
-    if isinstance(raw, dict):
-        if isinstance(raw.get("children"), list):
-            return [entry for entry in raw["children"] if isinstance(entry, dict)]
-        return [entry for entry in raw.values() if isinstance(entry, dict)]
-    return []
-
-
-def _build_smart_folder_node(data: dict[str, Any]) -> SmartFolderNode:
-    conditions = data.get("conditions") if isinstance(data.get("conditions"), list) else []
-    return SmartFolderNode(
-        id=str(data.get("id") or ""),
-        name=str(data.get("name") or ""),
-        description=str(data.get("description") or ""),
-        conditions=[entry for entry in conditions if isinstance(entry, dict)],
-        children=[_build_smart_folder_node(child) for child in data.get("children", []) if isinstance(child, dict)],
-    )
-
-
-def _build_smart_folder_tree(lib: dict[str, Any]) -> list[SmartFolderNode]:
-    return [_build_smart_folder_node(entry) for entry in _normalize_smart_folders_data(lib) if entry.get("id")]
-
-
-def _collect_smart_folder_by_id(nodes: list[SmartFolderNode], out: dict[str, SmartFolderNode]) -> None:
-    for node in nodes:
-        if node.id:
-            out[node.id] = node
-        _collect_smart_folder_by_id(node.children, out)
-
-
 def _find_main_file(info_dir: Path, meta: dict) -> tuple[str, str]:
     """Return (main_file_path, thumbnail_path). Any file except metadata/thumbnail is valid as main."""
     main_path = ""
@@ -280,26 +243,6 @@ def _normalize_item_folder_ids(raw_folders: Any) -> list[str]:
         # e.g. {"0": "id1", "1": "id2"} -> use values
         return [str(v) for v in raw_folders.values() if v is not None]
     return [str(raw_folders)]
-
-
-def _normalize_palettes(value: Any) -> list[dict]:
-    """Keep Eagle palette colors and ratios while discarding UI-only metadata."""
-    if not isinstance(value, list):
-        return []
-    out = []
-    for entry in value[:16]:
-        if not isinstance(entry, dict):
-            continue
-        color = entry.get("color")
-        if not isinstance(color, list) or len(color) != 3:
-            continue
-        try:
-            rgb = [min(255, max(0, int(channel))) for channel in color]
-            ratio = max(0.0, float(entry.get("ratio") or 0))
-        except (TypeError, ValueError):
-            continue
-        out.append({"color": rgb, "ratio": ratio})
-    return out
 
 
 def _normalize_source_domain(value: str) -> str:
@@ -379,7 +322,6 @@ def _load_items(locked_folder_ids: set[str]) -> tuple[dict[str, ItemInfo], dict[
             tags=meta.get("tags", []),
             url=meta.get("url", ""),
             annotation=meta.get("annotation", ""),
-            palettes=_normalize_palettes(meta.get("palettes")),
             duration=_nonnegative_float(meta.get("duration")),
             bpm=_nonnegative_float(meta.get("bpm")),
             btime=meta.get("btime", meta.get("creationTime", 0)),
@@ -521,7 +463,7 @@ def _compute_folder_counts(
 
 def load_vault() -> None:
     """Load vault from disk and populate global cache."""
-    global _folder_tree, _folder_by_id, _smart_folder_tree, _smart_folder_by_id, _items_by_id, _items_by_folder, _items_by_tag, _tag_summary, _folder_counts, _locked_folder_ids, _last_load_stats, _loaded
+    global _folder_tree, _folder_by_id, _items_by_id, _items_by_folder, _items_by_tag, _tag_summary, _folder_counts, _locked_folder_ids, _last_load_stats, _loaded
     started = time.time()
     lib = _load_library_metadata()
     folders_data = _normalize_folders_data(lib)
@@ -529,9 +471,6 @@ def load_vault() -> None:
     folder_tree = _build_folder_tree(folders_data, locked_folder_ids)
     folder_by_id: dict[str, FolderNode] = {}
     _collect_folder_by_id(folder_tree, folder_by_id)
-    smart_folder_tree = _build_smart_folder_tree(lib)
-    smart_folder_by_id: dict[str, SmartFolderNode] = {}
-    _collect_smart_folder_by_id(smart_folder_tree, smart_folder_by_id)
     items_by_id, items_by_folder, load_stats = _load_items(locked_folder_ids)
     items_by_tag, tag_summary = _build_tag_index(items_by_id)
     folder_counts = _compute_folder_counts(folder_tree, items_by_folder)
@@ -540,15 +479,12 @@ def load_vault() -> None:
         "folders": len(folder_by_id),
         "items": len(items_by_id),
         "tags": len(items_by_tag),
-        "smartFolders": len(smart_folder_by_id),
         "lockedFolders": len(locked_folder_ids),
     }
 
     with _load_lock:
         _folder_tree = folder_tree
         _folder_by_id = folder_by_id
-        _smart_folder_tree = smart_folder_tree
-        _smart_folder_by_id = smart_folder_by_id
         _items_by_id = items_by_id
         _items_by_folder = items_by_folder
         _items_by_tag = items_by_tag
@@ -602,215 +538,6 @@ def get_library_status(deep: bool = False) -> dict[str, Any]:
     }
 
 
-def get_duplicate_groups(limit: int = 50) -> list[dict]:
-    ensure_loaded()
-    groups: dict[tuple[int, int, int, str], list[ItemInfo]] = {}
-    for item in _items_by_id.values():
-        key = (item.size or 0, item.width or 0, item.height or 0, (item.ext or "").lower())
-        if not key[0]:
-            continue
-        groups.setdefault(key, []).append(item)
-    out = []
-    for key, items in groups.items():
-        if len(items) < 2:
-            continue
-        out.append({
-            "key": {"size": key[0], "width": key[1], "height": key[2], "ext": key[3]},
-            "count": len(items),
-            "items": [item_to_dict(it, include_folder_paths=True) for it in items],
-        })
-    out.sort(key=lambda g: (-g["count"], -g["key"]["size"]))
-    return out[:max(1, min(limit, 200))]
-
-
-def get_palette_atlas(limit: int = 36) -> dict[str, Any]:
-    """Aggregate Eagle palette metadata into a stable library color atlas."""
-    ensure_loaded()
-    hue_names = ["红", "橙", "黄", "黄绿", "绿", "青绿", "青", "天蓝", "蓝", "紫", "洋红", "玫红"]
-    clusters: dict[str, dict[str, Any]] = {}
-    colored_item_ids: set[str] = set()
-    palette_samples = 0
-
-    for item in _items_by_id.values():
-        for palette in item.palettes or []:
-            color = palette.get("color") if isinstance(palette, dict) else None
-            if not isinstance(color, list) or len(color) != 3:
-                continue
-            try:
-                rgb = tuple(max(0, min(255, int(channel))) for channel in color)
-                weight = max(0.01, float(palette.get("ratio") or 1.0))
-            except (TypeError, ValueError):
-                continue
-            hue, saturation, value = colorsys.rgb_to_hsv(*(channel / 255 for channel in rgb))
-            if saturation < 0.16:
-                band = "dark" if value < 0.32 else ("light" if value > 0.72 else "mid")
-                key = f"neutral-{band}"
-                label = {"dark": "暗部", "mid": "灰阶", "light": "亮部"}[band]
-                order = 100 + {"dark": 0, "mid": 1, "light": 2}[band]
-            else:
-                sector = int((hue * 12 + 0.5) % 12)
-                band = "dark" if value < 0.38 else ("light" if value > 0.76 else "mid")
-                key = f"h{sector}-{band}"
-                label = hue_names[sector] + {"dark": "深色", "mid": "中色", "light": "浅色"}[band]
-                order = sector * 3 + {"dark": 0, "mid": 1, "light": 2}[band]
-            cluster = clusters.setdefault(key, {
-                "key": key,
-                "label": label,
-                "order": order,
-                "weight": 0.0,
-                "rgbWeight": [0.0, 0.0, 0.0],
-                "itemIds": set(),
-                "samples": [],
-            })
-            cluster["weight"] += weight
-            for index, channel in enumerate(rgb):
-                cluster["rgbWeight"][index] += channel * weight
-            if item.id not in cluster["itemIds"] and len(cluster["samples"]) < 4:
-                cluster["samples"].append(item_to_dict(item, include_folder_paths=True))
-            cluster["itemIds"].add(item.id)
-            colored_item_ids.add(item.id)
-            palette_samples += 1
-
-    output = []
-    for cluster in clusters.values():
-        total_weight = max(cluster["weight"], 0.01)
-        rgb = [round(channel / total_weight) for channel in cluster["rgbWeight"]]
-        output.append({
-            "key": cluster["key"],
-            "label": cluster["label"],
-            "order": cluster["order"],
-            "hex": "#" + "".join(f"{channel:02X}" for channel in rgb),
-            "rgb": rgb,
-            "itemCount": len(cluster["itemIds"]),
-            "weight": round(cluster["weight"], 2),
-            "samples": cluster["samples"],
-        })
-    output.sort(key=lambda cluster: (cluster["order"], -cluster["weight"], cluster["key"]))
-    max_clusters = max(1, min(limit, 72))
-    return {
-        "coloredItems": len(colored_item_ids),
-        "paletteSamples": palette_samples,
-        "totalClusters": len(output),
-        "clusters": output[:max_clusters],
-    }
-
-
-def get_random_items(seed: str, limit: int = 24, type_filter: str = "all") -> dict[str, Any]:
-    """Return a deterministic random walk without modifying or scanning the Vault."""
-    ensure_loaded()
-    normalized_seed = (seed or "eagle-viewer").strip()[:80] or "eagle-viewer"
-    normalized_type = type_filter if type_filter in VALID_TYPE_FILTERS else "all"
-    eligible = filter_items_by_type(list(_items_by_id.values()), normalized_type)
-    ranked = sorted(
-        eligible,
-        key=lambda item: hashlib.sha256(f"{normalized_seed}\0{item.id}".encode("utf-8", errors="surrogatepass")).digest(),
-    )
-    size = max(1, min(limit, 80))
-    return {
-        "seed": normalized_seed,
-        "type": normalized_type,
-        "totalEligible": len(eligible),
-        "items": [item_to_dict(item, include_folder_paths=True) for item in ranked[:size]],
-    }
-
-
-def _dominant_palette_color(item: ItemInfo) -> tuple[int, int, int] | None:
-    palettes = item.palettes or []
-    if not palettes:
-        return None
-    strongest = max(palettes, key=lambda entry: float(entry.get("ratio") or 0))
-    color = strongest.get("color")
-    if not isinstance(color, list) or len(color) != 3:
-        return None
-    return int(color[0]), int(color[1]), int(color[2])
-
-
-def _ratio_closeness(left: float, right: float) -> float:
-    if left <= 0 or right <= 0:
-        return 0.0
-    return math.exp(-abs(math.log(left / right)) * 2.2)
-
-
-def _similarity_score(source: ItemInfo, candidate: ItemInfo) -> tuple[float, list[str]]:
-    score = 0.0
-    signals: list[str] = []
-    source_type = _item_type(source.ext)
-    candidate_type = _item_type(candidate.ext)
-    if source_type == candidate_type:
-        score += 0.16
-        signals.append("同类型")
-    if (source.ext or "").lower() == (candidate.ext or "").lower():
-        score += 0.12
-        signals.append("同格式")
-
-    if source.width and source.height and candidate.width and candidate.height:
-        source_ratio = source.width / source.height
-        candidate_ratio = candidate.width / candidate.height
-        ratio_score = _ratio_closeness(source_ratio, candidate_ratio)
-        score += 0.18 * ratio_score
-        if ratio_score >= 0.84:
-            signals.append("构图接近")
-        source_area = source.width * source.height
-        candidate_area = candidate.width * candidate.height
-        area_score = _ratio_closeness(float(source_area), float(candidate_area))
-        score += 0.08 * area_score
-        if area_score >= 0.82:
-            signals.append("尺寸接近")
-
-    source_color = _dominant_palette_color(source)
-    candidate_color = _dominant_palette_color(candidate)
-    if source_color and candidate_color:
-        distance = math.sqrt(sum((source_color[i] - candidate_color[i]) ** 2 for i in range(3)))
-        color_score = max(0.0, 1.0 - distance / 441.7)
-        score += 0.28 * (color_score ** 1.7)
-        if color_score >= 0.72:
-            signals.append("主色接近")
-
-    source_tags = {str(tag).strip().lower() for tag in source.tags or [] if str(tag).strip()}
-    candidate_tags = {str(tag).strip().lower() for tag in candidate.tags or [] if str(tag).strip()}
-    if source_tags and candidate_tags:
-        overlap = source_tags & candidate_tags
-        union = source_tags | candidate_tags
-        tag_score = len(overlap) / max(1, len(union))
-        score += 0.11 * tag_score
-        if overlap:
-            signals.append("共享标签")
-
-    source_domain = _normalize_source_domain(source.url)
-    candidate_domain = _normalize_source_domain(candidate.url)
-    if source_domain and source_domain == candidate_domain:
-        score += 0.04
-        signals.append("同来源")
-    if set(source.folders or []) & set(candidate.folders or []):
-        score += 0.03
-        signals.append("同文件夹")
-    return min(score, 1.0), signals
-
-
-def get_similar_items(item_id: str, limit: int = 12) -> list[dict]:
-    """Rank visually/contextually related items using local Eagle metadata only."""
-    ensure_loaded()
-    source = _items_by_id.get(item_id)
-    if not source:
-        return []
-    ranked = []
-    for candidate in _items_by_id.values():
-        if candidate.id == source.id:
-            continue
-        score, signals = _similarity_score(source, candidate)
-        if score < 0.12:
-            continue
-        ranked.append((score, candidate.mtime or 0, candidate, signals))
-    ranked.sort(key=lambda entry: (-entry[0], -entry[1], (entry[2].name or "").lower()))
-    out = []
-    for score, _mtime, item, signals in ranked[:max(1, min(limit, 40))]:
-        data = item_to_dict(item, include_folder_paths=True)
-        data["similarityScore"] = round(score * 100)
-        data["similaritySignals"] = signals[:4]
-        out.append(data)
-    return out
-
-
 def get_folder_tree() -> list[FolderNode]:
     ensure_loaded()
     return _folder_tree
@@ -844,167 +571,6 @@ def get_all_tags() -> list[dict]:
     """Return all tags with counts: [{name, count}, ...] sorted by count desc."""
     ensure_loaded()
     return list(_tag_summary)
-
-
-def get_smart_folder_tree() -> list[SmartFolderNode]:
-    ensure_loaded()
-    return _smart_folder_tree
-
-
-def get_smart_folder(smart_folder_id: str) -> SmartFolderNode | None:
-    ensure_loaded()
-    return _smart_folder_by_id.get(str(smart_folder_id or ""))
-
-
-def _smart_rule_actual_values(item: ItemInfo, property_name: str) -> list[Any]:
-    key = (property_name or "").strip().lower().replace("_", "")
-    if key in {"type", "ext", "extension"}:
-        return [(item.ext or "").strip().lower().lstrip(".")]
-    if key in {"name", "filename"}:
-        return [item.name or ""]
-    if key in {"tag", "tags"}:
-        return list(item.tags or [])
-    if key in {"folder", "folders"}:
-        values = list(item.folders or [])
-        values.extend(get_folder_paths_for_item(item))
-        return values
-    if key in {"url", "source", "website"}:
-        return [item.url or ""]
-    if key in {"annotation", "comment", "note"}:
-        return [item.annotation or ""]
-    if key in {"width", "height", "size", "btime", "mtime", "creationtime", "modificationtime", "duration", "bpm"}:
-        mapped = {"creationtime": "btime", "modificationtime": "mtime"}.get(key, key)
-        return [getattr(item, mapped, 0) or 0]
-    if key in {"mediatype", "category"}:
-        return [_item_type(item.ext)]
-    return []
-
-
-def _smart_rule_targets(rule: dict[str, Any]) -> list[Any]:
-    raw = rule.get("value", rule.get("values", ""))
-    if isinstance(raw, list):
-        return raw
-    if isinstance(raw, dict):
-        return list(raw.values())
-    return [raw]
-
-
-def _smart_rule_matches(item: ItemInfo, rule: dict[str, Any]) -> bool:
-    actual_values = _smart_rule_actual_values(item, str(rule.get("property") or rule.get("key") or ""))
-    method = str(rule.get("method") or rule.get("operator") or "equal").strip().lower().replace("_", "").replace("-", "")
-    targets = _smart_rule_targets(rule)
-    if method in {"empty", "isempty", "notset"}:
-        return not any(str(value or "").strip() for value in actual_values)
-    if method in {"notempty", "isnotempty", "set"}:
-        return any(str(value or "").strip() for value in actual_values)
-    if not actual_values:
-        return False
-
-    def normalize(value: Any) -> str:
-        return str(value or "").strip().lower().lstrip(".")
-
-    actual_text = [normalize(value) for value in actual_values]
-    target_text = [normalize(value) for value in targets]
-    if method in {"greater", "greaterthan", "gt", "after"}:
-        try:
-            threshold = float(targets[0])
-            return any(float(value) > threshold for value in actual_values)
-        except (TypeError, ValueError, IndexError):
-            return False
-    if method in {"greaterorequal", "gte", "atleast"}:
-        try:
-            threshold = float(targets[0])
-            return any(float(value) >= threshold for value in actual_values)
-        except (TypeError, ValueError, IndexError):
-            return False
-    if method in {"less", "lessthan", "lt", "before"}:
-        try:
-            threshold = float(targets[0])
-            return any(float(value) < threshold for value in actual_values)
-        except (TypeError, ValueError, IndexError):
-            return False
-    if method in {"lessorequal", "lte", "atmost"}:
-        try:
-            threshold = float(targets[0])
-            return any(float(value) <= threshold for value in actual_values)
-        except (TypeError, ValueError, IndexError):
-            return False
-    equal = any(actual == target for actual in actual_text for target in target_text)
-    contains = any(target in actual for actual in actual_text for target in target_text if target)
-    if method in {"notequal", "isnot", "not", "neq"}:
-        return not equal
-    if method in {"contain", "contains", "include", "includes"}:
-        return contains
-    if method in {"notcontain", "notcontains", "exclude", "excludes"}:
-        return not contains
-    if method in {"startswith", "startwith"}:
-        return any(actual.startswith(target) for actual in actual_text for target in target_text if target)
-    if method in {"endswith", "endwith"}:
-        return any(actual.endswith(target) for actual in actual_text for target in target_text if target)
-    return equal
-
-
-def _smart_condition_group_matches(item: ItemInfo, group: dict[str, Any]) -> bool:
-    rules = [rule for rule in group.get("rules", []) if isinstance(rule, dict)]
-    if not rules:
-        return False
-    results = [_smart_rule_matches(item, rule) for rule in rules]
-    matched = any(results) if str(group.get("match") or "AND").upper() == "OR" else all(results)
-    if str(group.get("boolean") or "TRUE").upper() in {"FALSE", "NOT"}:
-        matched = not matched
-    return matched
-
-
-def _smart_folder_matches(item: ItemInfo, node: SmartFolderNode) -> bool:
-    groups = [group for group in node.conditions if isinstance(group, dict)]
-    return bool(groups) and all(_smart_condition_group_matches(item, group) for group in groups)
-
-
-def get_items_in_smart_folder(smart_folder_id: str) -> list[ItemInfo]:
-    ensure_loaded()
-    node = _smart_folder_by_id.get(str(smart_folder_id or ""))
-    if not node:
-        return []
-    if node.conditions:
-        return [item for item in _items_by_id.values() if _smart_folder_matches(item, node)]
-    seen: dict[str, ItemInfo] = {}
-    for child in node.children:
-        for item in get_items_in_smart_folder(child.id):
-            seen[item.id] = item
-    return list(seen.values())
-
-
-def _smart_folder_rule_summary(node: SmartFolderNode) -> str:
-    rules = [rule for group in node.conditions if isinstance(group, dict) for rule in group.get("rules", []) if isinstance(rule, dict)]
-    if not rules:
-        return "包含子智能文件夹" if node.children else "未设置规则"
-    labels = {
-        "type": "格式", "ext": "格式", "name": "名称", "tags": "标签", "tag": "标签",
-        "folders": "文件夹", "folder": "文件夹", "url": "来源", "annotation": "备注",
-        "width": "宽度", "height": "高度", "size": "大小", "mtime": "修改时间", "btime": "创建时间",
-    }
-    parts = []
-    for rule in rules[:3]:
-        prop = str(rule.get("property") or rule.get("key") or "条件")
-        target = _smart_rule_targets(rule)
-        value = str(target[0]) if target and target[0] is not None and target[0] != "" else str(rule.get("method") or "")
-        parts.append(f"{labels.get(prop.lower(), prop)} · {value}".strip(" ·"))
-    return " / ".join(parts) + ("…" if len(rules) > 3 else "")
-
-
-def smart_folder_tree_to_dict(nodes: list[SmartFolderNode]) -> list[dict]:
-    ensure_loaded()
-    return [
-        {
-            "id": node.id,
-            "name": node.name or "(未命名)",
-            "description": node.description or "",
-            "ruleSummary": _smart_folder_rule_summary(node),
-            "count": len(get_items_in_smart_folder(node.id)),
-            "children": smart_folder_tree_to_dict(node.children),
-        }
-        for node in nodes
-    ]
 
 
 def get_items_by_tag(tag: str) -> list[ItemInfo]:
@@ -1131,7 +697,6 @@ def item_to_dict(item: ItemInfo, include_folder_paths: bool = False) -> dict:
         "url": item.url or "",
         "sourceDomain": _normalize_source_domain(item.url),
         "annotation": item.annotation or "",
-        "palettes": item.palettes or [],
         "duration": item.duration or 0,
         "bpm": item.bpm or 0,
         "btime": item.btime,

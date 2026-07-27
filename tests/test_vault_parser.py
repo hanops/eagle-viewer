@@ -1,13 +1,11 @@
 import os
+from pathlib import Path
 
 from app.vault import (
     get_all_items,
     get_all_tags,
     get_cache_stats,
     get_library_status,
-    get_smart_folder_tree,
-    get_items_in_smart_folder,
-    get_duplicate_groups,
     get_folder_tree,
     get_items_in_folder,
     get_item,
@@ -17,6 +15,12 @@ from app.vault import (
     search_items,
 )
 from app.vault.models import ItemInfo
+
+
+def test_docker_image_includes_pyproject_version_source():
+    dockerfile = (Path(__file__).resolve().parents[1] / "Dockerfile").read_text(encoding="utf-8")
+
+    assert "COPY pyproject.toml ." in dockerfile
 
 
 def test_loads_sample_library(sample_library):
@@ -48,30 +52,12 @@ def test_proprietary_asset_keeps_original_and_eagle_thumbnail_separate(sample_li
     assert item.thumbnail_path.endswith("remote-review-workflow_thumbnail.svg")
 
 
-def test_duplicate_groups(sample_library):
-    groups = get_duplicate_groups()
-
-    assert len(groups) == 1
-    assert groups[0]["count"] == 2
-    assert {item["id"] for item in groups[0]["items"]} == {"item-one", "item-two"}
-
-
 def test_font_assets_are_available_through_document_filter():
     font = ItemInfo(id="font", name="Remote Font", ext="woff2", folders=[])
     proprietary = ItemInfo(id="diagram", name="Diagram", ext="graffle", folders=[])
     mind_map = ItemInfo(id="mind-map", name="Mind Map", ext="xmind", folders=[])
 
     assert filter_items_by_type([font, proprietary, mind_map], "document") == [font, proprietary, mind_map]
-
-
-def test_native_eagle_smart_folders_are_read_only_and_recursive(sample_library):
-    tree = get_smart_folder_tree()
-
-    assert [node.id for node in tree] == ["smart-reference"]
-    assert [node.id for node in tree[0].children] == ["smart-png", "smart-docs"]
-    assert {item.id for item in get_items_in_smart_folder("smart-png")} == {"item-one", "item-two"}
-    assert [item.id for item in get_items_in_smart_folder("smart-docs")] == ["item-three"]
-    assert {item.id for item in get_items_in_smart_folder("smart-reference")} == {"item-one", "item-two", "item-three"}
 
 
 def test_eagle_password_folders_are_redacted_from_every_index(sample_library):

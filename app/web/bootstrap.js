@@ -42,12 +42,6 @@ async function init() {
     render.renderTagList();
 
     if (applyStateFromUrl() && state.currentView) {
-      if (['smart', 'eagle-smart', 'duplicates', 'colors', 'random'].indexOf(state.currentView) >= 0) {
-        state.currentView = 'all';
-        state.currentSmartViewName = '';
-        state.currentEagleSmartFolderId = '';
-      }
-      state.advancedFilters = {};
       interactions.syncToolbarSelects();
       if (interactions.syncFilterForm) interactions.syncFilterForm();
       render.syncActiveNavigationState();

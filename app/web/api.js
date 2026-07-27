@@ -23,25 +23,6 @@ async function fetchTags() {
   return state.tagData;
 }
 
-async function fetchViewerState() {
-  var data = await fetchJson('/api/state');
-  return data ? (data.state || null) : null;
-}
-
-async function saveViewerState() {
-  var response = await fetch(API + '/api/state', {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      revision: state.viewerStateRevision
-    })
-  });
-  if (handleAuthResponse(response)) return null;
-  var data = await response.json();
-  if (response.status === 409) return { conflict: true, state: data.detail && data.detail.state };
-  return response.ok ? (data.state || null) : null;
-}
-
 async function resolveItems(itemIds) {
   var data = await fetchJson('/api/items/resolve', {
     method: 'POST',
@@ -227,15 +208,9 @@ async function loadNextIncrementalPage() {
   return state.currentItems.length > before;
 }
 
-function unavailableView() {
-  return loadAllItems(true);
-}
-
 Object.assign(apiModule, {
   fetchTree: fetchTree,
   fetchTags: fetchTags,
-  fetchViewerState: fetchViewerState,
-  saveViewerState: saveViewerState,
   resolveItems: resolveItems,
   reloadLibrary: reloadLibrary,
   fetchLibraryStatus: fetchLibraryStatus,
@@ -248,14 +223,6 @@ Object.assign(apiModule, {
   doSearch: doSearch,
   loadNextIncrementalPage: loadNextIncrementalPage,
   maybeLoadMoreIncrementalView: maybeLoadMoreIncrementalView,
-  fetchStats: async function() { return null; },
-  fetchSimilarItems: async function() { return []; },
-  fetchEagleSmartFolders: async function() { return []; },
-  findEagleSmartFolder: function() { return null; },
-  loadEagleSmartFolderItems: unavailableView,
-  loadDuplicates: unavailableView,
-  loadColorAtlas: unavailableView,
-  loadRandomWalk: unavailableView,
   getOfflineSnapshotCatalog: function() { return []; },
   warmCurrentOfflineSnapshot: async function() { return { ok: 0, total: 0 }; },
   clearOfflineSnapshot: async function() { return { ok: true }; }

@@ -3,8 +3,8 @@
 var EagleViewer = window.EagleViewer = window.EagleViewer || {};
 
 var API = '';
-var VERSION = '3.0.1';
-var VERSION_DATE = '2026-07-24';
+var VERSION = '4.0.0';
+var VERSION_DATE = '2026-07-27';
 var PREVIEW_IMAGE_EXTS = ['jpg','jpeg','png','gif','webp','svg','bmp'];
 var PREVIEW_VIDEO_EXTS = ['mp4','webm','mov','m4v'];
 var PREVIEW_AUDIO_EXTS = ['mp3','wav','m4a','aac','flac','ogg'];
@@ -96,26 +96,11 @@ function iconCollection() {
 function iconSliders() {
   return '<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 5h12M3 13h12M6 3v4M12 11v4"/></svg>';
 }
-function iconBookmark() {
-  return '<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 2.5h8a1 1 0 011 1v12l-5-3-5 3v-12a1 1 0 011-1z"/></svg>';
-}
 function iconInfo() {
   return '<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="9" r="6.5"/><path d="M9 8.5v4M9 5.5h.01"/></svg>';
 }
-function iconCommand() {
-  return '<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6H4.5a2 2 0 110-4A2 2 0 016 4.5V6zm0 0v6m0-6h6m-6 6H4.5a2 2 0 100 4A2 2 0 006 13.5V12zm6-6h1.5a2 2 0 100-4A2 2 0 0012 4.5V6zm0 0v6m0 0h1.5a2 2 0 110 4A2 2 0 0112 13.5V12z"/></svg>';
-}
-function iconCheck() {
-  return '<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.3l3.1 3.1L14 5.5"/></svg>';
-}
 function iconCompare() {
   return '<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="5" height="12" rx="1.5"/><rect x="11" y="3" width="5" height="12" rx="1.5"/><path d="M7 6h4M7 12h4"/></svg>';
-}
-function iconPalette() {
-  return '<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="9" r="6.5"/><circle cx="7" cy="6.5" r="1" fill="#ef5350" stroke="none"/><circle cx="11" cy="6.5" r="1" fill="#f6b73c" stroke="none"/><circle cx="12" cy="10" r="1" fill="#4f82d9" stroke="none"/><circle cx="8" cy="11.5" r="1" fill="#55b784" stroke="none"/></svg>';
-}
-function iconShuffle() {
-  return '<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h2.2c3.8 0 4.6 8 8.3 8H15"/><path d="M12.5 10.5L15 13l-2.5 2.5M3 13h2.2c1.7 0 2.8-1.7 3.7-3.5M10.3 6.8c.9-1.1 1.9-1.8 3.2-1.8H15"/><path d="M12.5 2.5L15 5l-2.5 2.5"/></svg>';
 }
 
 // ===== Inject icons into DOM =====
@@ -126,42 +111,16 @@ function injectIcons() {
   el = document.getElementById('viewGrid'); if (el) el.innerHTML = iconGrid();
   el = document.getElementById('viewJustified'); if (el) el.innerHTML = iconJustified();
   el = document.getElementById('viewList'); if (el) el.innerHTML = iconList();
-  el = document.getElementById('filterPanelBtn'); if (el) el.innerHTML = iconSliders();
-  el = document.getElementById('savedViewsBtn'); if (el) el.innerHTML = iconBookmark();
-  el = document.getElementById('statsBtn'); if (el) el.innerHTML = iconInfo();
-  el = document.getElementById('duplicatesBtn'); if (el) el.innerHTML = iconCollection();
-  el = document.getElementById('commandBtn'); if (el) el.innerHTML = iconCommand();
   el = document.getElementById('inspectorPrev'); if (el) el.innerHTML = iconChevronLeft();
   el = document.getElementById('inspectorNext'); if (el) el.innerHTML = iconChevronRightSm();
   el = document.getElementById('exportListBtn'); if (el) el.innerHTML = iconExport();
   el = document.getElementById('inspectorClose'); if (el) el.innerHTML = iconClose();
   el = document.getElementById('iconAllItems'); if (el) el.innerHTML = iconCollection();
-  el = document.getElementById('iconFavoriteItems'); if (el) el.innerHTML = iconBookmark();
-  el = document.getElementById('iconLaterItems'); if (el) el.innerHTML = iconClock();
-  el = document.getElementById('iconDoneItems'); if (el) el.innerHTML = iconCheck();
-  el = document.getElementById('iconRecentViewedItems'); if (el) el.innerHTML = iconEye();
-  el = document.getElementById('iconSidebarDuplicates'); if (el) el.innerHTML = iconCollection();
-  el = document.getElementById('iconSidebarColors'); if (el) el.innerHTML = iconPalette();
-  el = document.getElementById('iconSidebarRandom'); if (el) el.innerHTML = iconShuffle();
-  el = document.getElementById('iconSidebarSavedViews'); if (el) el.innerHTML = iconBookmark();
   el = document.getElementById('iconMobileLibrary'); if (el) el.innerHTML = iconCollection();
-  el = document.getElementById('iconMobileFavorite'); if (el) el.innerHTML = iconBookmark();
-  el = document.getElementById('iconMobileLater'); if (el) el.innerHTML = iconClock();
   el = document.getElementById('iconMobileSearch'); if (el) el.innerHTML = iconSearch();
   el = document.getElementById('iconMobileSearchSheet'); if (el) el.innerHTML = iconSearch();
   el = document.getElementById('iconMobileMore'); if (el) el.innerHTML = iconMenu();
   el = document.getElementById('iconMobileMoreSidebar'); if (el) el.innerHTML = iconMenu();
-  el = document.getElementById('iconMobileMoreEagleSmart'); if (el) el.innerHTML = iconSliders();
-  el = document.getElementById('iconMobileMoreSmart'); if (el) el.innerHTML = iconSliders();
-  el = document.getElementById('iconMobileMoreReview'); if (el) el.innerHTML = iconEye();
-  el = document.getElementById('iconMobileMoreViewed'); if (el) el.innerHTML = iconEye();
-  el = document.getElementById('iconMobileMoreFilter'); if (el) el.innerHTML = iconSliders();
-  el = document.getElementById('iconMobileMoreShareView'); if (el) el.innerHTML = iconExternalLink();
-  el = document.getElementById('iconMobileMoreDuplicates'); if (el) el.innerHTML = iconCollection();
-  el = document.getElementById('iconMobileMoreColors'); if (el) el.innerHTML = iconPalette();
-  el = document.getElementById('iconMobileMoreRandom'); if (el) el.innerHTML = iconShuffle();
-  el = document.getElementById('iconMobileMoreStats'); if (el) el.innerHTML = iconInfo();
-  el = document.getElementById('iconMobileMoreCommand'); if (el) el.innerHTML = iconCommand();
   el = document.getElementById('iconMobileMoreOffline'); if (el) el.innerHTML = iconDownload();
   el = document.getElementById('iconMobileMoreRefresh'); if (el) el.innerHTML = iconRefresh();
   el = document.getElementById('iconMobileMoreTheme'); if (el) el.innerHTML = iconMoon();
@@ -183,7 +142,6 @@ function injectIcons() {
 // ===== State =====
 var treeData = [];
 var tagData = [];
-var eagleSmartFolders = [];
 var searchTimeout = null;
 var viewMode = 'grid';
 var currentSubfolders = [];
@@ -196,9 +154,6 @@ var lastSelectedId = '';
 var currentFolderId = null;
 var currentTagName = null;
 var currentView = 'all';
-var currentSmartViewName = '';
-var currentEagleSmartFolderId = '';
-var currentRandomSeed = '';
 var recentDays = 7;
 var searchQuery = '';
 var listSort = 'mtime';
@@ -221,27 +176,11 @@ var incrementalOffset = 0;
 var incrementalHasMore = false;
 var incrementalLoading = false;
 var activeListRequest = 0;
-var advancedFilters = {};
-var savedViews = [];
-var collectionIds = { favorite: [], later: [], done: [], recentViewed: [], items: {} };
-var itemRatings = {};
-var viewerNotes = {};
-var reviewMarkers = {};
-var indexStats = null;
-var duplicateGroups = [];
-var paletteAtlas = null;
-var viewerStateRevision = 0;
 var INCREMENTAL_PAGE_SIZE = 120;
 var LAST_ROUTE_STORAGE_KEY = 'eagle-viewer-last-route';
 var LAST_ROUTE_MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000;
 var routeHistoryInitialized = false;
 var routeHistorySuspended = 0;
-var URL_FILTER_KEYS = [
-  'min_size', 'max_size', 'min_width', 'min_height', 'mtime_from', 'mtime_to',
-  'shape', 'tag_state', 'annotation_state', 'viewer_note_state', 'source_state',
-  'source_domain', 'ext', 'rating_min', 'color', 'color_tolerance'
-];
-var NUMERIC_FILTER_KEYS = ['min_size', 'max_size', 'min_width', 'min_height', 'mtime_from', 'mtime_to', 'rating_min', 'color_tolerance'];
 
 EagleViewer.config = {
   apiBase: API,
@@ -254,7 +193,6 @@ EagleViewer.state = EagleViewer.state || {};
 Object.defineProperties(EagleViewer.state, {
   treeData: { get: function() { return treeData; }, set: function(v) { treeData = v; }, enumerable: true },
   tagData: { get: function() { return tagData; }, set: function(v) { tagData = v; }, enumerable: true },
-  eagleSmartFolders: { get: function() { return eagleSmartFolders; }, set: function(v) { eagleSmartFolders = Array.isArray(v) ? v : []; }, enumerable: true },
   searchTimeout: { get: function() { return searchTimeout; }, set: function(v) { searchTimeout = v; }, enumerable: true },
   viewMode: { get: function() { return viewMode; }, set: function(v) { viewMode = v; }, enumerable: true },
   currentSubfolders: { get: function() { return currentSubfolders; }, set: function(v) { currentSubfolders = v; }, enumerable: true },
@@ -267,9 +205,6 @@ Object.defineProperties(EagleViewer.state, {
   currentFolderId: { get: function() { return currentFolderId; }, set: function(v) { currentFolderId = v; }, enumerable: true },
   currentTagName: { get: function() { return currentTagName; }, set: function(v) { currentTagName = v; }, enumerable: true },
   currentView: { get: function() { return currentView; }, set: function(v) { currentView = v; }, enumerable: true },
-  currentSmartViewName: { get: function() { return currentSmartViewName; }, set: function(v) { currentSmartViewName = v || ''; }, enumerable: true },
-  currentEagleSmartFolderId: { get: function() { return currentEagleSmartFolderId; }, set: function(v) { currentEagleSmartFolderId = v || ''; }, enumerable: true },
-  currentRandomSeed: { get: function() { return currentRandomSeed; }, set: function(v) { currentRandomSeed = v || ''; }, enumerable: true },
   recentDays: { get: function() { return recentDays; }, set: function(v) { recentDays = v; }, enumerable: true },
   searchQuery: { get: function() { return searchQuery; }, set: function(v) { searchQuery = v; }, enumerable: true },
   listSort: { get: function() { return listSort; }, set: function(v) { listSort = v; }, enumerable: true },
@@ -292,16 +227,6 @@ Object.defineProperties(EagleViewer.state, {
   incrementalHasMore: { get: function() { return incrementalHasMore; }, set: function(v) { incrementalHasMore = v; }, enumerable: true },
   incrementalLoading: { get: function() { return incrementalLoading; }, set: function(v) { incrementalLoading = v; }, enumerable: true },
   activeListRequest: { get: function() { return activeListRequest; }, set: function(v) { activeListRequest = v; }, enumerable: true },
-  advancedFilters: { get: function() { return advancedFilters; }, set: function(v) { advancedFilters = v || {}; }, enumerable: true },
-  savedViews: { get: function() { return savedViews; }, set: function(v) { savedViews = v || []; }, enumerable: true },
-  collectionIds: { get: function() { return collectionIds; }, set: function(v) { collectionIds = v || { favorite: [], later: [], done: [], recentViewed: [], items: {} }; }, enumerable: true },
-  itemRatings: { get: function() { return itemRatings; }, set: function(v) { itemRatings = v && typeof v === 'object' ? v : {}; }, enumerable: true },
-  viewerNotes: { get: function() { return viewerNotes; }, set: function(v) { viewerNotes = v && typeof v === 'object' ? v : {}; }, enumerable: true },
-  reviewMarkers: { get: function() { return reviewMarkers; }, set: function(v) { reviewMarkers = v && typeof v === 'object' ? v : {}; }, enumerable: true },
-  indexStats: { get: function() { return indexStats; }, set: function(v) { indexStats = v; }, enumerable: true },
-  duplicateGroups: { get: function() { return duplicateGroups; }, set: function(v) { duplicateGroups = v || []; }, enumerable: true },
-  paletteAtlas: { get: function() { return paletteAtlas; }, set: function(v) { paletteAtlas = v || null; }, enumerable: true },
-  viewerStateRevision: { get: function() { return viewerStateRevision; }, set: function(v) { viewerStateRevision = Number(v) || 0; }, enumerable: true }
 });
 EagleViewer.getState = function() {
   return EagleViewer.state;
@@ -312,11 +237,6 @@ function buildListQuery() {
   params.set('sort', listSort);
   params.set('dir', listDir);
   params.set('type', listType);
-  Object.keys(advancedFilters || {}).forEach(function(key) {
-    if (key === 'rating_min' || key === 'viewer_note_state') return;
-    var val = advancedFilters[key];
-    if (val !== null && val !== undefined && val !== '') params.set(key, val);
-  });
   return params.toString();
 }
 
@@ -330,13 +250,6 @@ function updateUrlFromState() {
   if (currentView === 'tag' && currentTagName) params.set('tag', currentTagName);
   if (currentView === 'recent') params.set('days', String(recentDays));
   if (currentView === 'search' && searchQuery) params.set('q', searchQuery);
-  if (currentView === 'smart' && currentSmartViewName) params.set('smart', currentSmartViewName);
-  if (currentView === 'eagle-smart' && currentEagleSmartFolderId) params.set('eagleSmart', currentEagleSmartFolderId);
-  if (currentView === 'random' && currentRandomSeed) params.set('seed', currentRandomSeed);
-  URL_FILTER_KEYS.forEach(function(key) {
-    var val = (advancedFilters || {})[key];
-    if (val !== null && val !== undefined && val !== '') params.set(key, val);
-  });
   var itemId = inspectorItem && inspectorItem.id ? inspectorItem.id : pendingItemId;
   if (itemId) params.set('item', itemId);
   var hash = '#' + params.toString();
@@ -376,9 +289,6 @@ function getRouteHistoryIdentity(params) {
   else if (view === 'tag') identity.push(params.get('tag') || '');
   else if (view === 'recent') identity.push(params.get('days') || '7');
   else if (view === 'search') identity.push(params.get('q') || '');
-  else if (view === 'smart') identity.push(params.get('smart') || '');
-  else if (view === 'eagle-smart') identity.push(params.get('eagleSmart') || '');
-  else if (view === 'random') identity.push(params.get('seed') || '');
   return identity.join(':');
 }
 
@@ -412,24 +322,10 @@ function applyStateFromHash(rawHash) {
   listType = params.get('type') || 'all';
   currentFolderId = params.get('id') || null;
   currentTagName = params.get('tag') || null;
-  currentSmartViewName = params.get('smart') || '';
-  currentEagleSmartFolderId = params.get('eagleSmart') || '';
-  currentRandomSeed = params.get('seed') || '';
   pendingItemId = params.get('item') || '';
   pendingLaunchAction = params.get('action') || '';
   recentDays = parseInt(params.get('days'), 10) || 7;
   searchQuery = params.get('q') || '';
-  advancedFilters = {};
-  URL_FILTER_KEYS.forEach(function(key) {
-    if (!params.has(key)) return;
-    var val = params.get(key);
-    if (NUMERIC_FILTER_KEYS.indexOf(key) >= 0) {
-      var num = parseInt(val, 10);
-      if (!isNaN(num)) advancedFilters[key] = num;
-    } else if (val) {
-      advancedFilters[key] = val;
-    }
-  });
   return true;
 }
 

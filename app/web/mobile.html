@@ -8,9 +8,10 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="mobile-web-app-capable" content="yes" />
   <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" href="/static/icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="/static/icon-192.png" />
   <title>Eagle Vault Viewer</title>
-  <link rel="stylesheet" href="/static/mobile.css?v=1.98" />
+  <link rel="stylesheet" href="/static/mobile.css?v=1.101" />
 </head>
 <body>
   <div id="app">
@@ -27,15 +28,15 @@
     <nav class="tabs" id="tabs">
       <button class="tb active" data-view="library">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 12l9 4 9-4M3 17l9 4 9-4"/></svg>
-        LIBRARY
+        <span id="tabLibrary">资料库</span>
       </button>
       <button class="tb" data-view="folders">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg>
-        FOLDERS
+        <span id="tabFolders">文件夹</span>
       </button>
       <button class="tb" data-view="search">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-        SEARCH
+        <span id="tabSearch">搜索</span>
       </button>
     </nav>
   </div>
@@ -61,16 +62,16 @@
       <div class="pv-actions">
         <a id="pvDownload" class="primary">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14"/></svg>
-          下载
+          <span id="pvDownloadLabel">下载</span>
         </a>
         <button id="pvSave" class="primary" style="display:none">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><path d="M5 7h3l2-2h4l2 2h3v12H5z"/><circle cx="12" cy="13" r="3.2"/></svg>
-          保存相册
+          <span id="pvSaveLabel">保存相册</span>
         </button>
       </div>
     </div>
   </div>
 
-  <script src="/static/mobile.js?v=1.98"></script>
+  <script src="/static/mobile.js?v=1.101"></script>
 </body>
 </html>

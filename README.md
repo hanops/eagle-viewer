@@ -10,7 +10,7 @@
 
 Vault is always mounted **read-only**. It never modifies files inside the library.
 
-**Current version**: v3.0.1 (2026-07-24) · [Changelog](CHANGELOG.md) · [中文版](README.zh.md)
+**Current version**: v4.0.0 (2026-07-27) · [Changelog](CHANGELOG.md) · [中文版](README.zh.md)
 
 ---
 
@@ -142,7 +142,6 @@ The frontend uses vanilla HTML/CSS/JS — no framework. The backend is FastAPI. 
 | `VIEWER_PASSWORD` | Access password — set to require login; leave empty for no auth | _(empty)_ |
 | `VIEWER_SECRET_KEY` | Session signing key — use a random string (e.g. `openssl rand -hex 32`) | Falls back to `VIEWER_PASSWORD` |
 | `VIEWER_API_TOKEN` | Bearer token for API clients — when set, API calls need this token or a web session | _(empty)_ |
-| `VIEWER_STATE_PATH` | State persistence file path; should be outside the mounted vault directory | `data/eagle-viewer-state.json` |
 
 ---
 
@@ -157,8 +156,6 @@ The frontend uses vanilla HTML/CSS/JS — no framework. The backend is FastAPI. 
 | GET | `/api/recent?days=7\|30` | Recent N-day assets (supports `sort`, `dir`, `type`, `offset`, `limit`) |
 | GET | `/api/folders/{folder_id}/items` | Items in a specific folder (supports `sort`, `dir`, `type`, `offset`, `limit`) |
 | GET | `/api/tags` | Tags and their counts |
-| GET | `/api/state` | Viewer state (viewer preferences, density, etc.) |
-| PUT | `/api/state` | Persist viewer state (optimistic locking via `revision`) |
 | POST | `/api/items/resolve` | Batch-resolve current metadata by asset ID |
 | GET | `/api/tags/{tag}/items` | Items with a given tag (supports `sort`, `dir`, `type`, `offset`, `limit`) |
 | GET | `/api/search?q=...` | Search (supports `sort`, `dir`, `type`, `offset`, `limit`) |

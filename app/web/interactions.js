@@ -25,48 +25,6 @@ function setCanvasDensity(value) {
 }
 
 // ===== Export =====
-function buildExportRows(items) {
-  return items.map(function(it) {
-    var paths = (it.folderPaths || []).join(' ; ');
-    return { name: it.name, path: paths, tags: (it.tags || []).join(','), sourceDomain: it.sourceDomain || '', ext: it.ext || '', size: it.size || 0, btime: it.btime, mtime: it.mtime };
-  });
-}
-
-function exportRows(rows, format, filenameBase) {
-  if (!rows.length) { alert('当前列表为空'); return; }
-  var blob, name;
-  if (format === 'json') {
-    blob = new Blob([JSON.stringify(rows, null, 2)], { type: 'application/json' });
-    name = filenameBase + '.json';
-  } else {
-    var BOM = '\uFEFF';
-    var header = '名称,路径,标签,来源站点,格式,大小,创建时间,修改时间\n';
-    var body = rows.map(function(r) {
-      return '"' + (r.name || '').replace(/"/g, '""') + '","' + (r.path || '').replace(/"/g, '""') + '","' + (r.tags || '').replace(/"/g, '""') + '","' + (r.sourceDomain || '').replace(/"/g, '""') + '","' + (r.ext || '') + '",' + (r.size || 0) + ',"' + (r.btime ? new Date(r.btime).toISOString() : '') + '","' + (r.mtime ? new Date(r.mtime).toISOString() : '') + '"';
-    }).join('\n');
-    blob = new Blob([BOM + header + body], { type: 'text/csv;charset=utf-8' });
-    name = filenameBase + '.csv';
-  }
-  var a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = name;
-  a.click();
-  URL.revokeObjectURL(a.href);
-}
-
-function exportList(format) {
-  var items = state.currentView === 'duplicates'
-    ? state.duplicateGroups.reduce(function(out, group) { return out.concat(group.items || []); }, [])
-    : state.currentItems;
-  exportRows(buildExportRows(items), format, 'eagle-list');
-}
-
-function exportSelected(format) {
-  var items = getSelectedItems();
-  if (!items.length) { alert('当前没有已选文件'); return; }
-  exportRows(buildExportRows(items), format, 'eagle-selected');
-}
-
 // ===== Marquee selection =====
 var isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
@@ -202,318 +160,14 @@ function setTheme(name) {
   try { localStorage.setItem('eagle-viewer-theme', name); } catch (e) {}
 }
 
-// ===== Local app data =====
-var viewerStateSaveTimer = null;
-var viewerStateSaveInFlight = false;
-var viewerStateMutationVersion = 0;
-var VIEWER_STATE_BASELINE_KEY = 'eagle-viewer-state-baseline';
-var VIEWER_STATE_PENDING_KEY = 'eagle-viewer-state-pending';
-
-function cloneJson(value, fallback) {
-  try { return JSON.parse(JSON.stringify(value)); } catch (e) { return fallback; }
-}
-
-function getViewerStateSnapshot() {
-  return {
-    revision: state.viewerStateRevision || 0,
-    savedViews: cloneJson(state.savedViews || [], []),
-    ratings: cloneJson(state.itemRatings || {}, {}),
-    notes: cloneJson(state.viewerNotes || {}, {}),
-    reviewMarkers: cloneJson(state.reviewMarkers || {}, {})
-  };
-}
-
-function readStoredViewerState(key) {
-  try {
-    var value = JSON.parse(localStorage.getItem(key) || 'null');
-    return value && typeof value === 'object' ? value : null;
-  } catch (e) { return null; }
-}
-
-function persistViewerStateBaseline(value) {
-  try { localStorage.setItem(VIEWER_STATE_BASELINE_KEY, JSON.stringify(value)); } catch (e) {}
-}
-
-function persistPendingViewerState() {
-  var pending = { savedAt: Date.now(), state: getViewerStateSnapshot() };
-  try { localStorage.setItem(VIEWER_STATE_PENDING_KEY, JSON.stringify(pending)); } catch (e) {}
-  return pending;
-}
-
-function clearPendingViewerState() {
-  try { localStorage.removeItem(VIEWER_STATE_PENDING_KEY); } catch (e) {}
-}
-
-function sameJson(left, right) {
-  return JSON.stringify(left === undefined ? null : left) === JSON.stringify(right === undefined ? null : right);
-}
-
-function mergeIdList(remoteList, localList, baselineList) {
-  var remote = uniqueIdList(remoteList);
-  var local = uniqueIdList(localList);
-  var baseline = uniqueIdList(baselineList);
-  var result = remote.slice();
-  var candidates = baseline.concat(local).filter(function(id, index, all) { return all.indexOf(id) === index; });
-  candidates.forEach(function(id) {
-    var locallyPresent = local.indexOf(id) >= 0;
-    var baselinePresent = baseline.indexOf(id) >= 0;
-    if (locallyPresent === baselinePresent) return;
-    var resultIndex = result.indexOf(id);
-    if (locallyPresent && resultIndex < 0) result.push(id);
-    if (!locallyPresent && resultIndex >= 0) result.splice(resultIndex, 1);
-  });
-  return result.slice(0, 500);
-}
-
-function mergeObjectMap(remoteValue, localValue, baselineValue) {
-  var remote = cloneJson(remoteValue || {}, {});
-  var local = localValue || {};
-  var baseline = baselineValue || {};
-  Object.keys(baseline).concat(Object.keys(local)).filter(function(key, index, all) { return all.indexOf(key) === index; }).forEach(function(key) {
-    if (sameJson(local[key], baseline[key])) return;
-    if (Object.prototype.hasOwnProperty.call(local, key)) remote[key] = cloneJson(local[key], local[key]);
-    else delete remote[key];
-  });
-  return remote;
-}
-
-function mergeKeyedArray(remoteValue, localValue, baselineValue, keyName) {
-  var remote = Array.isArray(remoteValue) ? cloneJson(remoteValue, []) : [];
-  var local = Array.isArray(localValue) ? localValue : [];
-  var baseline = Array.isArray(baselineValue) ? baselineValue : [];
-  var remoteByKey = {};
-  var localByKey = {};
-  var baselineByKey = {};
-  remote.forEach(function(entry) { if (entry && entry[keyName]) remoteByKey[entry[keyName]] = entry; });
-  local.forEach(function(entry) { if (entry && entry[keyName]) localByKey[entry[keyName]] = entry; });
-  baseline.forEach(function(entry) { if (entry && entry[keyName]) baselineByKey[entry[keyName]] = entry; });
-  Object.keys(baselineByKey).concat(Object.keys(localByKey)).filter(function(key, index, all) { return all.indexOf(key) === index; }).forEach(function(key) {
-    if (sameJson(localByKey[key], baselineByKey[key])) return;
-    if (localByKey[key]) remoteByKey[key] = cloneJson(localByKey[key], localByKey[key]);
-    else delete remoteByKey[key];
-  });
-  var order = remote.map(function(entry) { return entry && entry[keyName]; }).filter(Boolean);
-  local.forEach(function(entry) { if (entry && entry[keyName] && order.indexOf(entry[keyName]) < 0) order.push(entry[keyName]); });
-  return order.filter(function(key) { return remoteByKey[key]; }).map(function(key) { return remoteByKey[key]; });
-}
-
-function mergeReviewMarkers(remoteValue, localValue, baselineValue) {
-  var remote = remoteValue || {};
-  var local = localValue || {};
-  var baseline = baselineValue || {};
-  var out = {};
-  Object.keys(remote).concat(Object.keys(local), Object.keys(baseline)).filter(function(itemId, index, all) {
-    return all.indexOf(itemId) === index;
-  }).forEach(function(itemId) {
-    var merged = mergeKeyedArray(remote[itemId], local[itemId], baseline[itemId], 'id');
-    if (merged.length) out[itemId] = merged;
-  });
-  return normalizeReviewMarkers(out);
-}
-
-function mergePendingViewerState(remoteState, localState, baselineState) {
-  var remote = remoteState || {};
-  var local = localState || {};
-  var baseline = baselineState || { savedViews: [], ratings: {}, notes: {}, reviewMarkers: {} };
-  return {
-    revision: remote.revision || 0,
-    savedViews: mergeKeyedArray(remote.savedViews, local.savedViews, baseline.savedViews, 'name'),
-    ratings: mergeObjectMap(remote.ratings, local.ratings, baseline.ratings),
-    notes: mergeObjectMap(remote.notes, local.notes, baseline.notes),
-    reviewMarkers: mergeReviewMarkers(remote.reviewMarkers, local.reviewMarkers, baseline.reviewMarkers)
-  };
-}
-
-function setSyncStatus(status, label) {
-  var el = document.getElementById('syncStatus');
-  if (!el) return;
-  el.dataset.state = status;
-  el.textContent = label;
-  var remoteCard = document.getElementById('mobileRemoteCard');
-  if (remoteCard) {
-    var title = document.getElementById('mobileRemoteTitle');
-    updateMobileRemoteCard(remoteCard.dataset.state || 'checking', title ? title.textContent : '远程 Vault');
-  }
-}
-
-function applyRemoteViewerState(remoteState, options) {
-  var opts = options || {};
-  state.viewerStateRevision = remoteState.revision || 0;
-  state.savedViews = remoteState.savedViews || [];
-  state.itemRatings = normalizeRatingsMap(remoteState.ratings);
-  state.viewerNotes = normalizeViewerNotes(remoteState.notes);
-  state.reviewMarkers = normalizeReviewMarkers(remoteState.reviewMarkers);
-  saveLocalData(false);
-  if (opts.updateBaseline !== false) persistViewerStateBaseline(getViewerStateSnapshot());
-  renderSmartViewsSidebar();
-}
-
-function hasViewerState() {
-  return state.savedViews.length || Object.keys(state.itemRatings || {}).length || Object.keys(state.viewerNotes || {}).length || Object.keys(state.reviewMarkers || {}).length;
-}
-
-function normalizeRatingsMap(value) {
-  var out = {};
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return out;
-  Object.keys(value).slice(0, 500).forEach(function(itemId) {
-    var rating = Math.round(Number(value[itemId]) || 0);
-    if (itemId && itemId.length <= 200 && rating >= 1 && rating <= 5) out[itemId] = rating;
-  });
-  return out;
-}
-
-function normalizeViewerNotes(value) {
-  var out = {};
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return out;
-  Object.keys(value).slice(0, 500).forEach(function(itemId) {
-    var note = typeof value[itemId] === 'string' ? value[itemId].trim().slice(0, 4000) : '';
-    if (itemId && itemId.length <= 200 && note) out[itemId] = note;
-  });
-  return out;
-}
-
-function normalizeReviewMarkers(value) {
-  var out = {};
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return out;
-  Object.keys(value).slice(0, 500).forEach(function(itemId) {
-    if (!itemId || itemId.length > 200 || !Array.isArray(value[itemId])) return;
-    var seen = {};
-    var markers = value[itemId].slice(0, 100).map(function(raw) {
-      if (!raw || typeof raw !== 'object') return null;
-      var id = String(raw.id || '').trim().slice(0, 80);
-      var text = String(raw.text || '').trim().slice(0, 1000);
-      var kind = ['point', 'time', 'general'].indexOf(raw.kind) >= 0 ? raw.kind : 'general';
-      if (!id || seen[id] || !text) return null;
-      seen[id] = true;
-      var marker = {
-        id: id,
-        kind: kind,
-        text: text,
-        createdAt: Math.max(0, Math.min(Number(raw.createdAt) || 0, 1e15)),
-        updatedAt: Math.max(0, Math.min(Number(raw.updatedAt) || 0, 1e15))
-      };
-      if (kind === 'point') {
-        marker.x = Math.max(0, Math.min(1, Number(raw.x) || 0));
-        marker.y = Math.max(0, Math.min(1, Number(raw.y) || 0));
-      }
-      if (kind === 'time') marker.time = Math.max(0, Math.min(86400, Number(raw.time) || 0));
-      return marker;
-    }).filter(Boolean);
-    if (markers.length) out[itemId] = markers;
-  });
-  return out;
-}
-
 async function loadLocalData() {
   loadGridDensity();
-  try { state.savedViews = JSON.parse(localStorage.getItem('eagle-viewer-saved-views') || '[]'); } catch (e) { state.savedViews = []; }
-  try { state.itemRatings = normalizeRatingsMap(JSON.parse(localStorage.getItem('eagle-viewer-ratings') || '{}')); } catch (ratingError) { state.itemRatings = {}; }
-  try { state.viewerNotes = normalizeViewerNotes(JSON.parse(localStorage.getItem('eagle-viewer-notes') || '{}')); } catch (noteError) { state.viewerNotes = {}; }
-  try { state.reviewMarkers = normalizeReviewMarkers(JSON.parse(localStorage.getItem('eagle-viewer-review-markers') || '{}')); } catch (markerError) { state.reviewMarkers = {}; }
-  renderSmartViewsSidebar();
-  var pending = readStoredViewerState(VIEWER_STATE_PENDING_KEY);
-  if (pending && pending.state) {
-    applyRemoteViewerState(pending.state, { updateBaseline: false });
-    setSyncStatus('pending', 'Pending sync');
-  }
-  try {
-    var remoteState = await api.fetchViewerState();
-    if (remoteState && remoteState.updatedAt) {
-      if (pending && pending.state) {
-        var baseline = readStoredViewerState(VIEWER_STATE_BASELINE_KEY);
-        var merged = mergePendingViewerState(remoteState, pending.state, baseline);
-        applyRemoteViewerState(merged, { updateBaseline: false });
-        state.viewerStateRevision = remoteState.revision || 0;
-        persistPendingViewerState();
-        setSyncStatus('pending', 'Pending sync');
-        scheduleViewerStateSave(0);
-      } else {
-        applyRemoteViewerState(remoteState);
-        clearPendingViewerState();
-        setSyncStatus('synced', 'Synced');
-      }
-    } else if (hasViewerState()) {
-      persistPendingViewerState();
-      scheduleViewerStateSave();
-    } else {
-      setSyncStatus('synced', 'Synced');
-    }
-  } catch (e3) {
-    if (hasViewerState()) persistPendingViewerState();
-    setSyncStatus(hasViewerState() ? 'pending' : 'local', hasViewerState() ? 'Pending sync' : 'Local');
+  var status = document.getElementById('syncStatus');
+  if (status) {
+    status.dataset.state = 'local';
+    status.textContent = 'Local';
   }
 }
-
-function saveLocalData(syncRemote) {
-  try { localStorage.setItem('eagle-viewer-saved-views', JSON.stringify(state.savedViews)); } catch (e) {}
-  try { localStorage.setItem('eagle-viewer-ratings', JSON.stringify(state.itemRatings || {})); } catch (ratingError) {}
-  try { localStorage.setItem('eagle-viewer-notes', JSON.stringify(state.viewerNotes || {})); } catch (noteError) {}
-  try { localStorage.setItem('eagle-viewer-review-markers', JSON.stringify(state.reviewMarkers || {})); } catch (markerError) {}
-  renderSmartViewsSidebar();
-  if (syncRemote !== false) {
-    viewerStateMutationVersion++;
-    persistPendingViewerState();
-    scheduleViewerStateSave();
-  }
-}
-
-function scheduleViewerStateSave(delay) {
-  clearTimeout(viewerStateSaveTimer);
-  if (navigator.onLine === false) {
-    setSyncStatus('pending', 'Pending sync');
-    return;
-  }
-  setSyncStatus('syncing', 'Syncing…');
-  viewerStateSaveTimer = setTimeout(async function() {
-    if (viewerStateSaveInFlight) {
-      scheduleViewerStateSave(350);
-      return;
-    }
-    viewerStateSaveInFlight = true;
-    var submittedMutationVersion = viewerStateMutationVersion;
-    var pendingBefore = readStoredViewerState(VIEWER_STATE_PENDING_KEY) || persistPendingViewerState();
-    try {
-      var result = await api.saveViewerState();
-      if (result && result.conflict && result.state) {
-        var baseline = readStoredViewerState(VIEWER_STATE_BASELINE_KEY);
-        var currentPending = readStoredViewerState(VIEWER_STATE_PENDING_KEY) || pendingBefore;
-        var merged = mergePendingViewerState(result.state, currentPending.state || getViewerStateSnapshot(), baseline);
-        applyRemoteViewerState(merged, { updateBaseline: false });
-        state.viewerStateRevision = result.state.revision || 0;
-        persistPendingViewerState();
-        setSyncStatus('conflict', 'Merging');
-        scheduleViewerStateSave(80);
-      } else if (result) {
-        state.viewerStateRevision = result.revision || state.viewerStateRevision;
-        persistViewerStateBaseline(result);
-        if (submittedMutationVersion === viewerStateMutationVersion) {
-          applyRemoteViewerState(result);
-          clearPendingViewerState();
-          setSyncStatus('synced', 'Synced');
-        } else {
-          persistPendingViewerState();
-          setSyncStatus('pending', 'Pending sync');
-          scheduleViewerStateSave(80);
-        }
-      } else {
-        setSyncStatus('pending', 'Pending sync');
-      }
-    } catch (e) {
-      persistPendingViewerState();
-      setSyncStatus('pending', 'Pending sync');
-    } finally {
-      viewerStateSaveInFlight = false;
-    }
-  }, typeof delay === 'number' ? delay : 300);
-}
-
-function flushPendingViewerState() {
-  if (!readStoredViewerState(VIEWER_STATE_PENDING_KEY)) return false;
-  scheduleViewerStateSave(0);
-  return true;
-}
-
-window.addEventListener('online', flushPendingViewerState);
 
 function openPanel(id) {
   document.querySelectorAll('.utility-panel.open').forEach(function(panel) {
@@ -545,33 +199,21 @@ function readFiltersFromForm() {
   var minHeight = num('filterMinHeight');
   var minSize = num('filterMinSize');
   var maxSize = num('filterMaxSize');
-  var ratingMin = num('filterRatingMin');
   if (minWidth !== null) out.min_width = Math.round(minWidth);
   if (minHeight !== null) out.min_height = Math.round(minHeight);
   if (minSize !== null) out.min_size = Math.round(minSize * mb);
   if (maxSize !== null) out.max_size = Math.round(maxSize * mb);
-  if (ratingMin !== null && ratingMin >= 1) out.rating_min = Math.min(5, Math.round(ratingMin));
-  var colorEnabled = document.getElementById('filterColorEnabled');
-  var colorInput = document.getElementById('filterColor');
-  var colorTolerance = num('filterColorTolerance');
-  if (colorEnabled && colorEnabled.checked && colorInput) {
-    out.color = colorInput.value;
-    out.color_tolerance = colorTolerance === null ? 72 : Math.round(colorTolerance);
-  }
   var sourceDomain = normalizeFilterSourceDomain((document.getElementById('filterSourceDomain') || {}).value || '');
   if (sourceDomain) out.source_domain = sourceDomain;
   var ext = normalizeFilterExt((document.getElementById('filterExt') || {}).value || '');
   if (ext) out.ext = ext;
-  ['Shape', 'TagState', 'AnnotationState', 'ViewerNoteState', 'SourceState', 'FavoriteState', 'LaterState', 'DoneState'].forEach(function(name) {
+  ['Shape', 'TagState', 'AnnotationState', 'SourceState'].forEach(function(name) {
     var el = document.getElementById('filter' + name);
     if (!el || !el.value) return;
     var key = name === 'Shape' ? 'shape' :
       name === 'TagState' ? 'tag_state' :
       name === 'AnnotationState' ? 'annotation_state' :
-      name === 'ViewerNoteState' ? 'viewer_note_state' :
-      name === 'SourceState' ? 'source_state' :
-      name === 'FavoriteState' ? 'favorite_state' :
-      name === 'LaterState' ? 'later_state' : 'done_state';
+      'source_state';
     out[key] = el.value;
   });
   return out;
@@ -610,20 +252,10 @@ function getFilterChipSpecs(filters) {
   add('tag_state', '标签', tagLabels[f.tag_state] || f.tag_state || '');
   var annotationLabels = { annotated: '有备注', unannotated: '无备注' };
   add('annotation_state', '备注', annotationLabels[f.annotation_state] || f.annotation_state || '');
-  var viewerNoteLabels = { noted: '有 Viewer 笔记', unnoted: '无 Viewer 笔记' };
-  add('viewer_note_state', 'Viewer 笔记', viewerNoteLabels[f.viewer_note_state] || f.viewer_note_state || '');
   var sourceLabels = { sourced: '有来源', unsourced: '无来源' };
   add('source_state', '来源', sourceLabels[f.source_state] || f.source_state || '');
   add('source_domain', '来源站点', f.source_domain || '');
   add('ext', '格式', f.ext ? '.' + f.ext : '');
-  var favoriteLabels = { favorited: '已收藏', unfavorited: '未收藏' };
-  add('favorite_state', '收藏', favoriteLabels[f.favorite_state] || f.favorite_state || '');
-  var laterLabels = { later: '已待整理', not_later: '未待整理' };
-  add('later_state', '待整理', laterLabels[f.later_state] || f.later_state || '');
-  var doneLabels = { done: '已处理', not_done: '未处理' };
-  add('done_state', '处理', doneLabels[f.done_state] || f.done_state || '');
-  add('rating_min', '评分', f.rating_min ? '≥ ' + f.rating_min + ' 星' : '');
-  if (f.color) add('color', '主色', String(f.color).toUpperCase() + ' ±' + (f.color_tolerance || 72));
   return specs;
 }
 
@@ -667,47 +299,6 @@ function clearAdvancedFilter(key) {
   api.refreshCurrentView();
 }
 
-function isMobileQuickFilterActive(key) {
-  var f = state.advancedFilters || {};
-  if (key === 'not_done') return f.done_state === 'not_done';
-  if (key === 'later') return f.later_state === 'later';
-  if (key === 'untagged') return f.tag_state === 'untagged';
-  if (key === 'unsourced') return f.source_state === 'unsourced';
-  if (key === 'sourced') return f.source_state === 'sourced';
-  if (key === 'clear') return Object.keys(f).length > 0;
-  return false;
-}
-
-function syncMobileQuickFilters() {
-  document.querySelectorAll('[data-mobile-filter]').forEach(function(btn) {
-    var active = isMobileQuickFilterActive(btn.dataset.mobileFilter || '');
-    btn.classList.toggle('active', active);
-    btn.setAttribute('aria-pressed', active ? 'true' : 'false');
-  });
-}
-
-function toggleMobileQuickFilter(key) {
-  var next = Object.assign({}, state.advancedFilters || {});
-  if (key === 'clear') {
-    next = {};
-  } else if (key === 'not_done') {
-    if (next.done_state === 'not_done') delete next.done_state;
-    else next.done_state = 'not_done';
-  } else if (key === 'later') {
-    if (next.later_state === 'later') delete next.later_state;
-    else next.later_state = 'later';
-  } else if (key === 'untagged') {
-    if (next.tag_state === 'untagged') delete next.tag_state;
-    else next.tag_state = 'untagged';
-  } else if (key === 'unsourced' || key === 'sourced') {
-    if (next.source_state === key) delete next.source_state;
-    else next.source_state = key;
-  }
-  state.advancedFilters = next;
-  syncFilterForm();
-  api.refreshCurrentView();
-}
-
 function syncFilterForm() {
   var f = state.advancedFilters || {};
   function setVal(id, val) {
@@ -721,193 +312,14 @@ function syncFilterForm() {
   setVal('filterShape', f.shape);
   setVal('filterTagState', f.tag_state);
   setVal('filterAnnotationState', f.annotation_state);
-  setVal('filterViewerNoteState', f.viewer_note_state);
   setVal('filterSourceState', f.source_state);
   setVal('filterSourceDomain', f.source_domain);
   setVal('filterExt', f.ext);
-  setVal('filterRatingMin', f.rating_min);
-  var colorEnabled = document.getElementById('filterColorEnabled');
-  var colorInput = document.getElementById('filterColor');
-  var toleranceOutput = document.getElementById('filterColorToleranceValue');
-  if (colorEnabled) colorEnabled.checked = !!f.color;
-  if (colorInput && f.color) colorInput.value = f.color;
-  setVal('filterColorTolerance', f.color_tolerance || 72);
-  if (toleranceOutput) toleranceOutput.value = String(f.color_tolerance || 72);
   var filterButton = document.getElementById('filterPanelBtn');
   if (filterButton) filterButton.classList.toggle('active', Object.keys(f).length > 0);
-  syncMobileQuickFilters();
   renderActiveFilterChips();
   renderAdvancedFilterSummary(f, false);
   if (render && render.updateMobileWorkbar) render.updateMobileWorkbar();
-}
-
-function getSavedViewSourceLabel(view) {
-  if (!view || !view.view || view.view === 'all') return '全部';
-  if (view.view === 'folder') {
-    var path = view.folderId && typeof findFolderPathById === 'function' ? findFolderPathById(view.folderId, state.treeData, []) : '';
-    return path ? path.split(' / ').pop() : '文件夹';
-  }
-  if (view.view === 'tag') return view.tagName ? '#' + view.tagName : '标签';
-  if (view.view === 'eagle-smart') {
-    var eagleFolder = api.findEagleSmartFolder ? api.findEagleSmartFolder(view.eagleSmartFolderId, state.eagleSmartFolders) : null;
-    return eagleFolder ? ('Eagle · ' + eagleFolder.name) : 'Eagle 智能文件夹';
-  }
-  if (view.view === 'recent') return '最近 ' + (view.recentDays || 7) + ' 天';
-  if (view.view === 'search') return view.searchQuery ? '搜索「' + view.searchQuery + '」' : '搜索';
-  return '资料库';
-}
-
-function getSavedViewSummary(view) {
-  var parts = [getSavedViewSourceLabel(view)];
-  var typeLabels = { all: '全部格式', image: '图片', video: '视频', document: '文档', audio: '音频', other: '其他' };
-  if (view && view.type && view.type !== 'all') parts.push(typeLabels[view.type] || view.type);
-  getFilterChipSpecs((view && view.filters) || {}).forEach(function(spec) {
-    parts.push(spec.label + ' ' + spec.value);
-  });
-  var sortLabels = { mtime: '修改时间', btime: '创建时间', name: '名称', size: '大小', ext: '格式' };
-  parts.push((sortLabels[(view && view.sort) || 'mtime'] || '修改时间') + ((view && view.dir) === 'asc' ? '升序' : '降序'));
-  return parts.join(' · ');
-}
-
-function renderSavedViewRulePills(view) {
-  var typeLabels = { all: '全部格式', image: '图片', video: '视频', document: '文档', audio: '音频', other: '其他' };
-  var sortLabels = { mtime: '修改时间', btime: '创建时间', name: '名称', size: '大小', ext: '格式' };
-  var pills = [
-    { label: '范围', value: getSavedViewSourceLabel(view) },
-    { label: '类型', value: typeLabels[(view && view.type) || 'all'] || ((view && view.type) || '全部格式') }
-  ];
-  getFilterChipSpecs((view && view.filters) || {}).slice(0, 5).forEach(function(spec) {
-    pills.push({ label: spec.label, value: spec.value });
-  });
-  var filterCount = getFilterChipSpecs((view && view.filters) || {}).length;
-  if (filterCount > 5) pills.push({ label: '筛选', value: '+' + (filterCount - 5) });
-  pills.push({ label: '排序', value: (sortLabels[(view && view.sort) || 'mtime'] || '修改时间') + ((view && view.dir) === 'asc' ? ' ↑' : ' ↓') });
-  return '<div class="saved-view-rule-pills" aria-label="智能视图规则">' + pills.map(function(pill) {
-    return '<span class="saved-view-rule-pill"><em>' + escapeHtml(pill.label) + '</em><strong>' + escapeHtml(String(pill.value)) + '</strong></span>';
-  }).join('') + '</div>';
-}
-
-function getPresetViews() {
-  return [
-    { name: '未标签素材', description: '快速补标签', filters: { tag_state: 'untagged' } },
-    { name: '未来源素材', description: '补齐引用来源', filters: { source_state: 'unsourced' } },
-    { name: '无备注素材', description: '补充说明文字', filters: { annotation_state: 'unannotated' } },
-    { name: 'Viewer 审片笔记', description: '回看远程审片意见', filters: { viewer_note_state: 'noted' } },
-    { name: '未收藏素材', description: '从大库里挑精品', filters: { favorite_state: 'unfavorited' } },
-    { name: '待整理队列', description: '继续处理 later 清单', filters: { later_state: 'later' } },
-    { name: '未处理队列', description: '还没进入完成池', filters: { done_state: 'not_done' } },
-    { name: '已处理成果池', description: '回看整理完成素材', filters: { done_state: 'done' } }
-  ].map(function(view) {
-    return Object.assign({
-      view: 'all',
-      sort: 'mtime',
-      dir: 'desc',
-      type: 'all',
-      recentDays: 7,
-      folderId: '',
-      tagName: '',
-      searchQuery: ''
-    }, view);
-  });
-}
-
-function openPresetViewByName(name) {
-  var preset = getPresetViews().find(function(view) { return view.name === name; });
-  if (!preset) return;
-  return applySavedView(preset);
-}
-
-function markSmartViewActive(name) {
-  if (!name) return;
-  clearAllActive();
-  document.querySelectorAll('.smart-view-item').forEach(function(el) {
-    el.classList.toggle('active', el.dataset.smartViewName === name);
-  });
-}
-
-function renderSmartViewsSidebar() {
-  var list = document.getElementById('smartViewList');
-  if (!list) return;
-  var views = state.savedViews || [];
-  list.innerHTML = '';
-  var savedLabel = document.createElement('div');
-  savedLabel.className = 'smart-view-subtitle';
-  savedLabel.textContent = '我的智能视图';
-  list.appendChild(savedLabel);
-  if (!views.length) {
-    var emptyBtn = document.createElement('button');
-    emptyBtn.type = 'button';
-    emptyBtn.className = 'smart-view-empty';
-    emptyBtn.textContent = '保存当前筛选为智能视图';
-    emptyBtn.onclick = function() { renderSavedViews(); openPanel('savedViewsPanel'); };
-    list.appendChild(emptyBtn);
-    if (state.currentView === 'smart' && state.currentSmartViewName) markSmartViewActive(state.currentSmartViewName);
-    return;
-  }
-  views.slice(0, 12).forEach(function(view, idx) {
-    var btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'smart-view-item';
-    btn.dataset.smartViewName = view.name || '';
-    btn.dataset.smartViewIndex = String(idx);
-    btn.innerHTML = '<span class="sidebar-item-icon">' + iconSliders() + '</span>' +
-      '<span class="smart-view-copy"><strong>' + escapeHtml(view.name || '未命名视图') + '</strong><small>' + escapeHtml(getSavedViewSummary(view)) + '</small></span>';
-    btn.onclick = function() { applySavedView(view); };
-    list.appendChild(btn);
-  });
-  if (views.length > 12) {
-    var more = document.createElement('button');
-    more.type = 'button';
-    more.className = 'smart-view-empty';
-    more.textContent = '还有 ' + (views.length - 12) + ' 个，打开管理';
-    more.onclick = function() { renderSavedViews(); openPanel('savedViewsPanel'); };
-    list.appendChild(more);
-  }
-  if (state.currentView === 'smart' && state.currentSmartViewName) markSmartViewActive(state.currentSmartViewName);
-}
-
-
-
-
-
-function renderSavedViews() {
-  var list = document.getElementById('savedViewList');
-  if (!list) return;
-  list.innerHTML = '';
-  if (!state.savedViews.length) {
-    list.innerHTML = '<div class="saved-view-empty"><strong>还没有智能视图</strong><span>先设置排序、格式或高级筛选，然后把当前结果保存成一个侧栏入口。</span></div>';
-    return;
-  }
-  state.savedViews.forEach(function(view, idx) {
-    var card = document.createElement('div');
-    card.className = 'saved-view-card';
-    card.innerHTML = '<div class="saved-view-card-main"><strong>' + escapeHtml(view.name) + '</strong><span>' + escapeHtml(getSavedViewSummary(view)) + '</span>' + renderSavedViewRulePills(view) + '</div>' +
-      '<div class="saved-view-card-actions"><button type="button">打开</button><button type="button">复制链接</button><button type="button" class="danger">删除</button></div>';
-    card.querySelectorAll('button')[0].onclick = function() { applySavedView(view); closePanel('savedViewsPanel'); };
-    card.querySelectorAll('button')[1].onclick = function() { copySmartViewLink(view, this); };
-    card.querySelectorAll('button')[2].onclick = function() {
-      state.savedViews.splice(idx, 1);
-      saveLocalData();
-      renderSavedViews();
-      if (state.currentView === 'smart' && state.currentSmartViewName === view.name) {
-        state.currentSmartViewName = '';
-        api.loadAllItems(true);
-      }
-    };
-    list.appendChild(card);
-  });
-}
-
-function buildSmartViewUrl(view) {
-  var params = new URLSearchParams();
-  params.set('view', 'smart');
-  params.set('smart', view && view.name ? view.name : '');
-  return location.origin + location.pathname + location.search + '#' + params.toString();
-}
-
-function copySmartViewLink(view, button) {
-  if (!view || !view.name) return;
-  copyTextToClipboard(buildSmartViewUrl(view), '智能视图链接', button);
 }
 
 function buildCurrentViewUrl() {
@@ -920,13 +332,9 @@ function buildCurrentViewUrl() {
   if (state.currentView === 'tag' && state.currentTagName) params.set('tag', state.currentTagName);
   if (state.currentView === 'recent') params.set('days', String(state.recentDays || 7));
   if (state.currentView === 'search' && state.searchQuery) params.set('q', state.searchQuery);
-  if (state.currentView === 'smart' && state.currentSmartViewName) params.set('smart', state.currentSmartViewName);
-  if (state.currentView === 'eagle-smart' && state.currentEagleSmartFolderId) params.set('eagleSmart', state.currentEagleSmartFolderId);
-  if (state.currentView === 'random' && state.currentRandomSeed) params.set('seed', state.currentRandomSeed);
   (window.URL_FILTER_KEYS || [
     'min_size', 'max_size', 'min_width', 'min_height', 'mtime_from', 'mtime_to',
-    'shape', 'tag_state', 'annotation_state', 'viewer_note_state', 'source_state',
-    'source_domain', 'ext', 'color', 'color_tolerance'
+    'shape', 'tag_state', 'annotation_state', 'source_state', 'source_domain', 'ext'
   ]).forEach(function(key) {
     var val = (state.advancedFilters || {})[key];
     if (val !== null && val !== undefined && val !== '') params.set(key, val);
@@ -938,71 +346,9 @@ function copyCurrentViewLink(button) {
   copyTextToClipboard(buildCurrentViewUrl(), '当前视图链接', button);
 }
 
-function getDefaultSmartViewName() {
-  var title = typeof getMobileWorkbarTitle === 'function' ? getMobileWorkbarTitle() : (state.currentTitle || '当前视图');
-  var base = String(title || '当前视图').replace(/\s+/g, ' ').trim() || '当前视图';
-  var name = base;
-  var n = 2;
-  var existing = state.savedViews || [];
-  while (existing.some(function(view) { return view && view.name === name; })) {
-    name = base + ' ' + n;
-    n += 1;
-  }
-  return name;
-}
-
-function saveCurrentViewAsSmartView(name) {
-  var smartName = String(name || '').trim();
-  if (!smartName) return false;
-  var next = captureCurrentView(smartName);
-  var existingIdx = state.savedViews.findIndex(function(view) { return view.name === smartName; });
-  if (existingIdx >= 0) state.savedViews.splice(existingIdx, 1, next);
-  else state.savedViews.push(next);
-  saveLocalData();
-  renderSavedViews();
-  if (render.updateSidebarCounts) render.updateSidebarCounts();
-  renderSmartViewsSidebar();
-  renderMobileSearchQuick();
-  syncMobileMoreHandoff();
-  if (window.showToast) showToast('已保存智能视图：' + smartName, 'success');
-  return true;
-}
-
-function promptSaveCurrentSmartView() {
-  var name = window.prompt('保存当前视图为智能视图', getDefaultSmartViewName());
-  if (name === null) return;
-  saveCurrentViewAsSmartView(name);
-}
-
-function getCurrentViewShareTitle() {
-  var title = '全部文件';
-  if (state.currentView === 'folder') {
-    var folderPath = typeof findFolderPathById === 'function' ? findFolderPathById(state.currentFolderId, state.treeData, []) : '';
-    var folderParts = folderPath ? folderPath.split(' / ') : [];
-    title = folderParts.length ? folderParts[folderParts.length - 1] : '文件夹';
-  } else if (state.currentView === 'tag') {
-    title = '#' + (state.currentTagName || '标签');
-  } else if (state.currentView === 'recent') {
-    title = '最近 ' + (state.recentDays || 7) + ' 天';
-  } else if (state.currentView === 'search') {
-    title = state.searchQuery ? ('搜索：' + state.searchQuery) : '搜索结果';
-  } else if (state.currentView === 'smart') {
-    title = state.currentSmartViewName || '智能视图';
-  } else if (state.currentView === 'eagle-smart') {
-    title = state.currentTitle || 'Eagle 智能文件夹';
-  } else if (state.currentView === 'duplicates') {
-    title = '疑似重复';
-  } else if (state.currentView === 'colors') {
-    title = '全库色谱';
-  } else if (state.currentView === 'random') {
-    title = '随机漫游 · ' + String(state.currentRandomSeed || '').slice(0, 8);
-  }
-  return 'Eagle Vault · ' + title;
-}
-
 async function shareCurrentViewLink(button) {
   var url = buildCurrentViewUrl();
-  var title = getCurrentViewShareTitle();
+  var title = state.currentTitle || 'Eagle Vault';
   try {
     if (navigator.share && window.innerWidth <= 768) {
       await navigator.share({ title: title, text: title, url: url });
@@ -1013,150 +359,6 @@ async function shareCurrentViewLink(button) {
     if (err && err.name === 'AbortError') return;
   }
   copyCurrentViewLink(button);
-}
-
-function exportSavedViewsConfig() {
-  var payload = {
-    app: 'eagle-viewer',
-    kind: 'smart-views',
-    exportedAt: new Date().toISOString(),
-    views: state.savedViews || []
-  };
-  var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-  var a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'eagle-smart-views.json';
-  a.click();
-  URL.revokeObjectURL(a.href);
-  if (window.showToast) showToast('智能视图已导出', 'success');
-}
-
-function normalizeImportedSavedViews(raw) {
-  var views = Array.isArray(raw) ? raw : (raw && Array.isArray(raw.views) ? raw.views : []);
-  return views.filter(function(view) {
-    return view && typeof view.name === 'string' && view.name.trim();
-  }).map(function(view) {
-    return {
-      name: view.name.trim(),
-      view: view.view || 'all',
-      folderId: view.folderId || null,
-      tagName: view.tagName || null,
-      recentDays: Number(view.recentDays) || 7,
-      searchQuery: view.searchQuery || '',
-      sort: view.sort || 'mtime',
-      dir: view.dir === 'asc' ? 'asc' : 'desc',
-      type: view.type || 'all',
-      filters: view.filters && typeof view.filters === 'object' ? view.filters : {}
-    };
-  });
-}
-
-async function importSavedViewsFile(file) {
-  if (!file) return;
-  try {
-    var raw = JSON.parse(await file.text());
-    var incoming = normalizeImportedSavedViews(raw);
-    if (!incoming.length) throw new Error('empty');
-    incoming.forEach(function(view) {
-      var idx = state.savedViews.findIndex(function(existing) { return existing.name === view.name; });
-      if (idx >= 0) state.savedViews.splice(idx, 1, view);
-      else state.savedViews.push(view);
-    });
-    await saveLocalData();
-    renderSavedViews();
-    renderSmartViewsSidebar();
-    if (window.showToast) showToast('已导入 ' + incoming.length + ' 个智能视图', 'success');
-  } catch (err) {
-    if (window.showToast) showToast('导入智能视图失败，请检查 JSON', 'error');
-  }
-}
-
-function uniqueIdList(ids) {
-  var seen = {};
-  return (ids || []).filter(function(id) {
-    id = String(id || '');
-    if (!id || seen[id]) return false;
-    seen[id] = true;
-    return true;
-  });
-}
-
-
-
-function captureCurrentView(name) {
-  if (state.currentView === 'smart' && state.currentSmartViewName) {
-    var source = (state.savedViews || []).find(function(view) { return view.name === state.currentSmartViewName; });
-    if (source) {
-      var copy = Object.assign({}, source);
-      copy.name = name;
-      copy.filters = Object.assign({}, source.filters || {});
-      return copy;
-    }
-  }
-  return {
-    name: name,
-    view: state.currentView,
-    folderId: state.currentFolderId,
-    tagName: state.currentTagName,
-    recentDays: state.recentDays,
-    searchQuery: state.searchQuery,
-    eagleSmartFolderId: state.currentEagleSmartFolderId,
-    sort: state.listSort,
-    dir: state.listDir,
-    type: state.listType,
-    filters: state.advancedFilters || {}
-  };
-}
-
-async function applySavedView(view) {
-  if (!view) return;
-  var smartName = view.name || '';
-  state.listSort = view.sort || 'mtime';
-  state.listDir = view.dir || 'desc';
-  state.listType = view.type || 'all';
-  state.advancedFilters = view.filters || {};
-  state.currentSmartViewName = smartName;
-  syncToolbarSelects();
-  syncFilterForm();
-  suspendRouteHistory();
-  try {
-    if (view.view === 'folder' && view.folderId) await api.loadFolderItems(view.folderId);
-    else if (view.view === 'tag' && view.tagName) await api.loadTagItems(view.tagName);
-    else if (view.view === 'eagle-smart' && view.eagleSmartFolderId) await api.loadEagleSmartFolderItems(view.eagleSmartFolderId);
-    else if (view.view === 'recent') await api.loadRecentItems(view.recentDays || 7);
-    else if (view.view === 'search') {
-      document.getElementById('searchInput').value = view.searchQuery || '';
-      await api.doSearch();
-    } else await api.loadAllItems(true);
-  } finally {
-    resumeRouteHistory();
-  }
-  state.currentView = 'smart';
-  state.currentSmartViewName = smartName;
-  state.currentTitle = '智能视图「' + smartName + '」';
-  markSmartViewActive(smartName);
-  if (render.updateContentTitle) render.updateContentTitle();
-  updateUrlFromState();
-  syncMobileTabbar();
-  if (window.innerWidth <= 768 && window._closeMobileSidebar) window._closeMobileSidebar();
-}
-
-async function openSmartViewByName(name) {
-  var target = getPresetViews().find(function(view) { return view.name === name; }) ||
-    (state.savedViews || []).find(function(view) { return view.name === name; });
-  if (!target && state.savedViews && state.savedViews.length) target = state.savedViews[0];
-  if (!target) return api.loadAllItems(true);
-  return applySavedView(target);
-}
-
-async function startUndoneReview() {
-  await openSmartViewByName('未处理队列');
-  var first = (state.currentItems || []).find(function(item) { return isItemPreviewable(item); });
-  if (!first) {
-    if (window.showToast) window.showToast('未处理队列暂无可预览素材');
-    return;
-  }
-  render.previewItem(first, API + '/api/items/' + first.id + '/file');
 }
 
 async function runPendingLaunchAction() {
@@ -1175,26 +377,6 @@ async function runPendingLaunchAction() {
   }
   return false;
 }
-
-function renderStatsPanel(stats) {
-  var grid = document.getElementById('statsGrid');
-  if (!grid) return;
-  if (!stats) {
-    grid.textContent = '暂无索引状态';
-    return;
-  }
-  var parts = [
-    ['文件', stats.items],
-    ['文件夹', stats.folders],
-    ['标签', stats.tags],
-    ['扫描耗时', (stats.loadDurationMs || 0) + ' ms'],
-    ['目录', stats.info_dirs],
-    ['跳过', (stats.skipped_missing_metadata || 0) + (stats.skipped_bad_metadata || 0) + (stats.skipped_deleted || 0) + (stats.skipped_missing_file || 0)]
-  ];
-  grid.innerHTML = parts.map(function(p) { return '<span class="stat-pill"><strong>' + escapeHtml(p[0]) + '</strong> ' + escapeHtml(String(p[1] == null ? '-' : p[1])) + '</span>'; }).join('');
-}
-
-
 
 var batchFeedbackTimer = null;
 
@@ -1250,37 +432,7 @@ function pulseMobileTab(btn) {
 function syncMobileTabbar() {
   var activeId = 'mobileLibraryBtn';
   if (state.currentView === 'search') activeId = 'mobileSearchBtn';
-  else if (state.currentView === 'smart') activeId = 'mobileMoreBtn';
-  else if (state.currentView === 'eagle-smart') activeId = 'mobileMoreBtn';
-  else if (state.currentView === 'duplicates') activeId = 'mobileMoreBtn';
-  else if (state.currentView === 'colors') activeId = 'mobileMoreBtn';
-  else if (state.currentView === 'random') activeId = 'mobileMoreBtn';
   setMobileTabActive(activeId);
-}
-
-function buildCommandItems(query) {
-  var q = (query || '').toLowerCase();
-  var folderMatches = [];
-  var items = [
-    { title: '全部文件', hint: '视图', run: function() { api.loadAllItems(true); } },
-    { title: '最近 7 天', hint: '视图', run: function() { api.loadRecentItems(7); } },
-    { title: '最近 30 天', hint: '视图', run: function() { api.loadRecentItems(30); } },
-    { title: '疑似重复', hint: '工具', run: function() { api.loadDuplicates(); } },
-    { title: '全库色谱', hint: '工具 · 按颜色探索', run: function() { api.loadColorAtlas(); } },
-    { title: '随机漫游', hint: '工具 · 从 Vault 重新发现', run: function() { api.loadRandomWalk('', true); } },
-    { title: '索引状态', hint: '工具', run: function() { openPanel('statsPanel'); api.fetchStats().then(renderStatsPanel); } },
-    { title: '高级筛选', hint: '工具', run: function() { openPanel('advancedPanel'); } }
-  ];
-  getEagleSmartFolderQuickItems(80).forEach(function(item) {
-    items.push({ title: item.title, hint: 'Eagle 智能文件夹 · ' + item.hint, run: item.run });
-  });
-  state.savedViews.forEach(function(view) { items.push({ title: view.name, hint: '保存视图', run: function() { applySavedView(view); } }); });
-  state.tagData.slice(0, 100).forEach(function(tag) { items.push({ title: tag.name, hint: '标签', run: function() { api.loadTagItems(tag.name); } }); });
-  if (q) getFolderPathMatches(q, state.treeData, [], folderMatches);
-  folderMatches.forEach(function(match) {
-    items.push({ title: match.path, hint: match.locked ? 'Eagle 保护文件夹' : '文件夹', run: function() { api.loadFolderItems(match.id); } });
-  });
-  return items.filter(function(item) { return !q || item.title.toLowerCase().indexOf(q) >= 0 || item.hint.toLowerCase().indexOf(q) >= 0; }).slice(0, 30);
 }
 
 function getSearchSuggestItems(query) {
@@ -1347,39 +499,6 @@ function renderSearchSuggest() {
   suggest.dataset.activeIndex = items.length && items[0].type !== 'hint' ? '0' : '-1';
   suggest.classList.toggle('open', items.length > 0);
   if (items.length && items[0].type !== 'hint') setSearchSuggestActive(0);
-}
-
-function renderCommandList() {
-  var input = document.getElementById('commandInput');
-  var list = document.getElementById('commandList');
-  if (!input || !list) return;
-  var commands = buildCommandItems(input.value);
-  list.innerHTML = '';
-  commands.forEach(function(cmd) {
-    var row = document.createElement('div');
-    row.className = 'command-item';
-    row.innerHTML = '<span>' + escapeHtml(cmd.title) + '</span><small>' + escapeHtml(cmd.hint) + '</small>';
-    row.onclick = function() {
-      closeCommandPalette();
-      cmd.run();
-    };
-    list.appendChild(row);
-  });
-}
-
-function openCommandPalette() {
-  var overlay = document.getElementById('commandOverlay');
-  var input = document.getElementById('commandInput');
-  if (!overlay || !input) return;
-  overlay.classList.add('open');
-  input.value = '';
-  renderCommandList();
-  setTimeout(function() { input.focus(); }, 0);
-}
-
-function closeCommandPalette() {
-  var overlay = document.getElementById('commandOverlay');
-  if (overlay) overlay.classList.remove('open');
 }
 
 // ===== View mode =====
@@ -1568,128 +687,6 @@ function openSourceDomainView(domain) {
   api.refreshCurrentView();
 }
 
-function paletteColorToHex(color) {
-  if (!Array.isArray(color) || color.length !== 3) return '';
-  return '#' + color.map(function(channel) {
-    var value = Math.max(0, Math.min(255, Math.round(Number(channel) || 0)));
-    return value.toString(16).padStart(2, '0');
-  }).join('');
-}
-
-function normalizePaletteBucket(hex) {
-  var raw = String(hex || '').replace('#', '').trim();
-  if (!/^[0-9a-f]{6}$/i.test(raw)) return '';
-  var r = parseInt(raw.slice(0, 2), 16);
-  var g = parseInt(raw.slice(2, 4), 16);
-  var b = parseInt(raw.slice(4, 6), 16);
-  var bucket = [r, g, b].map(function(value) {
-    return Math.max(0, Math.min(255, Math.round(value / 48) * 48));
-  });
-  return '#' + bucket.map(function(value) {
-    return value.toString(16).padStart(2, '0');
-  }).join('');
-}
-
-function getItemPrimaryPaletteColor(item) {
-  var palettes = (item && item.palettes) || [];
-  for (var i = 0; i < palettes.length; i += 1) {
-    var hex = paletteColorToHex(palettes[i] && palettes[i].color);
-    if (normalizePaletteBucket(hex)) return hex;
-  }
-  return '';
-}
-
-function getTopPaletteQuickItems(limit) {
-  var buckets = {};
-  (state.currentItems || []).forEach(function(item) {
-    (item.palettes || []).slice(0, 3).forEach(function(entry) {
-      var hex = paletteColorToHex(entry && entry.color);
-      var bucket = normalizePaletteBucket(hex);
-      if (!bucket) return;
-      if (!buckets[bucket]) buckets[bucket] = { count: 0, ratio: 0, color: hex || bucket };
-      buckets[bucket].count += 1;
-      buckets[bucket].ratio += Number((entry && entry.ratio) || 0);
-    });
-  });
-  return Object.keys(buckets).sort(function(a, b) {
-    if (buckets[b].count !== buckets[a].count) return buckets[b].count - buckets[a].count;
-    return buckets[b].ratio - buckets[a].ratio;
-  }).slice(0, limit || 5).map(function(bucket) {
-    var data = buckets[bucket];
-    return {
-      key: 'color:' + data.color,
-      group: 'color',
-      title: data.color.toUpperCase(),
-      hint: data.count + ' 项 · 相近主色',
-      meta: '主色',
-      color: data.color,
-      run: function() { openPaletteColorView(data.color); }
-    };
-  });
-}
-
-function openPaletteColorView(color) {
-  var normalized = String(color || '').trim();
-  if (!/^#[0-9a-f]{6}$/i.test(normalized)) return;
-  var search = document.getElementById('searchInput');
-  if (search) search.value = '';
-  clearAllActive();
-  if (render && render.closeInspector) render.closeInspector();
-  state.listType = 'all';
-  state.advancedFilters = { color: normalized, color_tolerance: 72 };
-  syncToolbarSelects();
-  syncFilterForm();
-  api.loadAllItems(true);
-}
-
-function getSavedViewQuickItems(limit) {
-  var max = limit || 4;
-  var views = state.savedViews || [];
-  var quickViews = views.slice(-max).reverse();
-  var items = quickViews.map(function(view, idx) {
-    return {
-      key: 'saved:' + idx + ':' + (view.name || ''),
-      group: 'saved',
-      title: view.name || '未命名视图',
-      hint: getSavedViewSummary(view),
-      meta: 'Smart',
-      run: function() { applySavedView(view); }
-    };
-  });
-  if (views.length > max) {
-    items.push({
-      key: 'saved:manage',
-      group: 'saved',
-      title: '管理全部',
-      hint: '还有 ' + (views.length - max) + ' 个智能视图',
-      meta: 'More',
-      run: function() { renderSavedViews(); openPanel('savedViewsPanel'); }
-    });
-  }
-  return items;
-}
-
-function getEagleSmartFolderQuickItems(limit) {
-  var flattened = [];
-  function collect(nodes) {
-    (nodes || []).forEach(function(node) {
-      flattened.push(node);
-      collect(node.children || []);
-    });
-  }
-  collect(state.eagleSmartFolders || []);
-  return flattened.slice(0, limit || 6).map(function(node) {
-    return {
-      key: 'eagle-smart:' + node.id,
-      group: 'eagle-smart',
-      title: node.name || 'Eagle 智能文件夹',
-      hint: (node.count || 0) + ' 项 · ' + (node.ruleSummary || '自动规则'),
-      meta: 'Eagle',
-      run: function() { api.loadEagleSmartFolderItems(node.id); }
-    };
-  });
-}
-
 function getMobileSearchQuickItems() {
   return [
     { key: 'recent7', group: 'browse', title: '最近 7 天', hint: '新增素材', run: function() { api.loadRecentItems(7); } }
@@ -1797,16 +794,7 @@ function getMobileSearchResults(query) {
       if (item.type === 'hint') return;
       push(item.type, item.title, item.hint, item.value);
     });
-    buildCommandItems(q).slice(0, 8).forEach(function(item) {
-      push('command', item.title, item.hint, item);
-    });
-    getEagleSmartFolderQuickItems(40).forEach(function(item) {
-      if ((item.title + ' ' + item.hint).toLowerCase().indexOf(q.toLowerCase()) >= 0) push('eagle-smart', item.title, item.hint, item.key.replace('eagle-smart:', ''));
-    });
   } else {
-    getEagleSmartFolderQuickItems(8).forEach(function(item) {
-      push('eagle-smart', item.title, item.hint, item.key.replace('eagle-smart:', ''));
-    });
     state.tagData.slice(0, 8).forEach(function(tag) {
       push('tag', '#' + tag.name, (tag.count || 0) + ' 项 · 标签', tag.name);
     });
@@ -1837,8 +825,8 @@ function renderMobileSearchResults() {
       '</div>';
     return;
   }
-  var groupLabels = { command: '快捷入口', 'eagle-smart': 'Eagle 智能文件夹', tag: '标签', folder: '文件夹', search: '搜索建议' };
-  var groupOrder = ['command', 'eagle-smart', 'tag', 'folder', 'search'];
+  var groupLabels = { tag: '标签', folder: '文件夹', search: '搜索建议' };
+  var groupOrder = ['tag', 'folder', 'search'];
   var groups = {};
   groupOrder.forEach(function(type) { groups[type] = []; });
   results.forEach(function(item, idx) {
@@ -1852,7 +840,7 @@ function renderMobileSearchResults() {
       groups[type].map(function(entry) {
         var item = entry.item;
         var idx = entry.idx;
-        var kicker = item.type === 'tag' ? '标签' : item.type === 'folder' ? '文件夹' : item.type === 'eagle-smart' ? 'Eagle' : item.type === 'search' ? '搜索' : '跳转';
+        var kicker = item.type === 'tag' ? '标签' : item.type === 'folder' ? '文件夹' : '搜索';
         return '<button type="button" class="mobile-search-result" data-result-type="' + escapeHtml(item.type) + '" data-mobile-search-index="' + idx + '">' +
           '<span>' + escapeHtml(kicker) + '</span><strong>' + escapeHtml(item.title) + '</strong><small>' + escapeHtml(item.hint) + '</small>' +
         '</button>';
@@ -1959,13 +947,9 @@ function runMobileSearchResult(item) {
   } else if (item.type === 'folder') {
     if (search) search.value = '/' + item.title;
     api.loadFolderItems(item.value);
-  } else if (item.type === 'eagle-smart') {
-    api.loadEagleSmartFolderItems(item.value);
   } else if (item.type === 'search') {
     if (search) search.value = item.value;
     api.doSearch();
-  } else if (item.type === 'command' && item.value && typeof item.value.run === 'function') {
-    item.value.run();
   } else if (mobileInput && mobileInput.value.trim()) {
     if (search) search.value = mobileInput.value.trim();
     api.doSearch();
@@ -2115,6 +1099,65 @@ function setupMobileSearchSheet() {
   window._closeMobileSearchSheet = closeMobileSearchSheet;
 }
 
+function setupMobileMoreSheet() {
+  var sheet = document.getElementById('mobileMoreOverlay');
+  if (!sheet || sheet._bound) return;
+  sheet._bound = true;
+
+  function closeMoreSheet() {
+    var tab = document.getElementById('mobileMoreBtn');
+    resetMobileSheetDrag(sheet, '.mobile-more-sheet', '.mobile-more-backdrop');
+    sheet.classList.remove('open');
+    sheet.classList.add('closing');
+    sheet.setAttribute('aria-hidden', 'true');
+    if (tab) tab.setAttribute('aria-expanded', 'false');
+    document.body.classList.remove('mobile-more-open');
+    setTimeout(function() { sheet.classList.remove('closing'); }, 180);
+    syncMobileTabbar();
+  }
+
+  function openMoreSheet() {
+    if (window._closeMobileSidebar) window._closeMobileSidebar();
+    if (window._closeMobileSearchSheet) window._closeMobileSearchSheet();
+    sheet.classList.remove('closing');
+    sheet.classList.add('open');
+    sheet.setAttribute('aria-hidden', 'false');
+    var tab = document.getElementById('mobileMoreBtn');
+    if (tab) tab.setAttribute('aria-expanded', 'true');
+    document.body.classList.add('mobile-more-open');
+    setMobileTabActive('mobileMoreBtn');
+    checkRemoteStatus({ reload: false, quietStrip: true });
+  }
+
+  sheet.addEventListener('click', function(e) {
+    if (e.target.closest('[data-mobile-more-close]')) {
+      closeMoreSheet();
+      return;
+    }
+    if (e.target.closest('#mobileRemoteRefresh')) {
+      checkRemoteStatus({ reload: false, quietStrip: false, message: '正在检查远程 Vault…' });
+      return;
+    }
+    var actionEl = e.target.closest('[data-mobile-more-action]');
+    if (!actionEl) return;
+    var action = actionEl.dataset.mobileMoreAction;
+    closeMoreSheet();
+    if (action === 'sidebar' && window._openMobileSidebar) {
+      window._openMobileSidebar();
+    } else if (action === 'refresh') {
+      api.reloadLibrary();
+    } else if (action === 'theme') {
+      toggleTheme();
+    }
+  });
+  bindMobileSheetDrag(sheet, '.mobile-more-sheet', '.mobile-more-backdrop', closeMoreSheet);
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && sheet.classList.contains('open')) closeMoreSheet();
+  });
+  window._openMobileMoreSheet = openMoreSheet;
+  window._closeMobileMoreSheet = closeMoreSheet;
+}
+
 function updateMobileRemoteCard(status, message) {
   var card = document.getElementById('mobileRemoteCard');
   if (!card) return;
@@ -2150,108 +1193,6 @@ function updateMobileRemoteCard(status, message) {
     snapshotChip.title = snapshot ? ((snapshot.title || '当前视图') + ' · ' + new Date(snapshot.savedAt).toLocaleString('zh-CN')) : '尚未保存离线快照';
   }
   if (render && render.updateMobileWorkbar) render.updateMobileWorkbar();
-  syncMobileMoreHandoff();
-}
-
-function syncMobileMoreHandoff() {
-  syncMobileCurrentViewCard();
-  syncMobileOfflineStorageCard();
-  var recentEl = document.getElementById('mobileHandoffRecent');
-  var snapshotEl = document.getElementById('mobileHandoffSnapshot');
-  var reviewEl = document.getElementById('mobileHandoffReview');
-  if (recentEl) recentEl.textContent = ((state.collectionIds.recentViewed || []).length || 0) + ' 项';
-  if (reviewEl) {
-    var doneCount = (state.collectionIds.done || []).length || 0;
-    reviewEl.textContent = doneCount ? ('已处理 ' + doneCount + ' 项') : '未处理队列';
-  }
-  if (snapshotEl) {
-    var snapshot = getOfflineSnapshotMeta();
-    snapshotEl.textContent = snapshot ? (formatSnapshotAge(snapshot.savedAt) + ' · ' + (snapshot.ok || 0) + ' 项') : '未保存';
-  }
-}
-
-function syncMobileCurrentViewCard() {
-  var card = document.getElementById('mobileCurrentViewCard');
-  if (!card) return;
-  var kind = document.getElementById('mobileCurrentViewKind');
-  var title = document.getElementById('mobileCurrentViewTitle');
-  var meta = document.getElementById('mobileCurrentViewMeta');
-  var viewKind = typeof getMobileWorkbarKind === 'function' ? getMobileWorkbarKind() : '当前视图';
-  var viewTitle = typeof getMobileWorkbarTitle === 'function' ? getMobileWorkbarTitle() : (state.currentTitle || '资料库');
-  var viewMeta = typeof getMobileWorkbarMeta === 'function' ? getMobileWorkbarMeta() : ((state.currentItems || []).length + ' 项');
-  var snapshot = getOfflineSnapshotMeta();
-  if (kind) kind.textContent = viewKind;
-  if (title) title.textContent = viewTitle;
-  if (meta) meta.textContent = viewMeta + (snapshot ? (' · 快照 ' + formatSnapshotAge(snapshot.savedAt)) : ' · 可保存快照');
-  card.dataset.view = state.currentView || 'all';
-}
-
-function syncMobileOfflineStorageCard() {
-  var card = document.getElementById('mobileOfflineStorage');
-  if (!card) return;
-  var title = document.getElementById('mobileOfflineStorageTitle');
-  var meta = document.getElementById('mobileOfflineStorageMeta');
-  var usage = document.getElementById('mobileOfflineStorageUsage');
-  var count = document.getElementById('mobileOfflineStorageCount');
-  var bar = document.getElementById('mobileOfflineStorageBar');
-  var clear = document.getElementById('mobileOfflineStorageClear');
-  var list = document.getElementById('mobileOfflineViewList');
-  var snapshot = getOfflineSnapshotMeta();
-  var catalog = api.getOfflineSnapshotCatalog ? api.getOfflineSnapshotCatalog() : [];
-  var latest = catalog[0] || snapshot;
-  card.dataset.state = latest ? 'saved' : 'empty';
-  if (title) title.textContent = catalog.length ? ('已保存 ' + catalog.length + ' 个离线视图') : (snapshot ? (snapshot.title || '当前视图') : '尚未保存离线数据');
-  if (meta) {
-    meta.textContent = latest
-      ? ('最近：' + (latest.title || '当前视图') + ' · ' + formatSnapshotAge(latest.savedAt) + ' · 应用外壳独立保留')
-      : '保存当前视图后可离线浏览索引与缩略图';
-  }
-  if (count) count.textContent = latest ? ((latest.ok || 0) + ' / ' + (latest.total || latest.ok || 0) + ' 项') : '0 项';
-  if (clear) clear.disabled = !latest;
-  if (list) {
-    list.hidden = !catalog.length;
-    list.innerHTML = catalog.map(function(entry) {
-      return '<button type="button" data-mobile-offline-route="' + escapeHtml(entry.route) + '">' +
-        '<span><em>' + escapeHtml(entry.view === 'folder' ? '文件夹' : entry.view === 'tag' ? '标签' : entry.view === 'search' ? '搜索' : entry.view === 'smart' ? '智能视图' : entry.view === 'collection' ? '清单' : '视图') + '</em>' +
-        '<strong>' + escapeHtml(entry.title || '当前视图') + '</strong>' +
-        '<small>' + escapeHtml(formatSnapshotAge(entry.savedAt) + ' · ' + (entry.ok || 0) + '/' + (entry.total || entry.ok || 0) + ' 项') + '</small></span>' +
-        iconChevronRight() +
-      '</button>';
-    }).join('');
-  }
-  if (!navigator.storage || !navigator.storage.estimate) {
-    if (usage) usage.textContent = '浏览器未提供用量';
-    if (bar) bar.style.width = '0%';
-    return;
-  }
-  navigator.storage.estimate().then(function(estimate) {
-    var used = Number(estimate.usage || 0);
-    var quota = Number(estimate.quota || 0);
-    var percent = quota > 0 ? Math.min(100, used / quota * 100) : 0;
-    if (usage) usage.textContent = '本站 ' + formatSize(used) + (quota ? (' / ' + formatSize(quota)) : '');
-    if (bar) bar.style.width = percent + '%';
-  }).catch(function() {
-    if (usage) usage.textContent = '暂时无法读取用量';
-    if (bar) bar.style.width = '0%';
-  });
-}
-
-async function openOfflineSnapshotRoute(route) {
-  var normalized = String(route || '');
-  if (normalized.indexOf('#view=') !== 0 || !applyStateFromHash(normalized)) {
-    if (window.showToast) window.showToast('离线视图入口已失效', 'error');
-    return false;
-  }
-  if (state.inspectorItem && render.closeInspector) render.closeInspector();
-  var search = document.getElementById('searchInput');
-  if (search && state.currentView === 'search') search.value = state.searchQuery || '';
-  syncFilterForm();
-  syncToolbarSelects();
-  await api.refreshCurrentView();
-  if (render.syncActiveNavigationState) render.syncActiveNavigationState();
-  syncMobileTabbar();
-  if (window.showToast) window.showToast(navigator.onLine === false ? '已打开离线视图' : '已打开已保存视图', 'success');
-  return true;
 }
 
 function getOfflineSnapshotMeta() {
@@ -2470,116 +1411,6 @@ function setupRemoteStatusStrip() {
   });
 }
 
-function setupMobileMoreSheet() {
-  var sheet = document.getElementById('mobileMoreOverlay');
-  if (!sheet || sheet._bound) return;
-  sheet._bound = true;
-
-  function closeMoreSheet() {
-    var tab = document.getElementById('mobileMoreBtn');
-    resetMobileSheetDrag(sheet, '.mobile-more-sheet', '.mobile-more-backdrop');
-    sheet.classList.remove('open');
-    sheet.classList.add('closing');
-    sheet.setAttribute('aria-hidden', 'true');
-    if (tab) tab.setAttribute('aria-expanded', 'false');
-    document.body.classList.remove('mobile-more-open');
-    setTimeout(function() { sheet.classList.remove('closing'); }, 180);
-    syncMobileTabbar();
-  }
-
-  function openMoreSheet() {
-    if (window._closeMobileSidebar) window._closeMobileSidebar();
-    syncMobileMoreHandoff();
-    sheet.classList.remove('closing');
-    sheet.classList.add('open');
-    sheet.setAttribute('aria-hidden', 'false');
-    var tab = document.getElementById('mobileMoreBtn');
-    if (tab) tab.setAttribute('aria-expanded', 'true');
-    document.body.classList.add('mobile-more-open');
-    setMobileTabActive('mobileMoreBtn');
-    var remoteStrip = document.getElementById('remoteStatusStrip');
-    if (remoteStrip && remoteStrip.dataset.state === 'changed') updateMobileRemoteCard('changed', '发现 Vault 更新');
-    else refreshMobileRemoteStatus(true);
-  }
-
-  sheet.addEventListener('click', function(e) {
-    if (e.target.closest('[data-mobile-more-close]')) {
-      closeMoreSheet();
-      return;
-    }
-    if (e.target.closest('#mobileRemoteRefresh')) {
-      var remoteCard = document.getElementById('mobileRemoteCard');
-      if (remoteCard && remoteCard.dataset.state === 'changed') applyDetectedLibraryUpdate();
-      else refreshMobileRemoteStatus(false);
-      return;
-    }
-    var offlineView = e.target.closest('[data-mobile-offline-route]');
-    if (offlineView) {
-      closeMoreSheet();
-      openOfflineSnapshotRoute(offlineView.dataset.mobileOfflineRoute);
-      return;
-    }
-    var actionEl = e.target.closest('[data-mobile-more-action]');
-    if (!actionEl) return;
-    var action = actionEl.dataset.mobileMoreAction;
-    if (action === 'clear-offline-snapshot' && !window.confirm('清除当前离线索引与缩略图？应用外壳、收藏和智能视图会保留。')) return;
-    closeMoreSheet();
-    if (action === 'sidebar') {
-      if (window._openMobileSidebar) window._openMobileSidebar();
-    } else if (action === 'eagle-smart') {
-      if (window._openMobileSidebar) window._openMobileSidebar();
-      setTimeout(function() {
-        var nativeSection = document.getElementById('nativeSmartFolderSection');
-        if (nativeSection) nativeSection.scrollIntoView({ block: 'center', behavior: 'smooth' });
-      }, 120);
-    } else if (action === 'smart') {
-      renderSavedViews();
-      openPanel('savedViewsPanel');
-    } else if (action === 'review-undone') {
-      startUndoneReview();
-    } else if (action === 'filter') {
-      syncFilterForm();
-      openPanel('advancedPanel');
-    } else if (action === 'share-view') {
-      shareCurrentViewLink(actionEl);
-    } else if (action === 'save-smart-view') {
-      promptSaveCurrentSmartView();
-    } else if (action === 'duplicates') {
-      clearAllActive();
-      document.getElementById('sidebarDuplicates').classList.add('active');
-      api.loadDuplicates();
-    } else if (action === 'colors') {
-      clearAllActive();
-      document.getElementById('sidebarColors').classList.add('active');
-      api.loadColorAtlas();
-    } else if (action === 'random') {
-      clearAllActive();
-      document.getElementById('sidebarRandom').classList.add('active');
-      api.loadRandomWalk('', true);
-    } else if (action === 'stats') {
-      openPanel('statsPanel');
-      api.fetchStats().then(renderStatsPanel);
-    } else if (action === 'command') {
-      openCommandPalette();
-    } else if (action === 'offline-snapshot') {
-      api.warmCurrentOfflineSnapshot();
-    } else if (action === 'clear-offline-snapshot') {
-      api.clearOfflineSnapshot();
-    } else if (action === 'refresh') {
-      api.reloadLibrary();
-    } else if (action === 'theme') {
-      toggleTheme();
-    }
-  });
-  bindMobileSheetDrag(sheet, '.mobile-more-sheet', '.mobile-more-backdrop', closeMoreSheet);
-
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' && sheet.classList.contains('open')) closeMoreSheet();
-  });
-  window._openMobileMoreSheet = openMoreSheet;
-  window._closeMobileMoreSheet = closeMoreSheet;
-}
-
 function isStandaloneDisplay() {
   return !!(window.navigator.standalone || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches));
 }
@@ -2761,7 +1592,6 @@ function setupMobilePullRefresh() {
 
 function findCurrentItem(itemId) {
   return (state.currentItems || []).find(function(item) { return item.id === itemId; }) ||
-    (state.collectionIds.items && state.collectionIds.items[itemId]) ||
     (state.inspectorItem && state.inspectorItem.id === itemId ? state.inspectorItem : null);
 }
 
@@ -2792,12 +1622,6 @@ function buildItemShareUrl(item) {
   else params.delete('days');
   if (state.currentView === 'search' && state.searchQuery) params.set('q', state.searchQuery);
   else params.delete('q');
-  if (state.currentView === 'smart' && state.currentSmartViewName) params.set('smart', state.currentSmartViewName);
-  else params.delete('smart');
-  if (state.currentView === 'eagle-smart' && state.currentEagleSmartFolderId) params.set('eagleSmart', state.currentEagleSmartFolderId);
-  else params.delete('eagleSmart');
-  if (state.currentView === 'random' && state.currentRandomSeed) params.set('seed', state.currentRandomSeed);
-  else params.delete('seed');
   params.set('item', itemId);
   return location.origin + location.pathname + location.search + '#' + params.toString();
 }
@@ -3214,160 +2038,6 @@ function openBatchOutputSheet() {
   overlay.setAttribute('aria-hidden', 'false');
 }
 
-function setItemRating(item, value) {
-  if (!item || !item.id) return;
-  var next = Math.max(0, Math.min(5, Math.round(Number(value) || 0)));
-  state.itemRatings = state.itemRatings || {};
-  if (next) state.itemRatings[item.id] = next;
-  else delete state.itemRatings[item.id];
-  state.collectionIds.items = state.collectionIds.items || {};
-  state.collectionIds.items[item.id] = item;
-  saveLocalData();
-  if (render.updateItemRatingsInView) render.updateItemRatingsInView(item);
-  var sheet = document.getElementById('quickActionSheet');
-  if (sheet && sheet.dataset.itemId === item.id) updateQuickActionSheetState(sheet, item);
-  if (state.inspectorItem && state.inspectorItem.id === item.id) render.openInspector(state.inspectorItem);
-  if (state.advancedFilters.rating_min && next < Number(state.advancedFilters.rating_min)) api.refreshCurrentView();
-  showToast(next ? '已评为 ' + next + ' 星' : '已清除评分', 'success');
-}
-
-var viewerNoteSaveTimers = {};
-
-function createReviewMarkerId() {
-  return 'mark-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
-}
-
-function getReviewMarkerComposer(itemId) {
-  return document.querySelector('[data-review-marker-compose="' + CSS.escape(String(itemId)) + '"]');
-}
-
-function refreshReviewMarkerUI(item, markerId) {
-  if (!item) return;
-  var inner = document.getElementById('inspectorInner');
-  var scrollTop = inner ? inner.scrollTop : 0;
-  render.openInspector(item);
-  if (render.updateCollectionMarkersInView) render.updateCollectionMarkersInView(item.id);
-  requestAnimationFrame(function() {
-    var nextInner = document.getElementById('inspectorInner');
-    if (nextInner) nextInner.scrollTop = scrollTop;
-    if (!markerId) return;
-    var row = document.querySelector('[data-review-marker-id="' + CSS.escape(markerId) + '"]');
-    if (row) {
-      row.classList.add('highlight');
-      row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-      setTimeout(function() { if (row.isConnected) row.classList.remove('highlight'); }, 1500);
-    }
-  });
-}
-
-function addReviewMarker(item, marker) {
-  if (!item || !item.id || !marker || !marker.text) return false;
-  state.reviewMarkers = state.reviewMarkers || {};
-  var markers = (state.reviewMarkers[item.id] || []).slice();
-  var now = Date.now();
-  var normalized = Object.assign({ id: createReviewMarkerId(), kind: 'general', createdAt: now, updatedAt: now }, marker);
-  markers.push(normalized);
-  state.reviewMarkers[item.id] = markers.slice(-100);
-  state.collectionIds.items = state.collectionIds.items || {};
-  state.collectionIds.items[item.id] = item;
-  saveLocalData();
-  refreshReviewMarkerUI(item, normalized.id);
-  showToast(normalized.kind === 'point' ? '已添加画面标记' : (normalized.kind === 'time' ? '已添加时间标记' : '已添加审片评论'), 'success');
-  return true;
-}
-
-function parseReviewMarkerTime(value) {
-  var raw = String(value || '').trim();
-  if (!raw) return 0;
-  if (/^\d+(?:\.\d+)?$/.test(raw)) return Math.max(0, Math.min(86400, Number(raw)));
-  var parts = raw.split(':').map(Number);
-  if (parts.some(function(part) { return !isFinite(part) || part < 0; }) || parts.length < 2 || parts.length > 3) return NaN;
-  if (parts.length === 2) return Math.min(86400, parts[0] * 60 + parts[1]);
-  return Math.min(86400, parts[0] * 3600 + parts[1] * 60 + parts[2]);
-}
-
-function commitPointReviewMarker(item, event, preview) {
-  var img = preview && preview.querySelector('img');
-  var text = String((preview && preview.dataset.reviewMarkerDraft) || '').trim().slice(0, 1000);
-  if (!img || !text) return;
-  var box = preview.getBoundingClientRect();
-  var naturalRatio = (img.naturalWidth || item.width || 1) / (img.naturalHeight || item.height || 1);
-  var boxRatio = box.width / Math.max(1, box.height);
-  var width = box.width;
-  var height = box.height;
-  if (naturalRatio > boxRatio) height = width / naturalRatio;
-  else width = height * naturalRatio;
-  var left = box.left + (box.width - width) / 2;
-  var top = box.top + (box.height - height) / 2;
-  var x = (event.clientX - left) / Math.max(1, width);
-  var y = (event.clientY - top) / Math.max(1, height);
-  if (x < 0 || x > 1 || y < 0 || y > 1) {
-    showToast('请点在图片内容范围内', 'error');
-    return;
-  }
-  preview.dataset.reviewMarkerMode = '';
-  preview.classList.remove('review-marker-mode');
-  addReviewMarker(item, { kind: 'point', text: text, x: x, y: y });
-}
-
-function focusReviewMarker(markerId) {
-  var item = state.inspectorItem;
-  if (!item) return;
-  var marker = ((state.reviewMarkers || {})[item.id] || []).find(function(entry) { return entry.id === markerId; });
-  if (!marker) return;
-  var target = marker.kind === 'point' ? document.querySelector('.review-marker-overlay [data-review-marker-focus="' + CSS.escape(markerId) + '"]') : null;
-  if (target) {
-    target.classList.add('active');
-    target.scrollIntoView({ block: 'center', behavior: 'smooth' });
-    setTimeout(function() { if (target.isConnected) target.classList.remove('active'); }, 1400);
-  }
-  var row = document.querySelector('[data-review-marker-id="' + CSS.escape(markerId) + '"]');
-  if (row) {
-    row.classList.add('highlight');
-    if (!target) row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-    setTimeout(function() { if (row.isConnected) row.classList.remove('highlight'); }, 1400);
-  }
-}
-
-function deleteReviewMarker(item, markerId) {
-  if (!item || !markerId) return;
-  var markers = ((state.reviewMarkers || {})[item.id] || []).filter(function(marker) { return marker.id !== markerId; });
-  if (markers.length) state.reviewMarkers[item.id] = markers;
-  else delete state.reviewMarkers[item.id];
-  saveLocalData();
-  refreshReviewMarkerUI(item);
-  showToast('已删除审片标记', 'success');
-}
-
-function commitViewerNote(editor) {
-  if (!editor || !editor.dataset.id) return;
-  var itemId = editor.dataset.id;
-  clearTimeout(viewerNoteSaveTimers[itemId]);
-  delete viewerNoteSaveTimers[itemId];
-  var note = String(editor.value || '').trim().slice(0, 4000);
-  var previous = String((state.viewerNotes || {})[itemId] || '');
-  if (note === previous) return;
-  state.viewerNotes = state.viewerNotes || {};
-  if (note) state.viewerNotes[itemId] = note;
-  else delete state.viewerNotes[itemId];
-  var item = findCurrentItem(itemId);
-  if (item) {
-    state.collectionIds.items = state.collectionIds.items || {};
-    state.collectionIds.items[itemId] = item;
-  }
-  saveLocalData();
-  if (render.updateCollectionMarkersInView) render.updateCollectionMarkersInView(itemId);
-  var compose = editor.closest('[data-viewer-note-compose]');
-  var status = compose && compose.querySelector('.viewer-note-status');
-  if (status) {
-    status.textContent = note ? '已保存到 Viewer' : '已清除 Viewer 笔记';
-    status.classList.add('saved');
-    setTimeout(function() { if (status.isConnected) status.classList.remove('saved'); }, 900);
-  }
-  var filter = (state.advancedFilters || {}).viewer_note_state;
-  if ((filter === 'noted' && !note) || (filter === 'unnoted' && note)) setTimeout(api.refreshCurrentView, 120);
-}
-
 function runItemAction(item, action, sourceEl) {
   if (!item || !action) return;
   var fileUrl = buildItemFileUrl(item);
@@ -3387,34 +2057,12 @@ function runItemAction(item, action, sourceEl) {
     closeQuickActionSheet();
     closeDesktopContextMenu();
     openSourceDomainView(sourceDomain);
-  } else if (action === 'palette') {
-    var primaryColor = getItemPrimaryPaletteColor(item);
-    if (!primaryColor) {
-      showToast('这个素材没有可用主色', 'error');
-      return;
-    }
-    closeQuickActionSheet();
-    closeDesktopContextMenu();
-    openPaletteColorView(primaryColor);
   } else if (action === 'select') {
     if (render.toggleSelect) render.toggleSelect(item.id);
     var selectSheet = document.getElementById('quickActionSheet');
     if (selectSheet) updateQuickActionSheetState(selectSheet, item);
     var selectMenu = document.getElementById('itemContextMenu');
     if (selectMenu) updateDesktopContextMenuState(selectMenu, item);
-  } else if (action.indexOf('rating-') === 0) {
-    setItemRating(item, action.substring(7));
-  } else if (action === 'note') {
-    closeQuickActionSheet();
-    closeDesktopContextMenu();
-    render.openInspector(item);
-    setTimeout(function() {
-      var editor = document.querySelector('.viewer-note-editor[data-id="' + CSS.escape(item.id) + '"]');
-      if (editor) {
-        editor.focus();
-        editor.scrollIntoView({ block: 'center', behavior: 'smooth' });
-      }
-    }, 80);
   } else if (action === 'share') {
     shareItemLink(item, sourceEl);
   } else if (action === 'share-file') {
@@ -3482,26 +2130,19 @@ function closeDesktopContextMenu() {
 function renderQuickActionStatePills(item) {
   var pills = [];
   if (state.selectedIds.has(item.id)) pills.push('<span class="quick-action-state-pill selected">' + iconCollection() + ' 已选中</span>');
-  if (String((state.viewerNotes || {})[item.id] || '').trim()) pills.push('<span class="quick-action-state-pill note">' + iconInfo() + ' 有笔记</span>');
-  if (!pills.length) pills.push('<span class="quick-action-state-pill muted">未加入清单</span>');
+  if (!pills.length) pills.push('<span class="quick-action-state-pill muted">未选择</span>');
   return pills.join('');
 }
 
 function updateQuickActionSheetState(sheet, item) {
   var select = sheet.querySelector('[data-quick-action="select"]');
-  var fav = sheet.querySelector('[data-quick-action="favorite"]');
   var download = sheet.querySelector('[data-quick-action="download"]');
   var status = sheet.querySelector('.quick-action-state');
   var selected = state.selectedIds.has(item.id);
-  var favorite = (state.collectionIds.favorite || []).indexOf(item.id) >= 0;
   if (status) status.innerHTML = renderQuickActionStatePills(item);
   if (select) {
     select.classList.toggle('active', selected);
     select.querySelector('span').textContent = selected ? '取消选择' : '选择';
-  }
-  if (fav) {
-    fav.classList.toggle('active', favorite);
-    fav.querySelector('span').textContent = favorite ? '取消收藏' : '收藏';
   }
   if (download) {
     var offline = isRemoteAccessUnavailable();
@@ -3514,10 +2155,8 @@ function updateQuickActionSheetState(sheet, item) {
 
 function updateDesktopContextMenuState(menu, item) {
   var select = menu.querySelector('[data-context-action="select"] span');
-  var fav = menu.querySelector('[data-context-action="favorite"] span');
   var download = menu.querySelector('[data-context-action="download"]');
   if (select) select.textContent = state.selectedIds.has(item.id) ? '取消选择' : '加入选择';
-  if (fav) fav.textContent = (state.collectionIds.favorite || []).indexOf(item.id) >= 0 ? '取消收藏' : '加入收藏';
   if (download) {
     var offline = isRemoteAccessUnavailable();
     download.classList.toggle('requires-remote', offline);
@@ -3552,7 +2191,6 @@ function openDesktopContextMenu(item, x, y, sourceEl) {
     (primaryFolder ? '<button type="button" role="menuitem" data-context-action="folder">' + iconFolder() + '<span>打开文件夹</span></button>' : '') +
     '<button type="button" role="menuitem" data-context-action="select">' + iconCollection() + '<span>加入选择</span></button>' +
     '<div class="item-context-separator"></div>' +
-    '<button type="button" role="menuitem" data-context-action="favorite">' + iconBookmark() + '<span>加入收藏</span></button>' +
     '<button type="button" role="menuitem" data-context-action="share">' + iconExternalLink() + '<span>复制素材链接</span></button>' +
     (canCopyImage(item.ext) ? '<button type="button" role="menuitem" data-context-action="copy">' + iconCopy() + '<span>复制图片</span></button>' : '') +
     '<div class="item-context-separator"></div>' +
@@ -3572,7 +2210,7 @@ function openDesktopContextMenu(item, x, y, sourceEl) {
     var actionEl = e.target.closest('[data-context-action]');
     if (!actionEl) return;
     var action = actionEl.dataset.contextAction;
-    if (action !== 'favorite' && action !== 'later' && action !== 'done' && action !== 'share' && action !== 'copy' && action !== 'copy-info' && action !== 'copy-md' && action !== 'copy-html') closeDesktopContextMenu();
+    if (action !== 'share' && action !== 'copy' && action !== 'copy-info' && action !== 'copy-md' && action !== 'copy-html') closeDesktopContextMenu();
     runItemAction(item, action, actionEl);
     if (action === 'share' || action === 'copy' || action === 'copy-info' || action === 'copy-md' || action === 'copy-html') setTimeout(closeDesktopContextMenu, 700);
   };
@@ -3608,10 +2246,9 @@ function openQuickActionSheet(item) {
           '</div>' +
         '</section>' +
         '<section class="quick-action-section organize">' +
-          '<div class="quick-action-section-title"><span>操作</span><em>选择素材或加入收藏</em></div>' +
+          '<div class="quick-action-section-title"><span>操作</span><em>选择当前素材</em></div>' +
           '<div class="quick-action-grid">' +
             '<button type="button" data-quick-action="select">' + iconCollection() + '<span>选择</span></button>' +
-            '<button type="button" data-quick-action="favorite">' + iconBookmark() + '<span>收藏</span></button>' +
           '</div>' +
         '</section>' +
         '<section class="quick-action-section output">' +
@@ -3701,17 +2338,11 @@ function openQuickActionSheet(item) {
     } else if (action === 'inspect') {
       closeQuickActionSheet();
       runItemAction(item, action, actionEl);
-    } else if (action === 'folder' || action === 'source' || action === 'palette') {
+    } else if (action === 'folder' || action === 'source') {
       runItemAction(item, action, actionEl);
     } else if (action === 'select') {
       runItemAction(item, action, actionEl);
       closeQuickActionSheet();
-    } else if (action === 'favorite' || action === 'later' || action === 'done') {
-      runItemAction(item, action, actionEl);
-    } else if (action === 'workspace') {
-      runItemAction(item, action, actionEl);
-    } else if (action === 'note') {
-      runItemAction(item, action, actionEl);
     } else if (action === 'share' || action === 'copy-info' || action === 'copy-md') {
       runItemAction(item, action, actionEl);
       setTimeout(closeQuickActionSheet, 650);
@@ -4023,94 +2654,6 @@ function bindEvents() {
     btn.onclick = function() { closePanel(btn.dataset.closePanel); };
   });
   document.body.addEventListener('click', function(e) {
-    var btn = e.target.closest('[data-item-rating]');
-    if (!btn) return;
-    e.preventDefault();
-    e.stopPropagation();
-    var item = findCurrentItem(btn.dataset.id);
-    if (!item && state.inspectorItem && state.inspectorItem.id === btn.dataset.id) item = state.inspectorItem;
-    if (!item) return;
-    var selected = Number(btn.dataset.itemRating) || 0;
-    var current = Number((state.itemRatings || {})[item.id] || 0);
-    setItemRating(item, selected === current ? 0 : selected);
-  });
-  document.body.addEventListener('click', function(e) {
-    var modeButton = e.target.closest('[data-review-marker-mode="point"]');
-    var addButton = e.target.closest('[data-review-marker-add]');
-    var focusButton = e.target.closest('[data-review-marker-focus]');
-    var deleteButton = e.target.closest('[data-review-marker-delete]');
-    if (!modeButton && !addButton && !focusButton && !deleteButton) return;
-    e.preventDefault();
-    e.stopPropagation();
-    var item = state.inspectorItem;
-    if (!item) return;
-    if (focusButton) {
-      focusReviewMarker(focusButton.dataset.reviewMarkerFocus);
-      return;
-    }
-    if (deleteButton) {
-      if (window.confirm('删除这条审片标记？')) deleteReviewMarker(item, deleteButton.dataset.reviewMarkerDelete);
-      return;
-    }
-    var compose = getReviewMarkerComposer(item.id);
-    var editor = compose && compose.querySelector('textarea');
-    var text = String((editor && editor.value) || '').trim().slice(0, 1000);
-    if (!text) {
-      showToast('先写下标记说明', 'error');
-      if (editor) editor.focus();
-      return;
-    }
-    if (modeButton) {
-      var preview = document.getElementById('inspectorPreview');
-      if (!preview || !preview.querySelector('img')) {
-        showToast('当前素材没有可定位的图片预览', 'error');
-        return;
-      }
-      preview.dataset.reviewMarkerMode = 'point';
-      preview.dataset.reviewMarkerDraft = text;
-      preview.classList.add('review-marker-mode');
-      modeButton.classList.add('active');
-      var hint = compose.querySelector('[data-review-marker-hint]');
-      if (hint) hint.textContent = '定位模式已开启：现在点一下上方图片。';
-      preview.scrollIntoView({ block: 'center', behavior: 'smooth' });
-      return;
-    }
-    if (addButton.dataset.reviewMarkerAdd === 'time') {
-      var input = compose.querySelector('[data-review-marker-time]');
-      var time = parseReviewMarkerTime(input && input.value);
-      if (!isFinite(time)) {
-        showToast('时间格式请使用 01:23 或秒数', 'error');
-        if (input) input.focus();
-        return;
-      }
-      addReviewMarker(item, { kind: 'time', text: text, time: time });
-    } else {
-      addReviewMarker(item, { kind: 'general', text: text });
-    }
-  });
-  document.body.addEventListener('input', function(e) {
-    var editor = e.target.closest('.viewer-note-editor');
-    if (!editor) return;
-    var compose = editor.closest('[data-viewer-note-compose]');
-    var status = compose && compose.querySelector('.viewer-note-status');
-    var count = compose && compose.querySelector('.viewer-note-count');
-    if (status) status.textContent = '编辑中…';
-    if (count) count.textContent = editor.value.length + ' / 4000';
-    clearTimeout(viewerNoteSaveTimers[editor.dataset.id]);
-    viewerNoteSaveTimers[editor.dataset.id] = setTimeout(function() { commitViewerNote(editor); }, 650);
-  });
-  document.body.addEventListener('focusout', function(e) {
-    var editor = e.target.closest('.viewer-note-editor');
-    if (editor) commitViewerNote(editor);
-  });
-  document.body.addEventListener('keydown', function(e) {
-    var editor = e.target.closest('.viewer-note-editor');
-    if (!editor || !(e.metaKey || e.ctrlKey) || e.key !== 'Enter') return;
-    e.preventDefault();
-    commitViewerNote(editor);
-    editor.blur();
-  });
-  document.body.addEventListener('click', function(e) {
     var btn = e.target.closest('.btn-share-link');
     if (!btn) return;
     var item = findCurrentItem(btn.dataset.id);
@@ -4220,7 +2763,6 @@ function bindEvents() {
       var action = cardAction.dataset.cardAction;
       var itemId = cardAction.dataset.id;
       var item = state.currentItems.find(function(it) { return it.id === itemId; }) ||
-        (state.collectionIds.items && state.collectionIds.items[itemId]) ||
         (state.inspectorItem && state.inspectorItem.id === itemId ? state.inspectorItem : null);
       if (!item) return;
       if (action === 'inspect') {
@@ -4235,12 +2777,6 @@ function bindEvents() {
       }
       return;
     }
-    var swatch = e.target.closest('[data-inspector-color]');
-    if (!swatch) return;
-    e.preventDefault();
-    e.stopPropagation();
-    var color = swatch.dataset.inspectorColor || '';
-    openPaletteColorView(color);
   });
   document.body.addEventListener('click', function(e) {
     var folderBtn = e.target.closest('[data-inspector-folder]');
@@ -4372,10 +2908,6 @@ function bindEvents() {
       api.loadTagItems(crumb.dataset.crumbTag).then(function() {
         if (render.syncActiveNavigationState) render.syncActiveNavigationState();
       });
-    } else if (crumb.dataset.crumbSmart) {
-      openSmartViewByName(crumb.dataset.crumbSmart);
-    } else if (crumb.dataset.crumbEagleSmart) {
-      api.loadEagleSmartFolderItems(crumb.dataset.crumbEagleSmart);
     } else if (crumb.dataset.crumbRecent) {
       api.loadRecentItems(Number(crumb.dataset.crumbRecent) || 7);
     } else if (crumb.dataset.crumbSearch) {
@@ -4384,24 +2916,11 @@ function bindEvents() {
         search.focus();
       }
       api.doSearch();
-    } else if (crumb.dataset.crumbAction === 'duplicates') {
-      api.loadDuplicates();
-    } else if (crumb.dataset.crumbAction === 'colors') {
-      api.loadColorAtlas();
-    } else if (crumb.dataset.crumbAction === 'random') {
-      api.loadRandomWalk(state.currentRandomSeed, false);
     } else if (crumb.dataset.crumbAction === 'search-root') {
       if (search) {
         search.focus();
         search.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
       }
-    } else if (crumb.dataset.crumbAction === 'smart-root') {
-      renderSavedViews();
-      openPanel('savedViewsPanel');
-    } else if (crumb.dataset.crumbAction === 'eagle-smart-root') {
-      var nativeSection = document.getElementById('nativeSmartFolderSection');
-      if (window.innerWidth <= 768 && window._openMobileSidebar) window._openMobileSidebar();
-      if (nativeSection) nativeSection.scrollIntoView({ block: 'center', behavior: 'smooth' });
     } else {
       api.loadAllItems(true);
     }
@@ -4454,14 +2973,6 @@ function bindEvents() {
       var action = actionBtn.dataset.batchOutputAction;
       if (action === 'copy-links') {
         copySelectedLinks(actionBtn);
-      } else if (action === 'copy-info') {
-        copySelectedInfo(actionBtn);
-      } else if (action === 'copy-refs') {
-        copySelectedReferences(actionBtn);
-      } else if (action === 'export-csv') {
-        exportSelected('csv');
-      } else if (action === 'export-json') {
-        exportSelected('json');
       } else if (action === 'download') {
         downloadSelectedBatch(actionBtn);
       }
@@ -4510,10 +3021,6 @@ function bindEvents() {
   document.querySelectorAll('.quick-filter').forEach(function(btn) {
     btn.onclick = function() { onTypeChange(btn.dataset.type || 'all'); };
   });
-  document.querySelectorAll('[data-mobile-filter]').forEach(function(btn) {
-    btn.onclick = function() { toggleMobileQuickFilter(btn.dataset.mobileFilter || ''); };
-  });
-
   // Hash change
   window.addEventListener('hashchange', async function() {
     if (applyStateFromUrl() && state.currentView) {
@@ -4550,14 +3057,8 @@ Object.assign(interactionModule, {
   syncFilterForm: syncFilterForm,
   syncToolbarSelects: syncToolbarSelects,
   syncMobileTabbar: syncMobileTabbar,
-  openPaletteColorView: openPaletteColorView,
-  commitPointReviewMarker: commitPointReviewMarker,
   openPanel: openPanel,
-  renderSmartViewsSidebar: renderSmartViewsSidebar,
-  openSmartViewByName: openSmartViewByName,
-  startUndoneReview: startUndoneReview,
   runPendingLaunchAction: runPendingLaunchAction,
-  openOfflineSnapshotRoute: openOfflineSnapshotRoute,
   restorePendingInspector: restorePendingInspector,
   bindEvents: bindEvents
 });

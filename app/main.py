@@ -12,8 +12,7 @@ from starlette.types import ASGIApp
 from app.config import VIEWER_API_TOKEN, VIEWER_PASSWORD, VIEWER_SECRET_KEY
 from app.api.folders import router as folders_router
 from app.api.items import router as items_router
-from app.api.state import router as state_router
-from app.vault import load_vault, get_cache_stats, get_library_status
+from app.vault import APP_VERSION, load_vault, get_cache_stats, get_library_status
 
 logger = logging.getLogger(__name__)
 
@@ -89,7 +88,6 @@ if VIEWER_PASSWORD:
 
 app.include_router(folders_router)
 app.include_router(items_router)
-app.include_router(state_router)
 
 
 @app.get("/health")
@@ -101,8 +99,9 @@ def health():
 def api_info():
     return {
         "name": "Eagle Vault Viewer",
+        "version": APP_VERSION,
         "apiVersion": 1,
-        "features": ["browse", "search", "preview", "download", "favorites", "recentViewed", "batchDownload", "bearerAuth", "protectedFolders"],
+        "features": ["browse", "search", "preview", "download", "batchDownload", "bearerAuth", "protectedFolders"],
         "auth": {"session": bool(VIEWER_PASSWORD), "bearer": bool(VIEWER_API_TOKEN)},
     }
 

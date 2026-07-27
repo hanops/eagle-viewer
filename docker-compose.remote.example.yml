@@ -32,7 +32,6 @@ services:
       - VIEWER_SECRET_KEY=replace-with-openssl-rand-hex-32
       # State file path should be outside the read-only vault mount to
       # preserve state across library updates.
-      - VIEWER_STATE_PATH=/data/eagle-viewer-state.json
     volumes:
       # ===== Server-side vault mount (choose one, adapt to your setup) =====
       # 1) Host already mounts .library via SMB/WebDAV/NFS — bind it directly

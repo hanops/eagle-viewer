@@ -124,11 +124,12 @@ def api_item_snippet(item_id: str, limit: int = 240):
 
 def _sanitize_zip_path(s: str) -> str:
     """Replace path-unsafe chars for ZIP entry names."""
-    bad = '<>:"|?*\\\r\n'
+    bad = '<>:"|?*/\\\r\n'
     out = []
     for c in s:
         out.append(c if c not in bad and ord(c) >= 32 else "_")
-    return "".join(out).strip() or "item"
+    cleaned = "".join(out).strip()
+    return "item" if cleaned in {"", ".", ".."} else cleaned
 
 
 @router.post("/items/batch-download")

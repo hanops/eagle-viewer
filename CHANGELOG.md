@@ -2,6 +2,34 @@
 
 ---
 
+## 4.0.0 - 2026-07-27
+
+### Breaking Changes
+- Removed the legacy viewer-state API (`/api/state`) and the old state persistence file path.
+- Removed the smart view, smart folder, duplicate, color atlas, random walk, and command surfaces to keep the product focused on the core browse/search/preview/download flow.
+
+**中文**：移除旧版 viewer state API（`/api/state`）和状态持久化文件路径；同时删去智能视图、智能文件夹、重复项、色卡、随机浏览和命令面板等入口，聚焦核心浏览/搜索/预览/下载流程。
+
+### Fixes
+- Fixed mobile viewport fit and the top-level layout density on small screens.
+- Fixed the mobile version badge so it matches the actual release version.
+- Tightened ZIP entry sanitization for downloaded items.
+
+**中文**：修复移动端视口适配和密度过紧的问题；修正移动端版本号显示；加强下载 ZIP 条目名清理。
+
+### Documentation
+- Updated both READMEs to reflect the simplified product scope and current release version.
+- Refreshed the release notes and regression baseline for the new major version.
+
+**中文**：更新中英文 README 以匹配简化后的产品边界和当前版本；同步刷新发版说明和回归基线。
+
+### Maintenance
+- Bumped the static asset revision and service worker cache.
+
+**中文**：同步提升静态资源版本号和 Service Worker 缓存名。
+
+---
+
 ## 3.0.1 - 2026-07-24
 
 ### Changes

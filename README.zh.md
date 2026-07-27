@@ -6,7 +6,7 @@
 
 > 把 Eagle 素材库挂到服务器上，浏览器远程浏览、搜索、预览和下载 —— 手机和平板也能用。
 
-[English README](README.md) · **当前版本**：v3.0.1 (2026-07-24) · [更新日志](CHANGELOG.md)
+[English README](README.md) · **当前版本**：v4.0.0 (2026-07-27) · [更新日志](CHANGELOG.md)
 
 ---
 
@@ -140,7 +140,6 @@ make test     # 仅运行 pytest
 | `VIEWER_PASSWORD` | 访问密码——设置后需要登录才能查看 | _(空)_ |
 | `VIEWER_SECRET_KEY` | Session 签名密钥——建议用 `openssl rand -hex 32` 生成 | 回退到 `VIEWER_PASSWORD` |
 | `VIEWER_API_TOKEN` | API 客户端的 Bearer Token——设置后 API 调用需此 Token 或网页会话 | _(空)_ |
-| `VIEWER_STATE_PATH` | 状态持久化文件路径，应放在挂载的库目录之外 | `data/eagle-viewer-state.json` |
 
 ---
 
@@ -155,8 +154,6 @@ make test     # 仅运行 pytest
 | GET | `/api/recent?days=7\|30` | 最近 N 天素材（支持 `sort`、`dir`、`type`、`offset`、`limit`） |
 | GET | `/api/folders/{folder_id}/items` | 指定文件夹内的素材（支持 `sort`、`dir`、`type`、`offset`、`limit`） |
 | GET | `/api/tags` | 标签及计数 |
-| GET | `/api/state` | 查看器状态（偏好设置、密度等） |
-| PUT | `/api/state` | 持久化查看器状态（通过 `revision` 乐观锁定） |
 | POST | `/api/items/resolve` | 按素材 ID 批量获取当前元数据 |
 | GET | `/api/tags/{tag}/items` | 指定标签的素材（支持 `sort`、`dir`、`type`、`offset`、`limit`） |
 | GET | `/api/search?q=...` | 搜索（支持 `sort`、`dir`、`type`、`offset`、`limit`） |

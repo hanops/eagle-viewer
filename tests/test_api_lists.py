@@ -59,6 +59,12 @@ def test_resolve_items_returns_current_metadata(sample_library):
     assert [item["id"] for item in result["items"]] == ["item-two", "item-one"]
 
 
+def test_batch_download_names_cannot_escape_their_zip_folder():
+    assert items_api._sanitize_zip_path("../outside") == ".._outside"
+    assert items_api._sanitize_zip_path("nested/name") == "nested_name"
+    assert items_api._sanitize_zip_path("..") == "item"
+
+
 def test_proprietary_asset_thumbnail_and_download_keep_distinct_paths(sample_library):
     detail = items_api.api_item_detail("item-graffle")
     thumbnail = items_api.api_item_thumbnail("item-graffle")

@@ -1,3 +1,6 @@
+import tomllib
+from pathlib import Path
+
 from fastapi.responses import PlainTextResponse
 from starlette.testclient import TestClient
 
@@ -33,11 +36,22 @@ def test_api_info_declares_native_capabilities(monkeypatch):
     monkeypatch.setattr(main, "VIEWER_API_TOKEN", "native-token")
 
     info = main.api_info()
+    expected_version = tomllib.loads(
+        (Path(__file__).resolve().parents[1] / "pyproject.toml").read_text(encoding="utf-8")
+    )["project"]["version"]
+    assert info["version"] == expected_version
     assert info["apiVersion"] == 1
     assert info["auth"] == {"session": True, "bearer": True}
-    assert "favorites" in info["features"]
-    assert "recentViewed" in info["features"]
+    assert "favorites" not in info["features"]
+    assert "recentViewed" not in info["features"]
+    assert set(info["features"]) == {
+        "browse",
+        "search",
+        "preview",
+        "download",
+        "batchDownload",
+        "bearerAuth",
+        "protectedFolders",
+    }
     assert "sharedState" not in info["features"]
-
-
 
