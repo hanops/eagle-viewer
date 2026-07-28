@@ -2,6 +2,22 @@
 
 ---
 
+## 4.0.1 - 2026-07-28
+
+### Fixes
+- Removed the batch ZIP download flow; multi-select now keeps the lighter copy-link action and single-file downloads still preserve the original filename.
+- Fixed the desktop Inspector so clicking empty space closes the detail panel again.
+- Tightened the mobile/phone layout and simplified the remaining toolbar density so the shell feels less cramped on smaller screens.
+
+**中文**：移除批量 ZIP 下载流程，多选时只保留复制链接，单文件下载仍保持原始文件名；修复桌面端点击空白处关闭详情面板；进一步收紧手机端布局与工具栏密度，减少小屏拥挤感。
+
+### Documentation
+- Synced the release notes, regression baseline, README version badge, and static shell version markers for the 4.0.1 release.
+
+**中文**：同步更新发版说明、回归基线、README 版本标识以及静态 shell 版本标记，完成 4.0.1 发版对齐。
+
+---
+
 ## 4.0.0 - 2026-07-27
 
 ### Breaking Changes

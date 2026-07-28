@@ -37,7 +37,8 @@
       remoteChangedBody: '资源库自上次索引后有改动，重新加载以同步。',
       reload: '重新加载索引', loading: '加载中…', reloadFailed: '重新加载失败',
       downloaded: '已下载到「文件」，可在相册中查看', saveFailed: '保存失败',
-      copied: '链接已复制', shareUnavailable: '分享不可用', language: 'English'
+      copied: '链接已复制', shareUnavailable: '分享不可用', language: 'English',
+      lightTheme: '切换到浅色', darkTheme: '切换到深色'
     },
     en: {
       library: 'Library', folders: 'Folders', search: 'Search', status: 'Connection',
@@ -56,7 +57,8 @@
       reload: 'Reload index', loading: 'Loading…', reloadFailed: 'Reload failed',
       downloaded: 'Downloaded to Files. You can open it in Photos.',
       saveFailed: 'Could not save', copied: 'Link copied',
-      shareUnavailable: 'Sharing is unavailable', language: '中文'
+      shareUnavailable: 'Sharing is unavailable', language: '中文',
+      lightTheme: 'Use light theme', darkTheme: 'Use dark theme'
     }
   };
   let lang = 'zh';
@@ -82,13 +84,11 @@
     pvShare.setAttribute('aria-label', tr('share'));
   }
 
-  // ---------- 跟随桌面端主题选择 ----------
+  // ---------- 跟随桌面端主题选择，并允许手机端独立切换明暗 ----------
   // 桌面端把 gallery/workbench/carbon 存进 localStorage['eagle-viewer-theme']，
   // 这里复用同一把钥匙，让手机端配色与桌面端保持一致（无选择时沿用系统偏好）。
-  (function syncTheme() {
+  function applyMobileTheme(name) {
     try {
-      var name = localStorage.getItem('eagle-viewer-theme');
-      if (!name) return;
       var map = {
         gallery:   { theme: 'light', accent: 'terra' },
         workbench: { theme: 'dark',  accent: 'blue'  },
@@ -99,8 +99,24 @@
       var root = document.documentElement;
       root.setAttribute('data-theme', t.theme);
       root.setAttribute('data-accent', t.accent);
+      root.style.colorScheme = t.theme;
+      var themeMeta = document.querySelector('meta[name="theme-color"]');
+      if (themeMeta) themeMeta.content = t.theme === 'light' ? '#f7f2ea' : '#1a1816';
+      localStorage.setItem('eagle-viewer-theme', name);
+    } catch (e) {}
+  }
+  (function syncTheme() {
+    try {
+      var name = localStorage.getItem('eagle-viewer-theme');
+      if (name) applyMobileTheme(name);
     } catch (e) {}
   })();
+
+  function toggleMobileTheme() {
+    var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    applyMobileTheme(isDark ? 'gallery' : 'workbench');
+    renderTop();
+  }
 
   // ---------- 缩略图 IndexedDB 缓存（弱网 / 离线复用已浏览缩略图）----------
   // 仅作应用层缓存，绕开 SW 的 /api 不缓存契约；原生支持 Blob，失效以全局
@@ -273,8 +289,13 @@
     const w = it.width || 0, h = it.height || 0;
     const ar = (w && h) ? 'aspect-ratio:' + w + '/' + h + ';' : '';
     const ext = (it.ext || '').toUpperCase();
-    return '<div class="th" data-idx="' + idx + '">' +
-      '<img class="im" data-id="' + esc(it.id) + '" data-thumb="/api/items/' + it.id + '/thumbnail" style="' + ar + '" alt="' + esc(it.name) + '" onerror="this.style.visibility=\'hidden\'">' +
+    const imageExt = /^(PNG|JPG|JPEG|GIF|WEBP|AVIF|BMP|SVG|HEIC|HEIF)$/.test(ext);
+    const showPreview = !!it.hasThumbnail || imageExt;
+    const media = showPreview
+      ? '<img class="im" data-id="' + esc(it.id) + '" data-thumb="/api/items/' + it.id + '/thumbnail" style="' + ar + '" alt="' + esc(it.name) + '" onerror="this.classList.add(\'is-missing\')">'
+      : '<div class="mobile-file-tile"><i></i><i></i><i></i></div>';
+    return '<div class="th" data-idx="' + idx + '" data-kind="' + (imageExt ? 'image' : 'file') + '" data-ext="' + esc(ext.toLowerCase()) + '">' +
+      media +
       '<span class="ext">' + esc(ext) + '</span>' +
       '<span class="nm">' + esc(it.name) + '</span>' +
       '</div>';
@@ -308,13 +329,19 @@
     } else {
       html += '<h2>' + tr('library') + '</h2>';
     }
-    html += '<span class="top-spacer"></span><button class="lang" id="langBtn" aria-label="' + esc(tr('language')) + '">' + esc(tr('language')) + '</button>';
+    var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    var themeLabel = isDark ? tr('lightTheme') : tr('darkTheme');
+    var themeIcon = isDark
+      ? '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>'
+      : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.4 14.1A8.5 8.5 0 0 1 9.9 3.6 8.5 8.5 0 1 0 20.4 14.1Z"/></svg>';
+    html += '<span class="top-spacer"></span><button class="theme" id="themeBtn" aria-label="' + esc(themeLabel) + '" title="' + esc(themeLabel) + '">' + themeIcon + '</button><button class="lang" id="langBtn" aria-label="' + esc(tr('language')) + '">' + esc(tr('language')) + '</button>';
     topbar.innerHTML = html;
     const bb = topbar.querySelector('#backBtn');
     if (bb) bb.onclick = () => {
       if (S.view === 'status' || S.view === 'search') { S.view = 'library'; setTabActive('library'); renderLibrary(); }
       else if (S.view === 'folders' && S.folderStack.length) { S.folderStack.pop(); renderFolders(); }
     };
+    topbar.querySelector('#themeBtn').onclick = toggleMobileTheme;
     topbar.querySelector('#langBtn').onclick = () => {
       lang = lang === 'zh' ? 'en' : 'zh';
       try { localStorage.setItem('eagle-viewer-lang', lang); } catch (e) {}
@@ -358,10 +385,10 @@
     const changed = !!status.changed;
     const connected = !!status.ok;
     const dotCls = !connected ? 'bad' : (changed ? 'warn' : '');
-    const stats = status.stats || {};
     const connText = connected ? (changed ? tr('connectedChanged') : tr('connected')) : tr('disconnected');
     const verText = status.version ? ' v' + esc(status.version) : '';
     viewBody.innerHTML =
+      '<div class="srch library-search" id="srchEntry">' + searchSVG + '<input id="srchInput" placeholder="' + esc(tr('searchPlaceholder')) + '" /></div>' +
       '<div class="strip ' + (changed ? 'changed' : '') + '" id="strip">' +
         '<span class="dot ' + dotCls + '"></span>' +
         '<div class="meta">' +
@@ -369,12 +396,6 @@
           '<span class="mono">' + connText + verText + '</span>' +
         '</div>' + chevSVG +
       '</div>' +
-      '<div class="counts">' +
-        '<div class="c"><b>' + (stats.items || 0) + '</b><span>' + tr('items') + '</span></div>' +
-        '<div class="c"><b>' + (stats.folders || 0) + '</b><span>' + tr('foldersLabel') + '</span></div>' +
-        '<div class="c"><b>' + (stats.tags || 0) + '</b><span>' + tr('tags') + '</span></div>' +
-      '</div>' +
-      '<div class="srch" id="srchEntry">' + searchSVG + '<input id="srchInput" placeholder="' + esc(tr('searchPlaceholder')) + '" /></div>' +
       '<div class="lbl">' + tr('recent') + '</div>' +
       '<div class="mas" id="recentMas">' + S.recents.map(thumbItem).join('') + '</div>';
     S.currentGallery = S.recents;

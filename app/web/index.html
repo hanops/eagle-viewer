@@ -17,13 +17,13 @@
   <meta name="apple-mobile-web-app-title" content="Eagle Vault" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="format-detection" content="telephone=no" />
-  <meta name="theme-color" content="#f4f4f1" />
+  <meta name="theme-color" content="#f7f3ec" />
   <title>Eagle Vault Viewer</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23e07a3d'/%3E%3Cpath d='M17 20h30v7H25v9h18v7H25v1h23v7H17z' fill='white'/%3E%3C/svg%3E" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Public+Sans:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="/static/styles.css?v=1.101" />
+  <link rel="stylesheet" href="/static/styles.css?v=1.105" />
   <link rel="manifest" href="/manifest.json" />
   <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png" />
 </head>
@@ -42,8 +42,6 @@
           </span>
           <span class="brand-name">Eagle <b>Vault</b></span>
         </a>
-        <span class="version-badge" id="appVersionBadge" aria-label="Current version"></span>
-        <span class="sync-status" id="syncStatus" data-state="local">Local</span>
       </div>
     <div class="toolbar-center">
       <div class="search-box">
@@ -55,12 +53,27 @@
     <div class="toolbar-right">
       <button type="button" class="tb-btn" id="viewGrid" data-i18n-title="view_grid"></button>
       <button type="button" class="tb-btn" id="viewList" data-i18n-title="view_list"></button>
-      <div class="theme-switcher" id="themeSwitcher" role="group" data-i18n-aria="theme_group_aria">
-        <button type="button" class="theme-swatch theme-swatch-gallery" data-theme-name="gallery" data-i18n-title="theme_gallery" data-i18n-aria="theme_gallery"></button>
-        <button type="button" class="theme-swatch theme-swatch-workbench" data-theme-name="workbench" data-i18n-title="theme_workbench" data-i18n-aria="theme_workbench"></button>
-        <button type="button" class="theme-swatch theme-swatch-carbon" data-theme-name="carbon" data-i18n-title="theme_carbon" data-i18n-aria="theme_carbon"></button>
-      </div>
-      <button type="button" class="lang-btn" id="langBtn" data-i18n-title="lang_en" data-i18n-aria="lang_en">中</button>
+      <details class="appearance-menu" id="appearanceMenu">
+        <summary class="tb-btn appearance-trigger" data-i18n-title="theme_group_aria" data-i18n-aria="theme_group_aria">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5a8.5 8.5 0 1 0 0 17h1.4a2.1 2.1 0 0 0 0-4.2h-.8a1.6 1.6 0 0 1 0-3.2H15a5.5 5.5 0 0 0 0-11H12Z"/><circle cx="7.8" cy="10" r=".8"/><circle cx="9.5" cy="6.9" r=".8"/><circle cx="13.2" cy="6.4" r=".8"/></svg>
+        </summary>
+        <div class="appearance-popover">
+          <div class="appearance-heading">
+            <span>APPEARANCE</span>
+            <strong>外观</strong>
+          </div>
+          <div class="theme-switcher" id="themeSwitcher" role="group" data-i18n-aria="theme_group_aria">
+            <button type="button" class="theme-swatch theme-swatch-gallery" data-theme-name="gallery" data-i18n-title="theme_gallery" data-i18n-aria="theme_gallery"><i></i><span>画廊浅色</span></button>
+            <button type="button" class="theme-swatch theme-swatch-workbench" data-theme-name="workbench" data-i18n-title="theme_workbench" data-i18n-aria="theme_workbench"><i></i><span>工作台深色</span></button>
+            <button type="button" class="theme-swatch theme-swatch-carbon" data-theme-name="carbon" data-i18n-title="theme_carbon" data-i18n-aria="theme_carbon"><i></i><span>碳黑深色</span></button>
+          </div>
+          <div class="appearance-footer">
+            <span class="version-badge" id="appVersionBadge" aria-label="Current version"></span>
+            <span class="sync-status" id="syncStatus" data-state="local">Local</span>
+            <button type="button" class="lang-btn" id="langBtn" data-i18n-title="lang_en" data-i18n-aria="lang_en">中</button>
+          </div>
+        </div>
+      </details>
     </div>
   </div>
 
@@ -88,25 +101,7 @@
       <button type="button" id="invertSelectBtn" class="batch-control" data-i18n="batch_invert">反选</button>
       <button type="button" id="clearSelectBtn" class="batch-control" data-i18n="batch_clear">取消</button>
       <button type="button" id="batchCopyLinksBtn" class="batch-output" data-i18n="batch_copy_links">复制链接</button>
-      <button type="button" id="batchDownloadBtn" class="primary batch-output" data-i18n="batch_download">打包下载</button>
-      <button type="button" id="batchMobileOutputBtn" class="batch-mobile-output" data-i18n="batch_output">输出</button>
     </div>
-  </div>
-
-  <div class="batch-output-overlay" id="batchOutputOverlay" aria-hidden="true">
-    <div class="batch-output-backdrop" data-batch-output-close></div>
-    <section class="batch-output-sheet" role="dialog" aria-modal="true" aria-label="批量输出">
-      <button type="button" class="batch-output-handle" data-batch-output-close aria-label="关闭批量输出"></button>
-      <div class="batch-output-head">
-        <span>OUTPUT</span>
-        <strong id="batchOutputTitle">已选素材</strong>
-        <small id="batchOutputMeta">复制链接或打包下载</small>
-      </div>
-      <div class="batch-output-grid">
-        <button type="button" data-batch-output-action="copy-links"><span id="iconBatchOutputLinks"></span><strong>复制链接</strong><small>给另一台设备打开</small></button>
-        <button type="button" data-batch-output-action="download" class="primary"><span id="iconBatchOutputDownload"></span><strong>Download ZIP</strong><small>Requires remote Vault</small></button>
-      </div>
-    </section>
   </div>
 
   <div class="toast-stack" id="toastStack" aria-live="polite" aria-atomic="true"></div>
@@ -322,10 +317,10 @@
     <button type="button" class="install-coach-close" id="installCoachClose" aria-label="暂时不提示"></button>
   </aside>
 
-  <script src="/static/core.js?v=1.101"></script>
-  <script src="/static/render.js?v=1.101"></script>
-  <script src="/static/api.js?v=1.101"></script>
-  <script src="/static/interactions.js?v=1.101"></script>
-  <script src="/static/bootstrap.js?v=1.101"></script>
+  <script src="/static/core.js?v=1.105"></script>
+  <script src="/static/render.js?v=1.105"></script>
+  <script src="/static/api.js?v=1.105"></script>
+  <script src="/static/interactions.js?v=1.105"></script>
+  <script src="/static/bootstrap.js?v=1.105"></script>
 </body>
 </html>

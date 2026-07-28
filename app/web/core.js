@@ -3,8 +3,8 @@
 var EagleViewer = window.EagleViewer = window.EagleViewer || {};
 
 var API = '';
-var VERSION = '4.0.0';
-var VERSION_DATE = '2026-07-27';
+var VERSION = '4.0.1';
+var VERSION_DATE = '2026-07-28';
 var PREVIEW_IMAGE_EXTS = ['jpg','jpeg','png','gif','webp','svg','bmp'];
 var PREVIEW_VIDEO_EXTS = ['mp4','webm','mov','m4v'];
 var PREVIEW_AUDIO_EXTS = ['mp3','wav','m4a','aac','flac','ogg'];
@@ -129,12 +129,6 @@ function injectIcons() {
   el = document.getElementById('emptyIcon'); if (el) el.innerHTML = iconFolderOutline();
   el = document.getElementById('returnCurrentIcon'); if (el) el.innerHTML = iconEye();
   el = document.getElementById('installCoachClose'); if (el) el.innerHTML = iconClose();
-  el = document.getElementById('iconBatchOutputLinks'); if (el) el.innerHTML = iconExternalLink();
-  el = document.getElementById('iconBatchOutputInfo'); if (el) el.innerHTML = iconInfo();
-  el = document.getElementById('iconBatchOutputRefs'); if (el) el.innerHTML = iconCopy();
-  el = document.getElementById('iconBatchOutputCsv'); if (el) el.innerHTML = iconExport();
-  el = document.getElementById('iconBatchOutputJson'); if (el) el.innerHTML = iconSliders();
-  el = document.getElementById('iconBatchOutputDownload'); if (el) el.innerHTML = iconDownload();
   el = document.getElementById('sidebarToggle');
   if (el) el.innerHTML = iconChevronLeft();
 }
@@ -551,16 +545,6 @@ var I18N_DATA = {
     batch_invert: '反选',
     batch_clear: '取消',
     batch_copy_links: '复制链接',
-    batch_download: '打包下载',
-    batch_output: '输出',
-    batch_output_aria: '批量输出',
-    batch_close_aria: '关闭批量输出',
-    batch_selected_title: '已选素材',
-    batch_output_meta: '复制链接或打包下载',
-    batch_copy_links2: '复制链接',
-    batch_open_other: '给另一台设备打开',
-    batch_download_zip: 'Download ZIP',
-    batch_need_remote: 'Requires remote Vault',
     // View buttons
     view_grid: '网格视图',
     view_list: '列表视图',
@@ -652,16 +636,6 @@ var I18N_DATA = {
     batch_invert: 'Invert',
     batch_clear: 'Clear',
     batch_copy_links: 'Copy Links',
-    batch_download: 'Download ZIP',
-    batch_output: 'Output',
-    batch_output_aria: 'Batch output',
-    batch_close_aria: 'Close batch output',
-    batch_selected_title: 'Selected Items',
-    batch_output_meta: 'Copy links or download ZIP',
-    batch_copy_links2: 'Copy Links',
-    batch_open_other: 'Open on another device',
-    batch_download_zip: 'Download ZIP',
-    batch_need_remote: 'Requires remote Vault',
     // View buttons
     view_grid: 'Grid View',
     view_list: 'List View',

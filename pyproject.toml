@@ -1,6 +1,6 @@
 [project]
 name = "eagle-viewer"
-version = "4.0.0"
+version = "4.0.1"
 description = "Read-only viewer for Eagle libraries"
 authors = [{name = "hanops", email = "opsnote@gmail.com"}]
 license = {text = "MIT"}

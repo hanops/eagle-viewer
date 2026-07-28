@@ -430,3 +430,217 @@ a { color: var(--accent); }
 .sentinel { height: 1px; }
 .loadrow { display: flex; justify-content: center; padding: 16px 0 8px; }
 .loadrow .spinner { margin: 0; }
+
+/* ===== Professional mobile gallery ===== */
+:root {
+  --ui: "Avenir Next", "IBM Plex Sans", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --display: "Iowan Old Style", "Songti SC", "Noto Serif SC", Georgia, serif;
+}
+[data-theme="light"] {
+  --bg:#f7f3ec;
+  --bg2:#fffdfa;
+  --panel:#ece8df;
+  --line:rgba(53,43,32,.13);
+  --fg:#29241f;
+  --mut:#70685f;
+  --mut2:#8a8177;
+  --accent:#c96535;
+  --accent-fg:#fff;
+  --scrim:rgba(35,27,19,.55);
+}
+[data-theme="dark"] {
+  --bg:#1a1816;
+  --bg2:#26241f;
+  --panel:#322f29;
+  --line:rgba(255,238,220,.10);
+  --fg:#f1ece5;
+  --mut:#aaa198;
+  --mut2:#8b837a;
+  --scrim:rgba(12,10,8,.64);
+}
+
+body {
+  font-family:var(--ui);
+  letter-spacing:0;
+}
+.top {
+  min-height:54px;
+  gap:7px;
+  padding:calc(env(safe-area-inset-top) + 8px) 14px 8px;
+  background:color-mix(in srgb,var(--bg) 94%,transparent);
+  backdrop-filter:blur(18px) saturate(1.08);
+}
+.top h2 {
+  font-family:var(--display);
+  font-size:21px;
+  font-weight:650;
+}
+.top .theme,
+.top .lang {
+  flex:0 0 auto;
+  height:36px;
+  border:1px solid var(--line);
+  border-radius:11px;
+  background:var(--bg2);
+  color:var(--mut);
+}
+.top .theme {
+  width:36px;
+  padding:0;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+}
+.top .theme svg {
+  width:17px;
+  height:17px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+.top .lang {
+  min-width:44px;
+  padding:0 9px;
+  font-size:11px;
+}
+
+.pad {
+  padding:12px 14px 22px;
+}
+.srch {
+  min-height:48px;
+  padding:0 13px;
+  border-color:var(--line);
+  border-radius:13px;
+  background:var(--bg2);
+  box-shadow:0 1px 2px rgba(46,34,22,.04);
+}
+.srch.library-search {
+  margin-top:0;
+}
+.srch input {
+  min-height:46px;
+  font-family:var(--ui);
+  font-size:16px;
+}
+.strip {
+  min-height:46px;
+  margin-top:9px;
+  padding:8px 11px;
+  border-radius:12px;
+  background:color-mix(in srgb,var(--bg2) 72%,transparent);
+}
+.strip .dot {
+  width:8px;
+  height:8px;
+}
+.strip .nm {
+  font-size:13px;
+  font-weight:650;
+}
+.strip .mono {
+  color:var(--mut);
+  font-family:var(--ui);
+  font-size:11px;
+  letter-spacing:0;
+}
+.counts {
+  display:none;
+}
+.lbl {
+  margin:20px 2px 10px;
+  color:var(--mut);
+  font-family:var(--ui);
+  font-size:12px;
+  font-weight:650;
+  letter-spacing:.04em;
+  text-transform:none;
+}
+.mas {
+  column-gap:9px;
+}
+.th {
+  margin-bottom:9px;
+  border-color:var(--line);
+  border-radius:14px;
+  background:var(--bg2);
+  box-shadow:0 1px 2px rgba(38,29,20,.08),0 9px 24px rgba(38,29,20,.05);
+  transform:translateZ(0);
+}
+.th .im {
+  min-height:104px;
+  background:var(--panel);
+}
+.th[data-kind="file"] .im {
+  filter:saturate(.58) contrast(.96);
+}
+.th .im.is-missing {
+  visibility:hidden;
+}
+.mobile-file-tile {
+  min-height:154px;
+  padding:16px;
+  display:flex;
+  flex-direction:column;
+  justify-content:flex-end;
+  gap:7px;
+  background:
+    linear-gradient(145deg,color-mix(in srgb,var(--bg2) 96%,white),color-mix(in srgb,var(--panel) 90%,var(--accent) 10%));
+}
+.mobile-file-tile i {
+  width:72%;
+  height:5px;
+  display:block;
+  border-radius:999px;
+  background:color-mix(in srgb,var(--fg) 10%,transparent);
+}
+.mobile-file-tile i:nth-of-type(2) {
+  width:88%;
+}
+.mobile-file-tile i:nth-of-type(3) {
+  width:58%;
+}
+.th .ext {
+  top:8px;
+  left:8px;
+  padding:3px 6px;
+  border-radius:6px;
+  background:var(--scrim);
+  font-family:var(--ui);
+  font-size:10px;
+  font-weight:650;
+  letter-spacing:.04em;
+}
+.th[data-kind="file"] .ext {
+  background:color-mix(in srgb,var(--accent) 88%,#402719);
+}
+.th .nm {
+  padding:28px 10px 9px;
+  background:linear-gradient(transparent,rgba(16,13,10,.82));
+  font-size:13px;
+  font-weight:550;
+  line-height:1.35;
+}
+.tabs {
+  background:color-mix(in srgb,var(--bg) 96%,transparent);
+  backdrop-filter:blur(18px) saturate(1.08);
+}
+.tb {
+  min-height:58px;
+  color:var(--mut);
+  font-family:var(--ui);
+  font-size:11px;
+  font-weight:550;
+  letter-spacing:0;
+}
+.tb.active::before {
+  width:24px;
+  height:3px;
+}
+.sr-head,
+.crumb,
+.kv .v {
+  font-family:var(--ui);
+}

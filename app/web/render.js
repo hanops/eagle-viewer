@@ -234,7 +234,6 @@ function updateBatchBar() {
   var previewRail = document.getElementById('selectedPreviewRail');
   var compareBtn = document.getElementById('batchCompareBtn');
   var removeCollectionBtn = document.getElementById('batchRemoveCollectionBtn');
-  var downloadBtn = document.getElementById('batchDownloadBtn');
   var selectedItems = getSelectedItems();
   var selectedSize = selectedItems.reduce(function(sum, item) { return sum + (item.size || 0); }, 0);
   if (countEl) countEl.textContent = '已选 ' + n + ' 个';
@@ -276,15 +275,7 @@ function updateBatchBar() {
     compareBtn.textContent = comparableCount > 4 ? '对比前 4 张' : ('对比图片' + (comparableCount ? ' ' + comparableCount : ''));
     compareBtn.title = comparableCount < 2 ? '至少选择 2 张图片' : '打开 2–4 张图片并排审阅';
   }
-  if (downloadBtn) {
-    var offline = isRemoteAccessUnavailableForRender();
-    downloadBtn.disabled = offline;
-    downloadBtn.classList.toggle('requires-remote', offline);
-    downloadBtn.title = offline ? '打包下载需要连接远程 Vault' : '打包下载已选原文件';
-    downloadBtn.textContent = offline ? '需联网' : '打包下载';
-  }
   if (n) bar.classList.add('visible'); else bar.classList.remove('visible');
-  if (typeof updateBatchOutputSheetState === 'function') updateBatchOutputSheetState();
   if (n > 1 && state.inspectorItem) renderModule.closeInspector();
 }
 
@@ -2605,7 +2596,7 @@ function getPreviewRemoteNoticeCopy() {
   var snapshot = getPreviewRemoteSnapshotMeta();
   return {
     title: snapshot ? '正在浏览快照 / 缓存预览' : '远程 Vault 暂不可达',
-    meta: snapshot ? ('快照 ' + new Date(snapshot.savedAt).toLocaleString('zh-CN') + ' · ' + (snapshot.ok || 0) + ' 项；原文件下载需重连。') : '可继续浏览已缓存素材；原文件、ZIP 和未缓存预览需要回到远程连接。'
+    meta: snapshot ? ('快照 ' + new Date(snapshot.savedAt).toLocaleString('zh-CN') + ' · ' + (snapshot.ok || 0) + ' 项；原文件下载需重连。') : '可继续浏览已缓存素材；原文件和未缓存预览需要回到远程连接。'
   };
 }
 

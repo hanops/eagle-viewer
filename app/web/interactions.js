@@ -158,6 +158,10 @@ function setTheme(name) {
   clearTimeout(setTheme._t);
   setTheme._t = setTimeout(function(){ root.classList.remove('theme-transition'); }, 260);
   try { localStorage.setItem('eagle-viewer-theme', name); } catch (e) {}
+  var appearanceMenu = document.getElementById('appearanceMenu');
+  if (appearanceMenu && appearanceMenu.open && document.activeElement && document.activeElement.closest('.theme-swatch')) {
+    appearanceMenu.removeAttribute('open');
+  }
 }
 
 async function loadLocalData() {
@@ -1266,7 +1270,6 @@ function updateRemoteStatusStrip(status, message) {
     }
     if (state.inspectorItem && render && render.openInspector && document.body.classList.contains('inspector-open')) render.openInspector(state.inspectorItem);
     if (render && render.updateBatchBar) render.updateBatchBar();
-    updateBatchOutputSheetState();
     if (render && render.refreshOpenPreviewMobileActions) render.refreshOpenPreviewMobileActions();
     if (render && render.updateMobileWorkbar) render.updateMobileWorkbar();
     if (render && render.renderContent && (state.currentItems.length || state.currentSubfolders.length)) render.renderContent();
@@ -1289,7 +1292,6 @@ function updateRemoteStatusStrip(status, message) {
   }
   if (state.inspectorItem && render && render.openInspector && document.body.classList.contains('inspector-open')) render.openInspector(state.inspectorItem);
   if (render && render.updateBatchBar) render.updateBatchBar();
-  updateBatchOutputSheetState();
   if (render && render.refreshOpenPreviewMobileActions) render.refreshOpenPreviewMobileActions();
   if (render && render.updateMobileWorkbar) render.updateMobileWorkbar();
   if (render && render.renderContent && (state.currentItems.length || state.currentSubfolders.length)) render.renderContent();
@@ -1396,8 +1398,6 @@ function setupRemoteStatusStrip() {
     updateMobileRemoteCard('online', '离线快照已更新');
     if (render && render.updateMobileWorkbar) render.updateMobileWorkbar();
     if (render && render.refreshOpenPreviewMobileActions) render.refreshOpenPreviewMobileActions();
-    updateBatchOutputSheetState();
-    flashBatchOutputSnapshotState(event.detail || {});
     syncMobileMoreHandoff();
     renderMobileSearchQuick();
   });
@@ -1405,7 +1405,6 @@ function setupRemoteStatusStrip() {
     updateMobileRemoteCard(navigator.onLine === false ? 'offline' : 'online', '离线数据已清除');
     if (render && render.updateMobileWorkbar) render.updateMobileWorkbar();
     if (render && render.refreshOpenPreviewMobileActions) render.refreshOpenPreviewMobileActions();
-    updateBatchOutputSheetState();
     syncMobileMoreHandoff();
     renderMobileSearchQuick();
   });
@@ -1854,51 +1853,6 @@ function copySelectedReferences(button) {
   copyTextToClipboard(buildBatchReferencesText(items), '复制素材引用', button);
 }
 
-function downloadSelectedBatch(button) {
-  var ids = Array.from(state.selectedIds);
-  if (!ids.length) return;
-  if (isRemoteAccessUnavailable()) {
-    showToast('打包下载需要连接远程 Vault', 'error');
-    updateBatchOutputSheetState();
-    return;
-  }
-  var label = button ? (button.querySelector('small') || button) : null;
-  var oldLabel = label ? label.textContent : '';
-  if (button) {
-    button.disabled = true;
-    button.classList.add('is-loading');
-  }
-  if (label) label.textContent = '准备 ZIP…';
-  fetch(API + '/api/items/batch-download', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(ids)
-  }).then(function(r) {
-    if (r.status === 401) { window.location.href = '/login'; return; }
-    if (r.status === 503) throw new Error('远程 Vault 暂不可达');
-    if (!r.ok) throw new Error('下载失败');
-    return r.blob();
-  }).then(function(blob) {
-    if (!blob) return;
-    var a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'eagle-batch.zip';
-    a.click();
-    URL.revokeObjectURL(a.href);
-    showToast('ZIP 已开始下载', 'success');
-    closeBatchOutputSheet();
-  }).catch(function(e) {
-    showToast('批量下载失败：' + (e.message || e), 'error');
-  }).finally(function() {
-    if (button) {
-      button.disabled = false;
-      button.classList.remove('is-loading');
-    }
-    if (label) label.textContent = oldLabel;
-    updateBatchOutputSheetState();
-  });
-}
-
 async function copyItemImage(id, button) {
   if (!id) return;
   if (!navigator.clipboard || typeof navigator.clipboard.write !== 'function') {
@@ -1964,78 +1918,6 @@ function openItemFolder(item) {
 function isRemoteAccessUnavailable() {
   var strip = document.getElementById('remoteStatusStrip');
   return navigator.onLine === false || !!(strip && !strip.hidden && strip.dataset.state === 'offline');
-}
-
-function getBatchSelectedSummary() {
-  var items = typeof getSelectedItems === 'function' ? getSelectedItems() : state.currentItems.filter(function(item) {
-    return state.selectedIds.has(item.id);
-  });
-  var totalSize = items.reduce(function(sum, item) { return sum + (item.size || 0); }, 0);
-  return { items: items, totalSize: totalSize };
-}
-
-function updateBatchOutputSheetState() {
-  var overlay = document.getElementById('batchOutputOverlay');
-  if (!overlay) return;
-  var summary = getBatchSelectedSummary();
-  var title = document.getElementById('batchOutputTitle');
-  var meta = document.getElementById('batchOutputMeta');
-  var status = document.getElementById('batchOutputStatus');
-  var statusTitle = document.getElementById('batchOutputStatusTitle');
-  var statusMeta = document.getElementById('batchOutputStatusMeta');
-  var download = overlay.querySelector('[data-batch-output-action="download"]');
-  var offline = isRemoteAccessUnavailable();
-  if (title) title.textContent = '已选 ' + summary.items.length + ' 个素材';
-  if (meta) meta.textContent = '总大小 ' + (summary.totalSize ? formatSize(summary.totalSize) : '0 B') + ' · 输出到笔记、清单或远程下载';
-  if (status) status.dataset.state = offline ? 'offline' : 'online';
-  if (statusTitle) statusTitle.textContent = offline ? '远程 Vault 暂不可达' : '远程 Vault 在线';
-  if (statusMeta) {
-    statusMeta.textContent = offline ?
-      '复制链接、信息、Markdown、CSV 和 JSON 仍可用；ZIP 原文件需要重连远程 Vault。' :
-      '可复制、导出清单，也可打包下载原文件 ZIP。';
-  }
-  if (download) {
-    download.disabled = offline;
-    download.classList.toggle('requires-remote', offline);
-    var small = download.querySelector('small');
-    if (small) small.textContent = offline ? '需连接远程 Vault' : '下载原文件 ZIP';
-  }
-}
-
-function flashBatchOutputSnapshotState(detail) {
-  var status = document.getElementById('batchOutputStatus');
-  if (!status) return;
-  var statusTitle = document.getElementById('batchOutputStatusTitle');
-  var statusMeta = document.getElementById('batchOutputStatusMeta');
-  var ok = detail && typeof detail.ok === 'number' ? detail.ok : 0;
-  var total = detail && typeof detail.total === 'number' ? detail.total : 0;
-  status.dataset.state = 'saved';
-  if (statusTitle) statusTitle.textContent = '离线快照已更新';
-  if (statusMeta) statusMeta.textContent = ok ? ('已缓存 ' + ok + ' / ' + total + ' 项；离线时仍可浏览快照并继续复制/导出清单。') : '快照状态已刷新；离线时复制和导出清单仍可用。';
-  clearTimeout(status._snapshotTimer);
-  status._snapshotTimer = setTimeout(updateBatchOutputSheetState, 2600);
-}
-
-function closeBatchOutputSheet() {
-  var overlay = document.getElementById('batchOutputOverlay');
-  if (!overlay) return;
-  overlay.classList.remove('open');
-  overlay.classList.add('closing');
-  overlay.setAttribute('aria-hidden', 'true');
-  setTimeout(function() { overlay.classList.remove('closing'); }, 180);
-}
-
-function openBatchOutputSheet() {
-  if (!state.selectedIds.size) {
-    showToast('先选择要输出的素材', 'error');
-    return;
-  }
-  var overlay = document.getElementById('batchOutputOverlay');
-  if (!overlay) return;
-  updateBatchOutputSheetState();
-  overlay.classList.remove('closing');
-  overlay.classList.add('open');
-  overlay.setAttribute('aria-hidden', 'false');
 }
 
 function runItemAction(item, action, sourceEl) {
@@ -2951,39 +2833,10 @@ function bindEvents() {
     state.lastSelectedId = '';
     updateBatchBar();
     updateCheckboxesInView();
-    closeBatchOutputSheet();
   };
   document.getElementById('batchCopyLinksBtn').onclick = function() {
     copySelectedLinks(this);
   };
-  var batchMobileOutputBtn = document.getElementById('batchMobileOutputBtn');
-  if (batchMobileOutputBtn) batchMobileOutputBtn.onclick = openBatchOutputSheet;
-  document.getElementById('batchDownloadBtn').onclick = function() {
-    downloadSelectedBatch(this);
-  };
-  var batchOutputOverlay = document.getElementById('batchOutputOverlay');
-  if (batchOutputOverlay) {
-    batchOutputOverlay.onclick = function(e) {
-      if (e.target.closest('[data-batch-output-close]')) {
-        closeBatchOutputSheet();
-        return;
-      }
-      var actionBtn = e.target.closest('[data-batch-output-action]');
-      if (!actionBtn) return;
-      var action = actionBtn.dataset.batchOutputAction;
-      if (action === 'copy-links') {
-        copySelectedLinks(actionBtn);
-      } else if (action === 'download') {
-        downloadSelectedBatch(actionBtn);
-      }
-      if (action !== 'download') {
-        setTimeout(closeBatchOutputSheet, 450);
-      }
-    };
-    document.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape' && batchOutputOverlay.classList.contains('open')) closeBatchOutputSheet();
-    });
-  }
   var selectedPreviewRail = document.getElementById('selectedPreviewRail');
   if (selectedPreviewRail) {
     selectedPreviewRail.onclick = function(e) {
@@ -3006,6 +2859,17 @@ function bindEvents() {
   document.getElementById('inspectorClose').onclick = render.closeInspector;
   var inspectorMobileBackdrop = document.getElementById('inspectorMobileBackdrop');
   if (inspectorMobileBackdrop) inspectorMobileBackdrop.onclick = render.closeInspector;
+  var mainArea = document.getElementById('mainArea');
+  if (mainArea) {
+    mainArea.addEventListener('click', function(e) {
+      if (!state.inspectorItem || window.matchMedia('(max-width: 768px)').matches) return;
+      if (e.target.closest(
+        '.card, .folder-card, .list-table tr, button, a, input, select, label, ' +
+        '[role="button"], [tabindex]'
+      )) return;
+      render.closeInspector();
+    });
+  }
 
   // Toolbar sort/filter selects
   ['sortSelect', 'sortDirSelect', 'typeSelect'].forEach(function(id) {

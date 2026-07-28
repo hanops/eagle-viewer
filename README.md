@@ -10,7 +10,7 @@
 
 Vault is always mounted **read-only**. It never modifies files inside the library.
 
-**Current version**: v4.0.0 (2026-07-27) · [Changelog](CHANGELOG.md) · [中文版](README.zh.md)
+**Current version**: v4.0.1 (2026-07-28) · [Changelog](CHANGELOG.md) · [中文版](README.zh.md)
 
 ---
 
@@ -37,10 +37,10 @@ Vault is always mounted **read-only**. It never modifies files inside the librar
 - **Remote update awareness**: Detects Vault directory and metadata changes; prompts in-place reload.
 - **Hover preview**: 300 ms hover over thumbnails shows a larger preview. PDF also supports hover preview.
 - **Card actions**: Desktop hover shows preview and details. Right-click and mobile long-press expose select, copy link, and download.
-- **Preview & download**: Images, video, audio, PDF, and plain text preview inline. Other formats are downloadable. Single-file downloads preserve the original filename; multi-select can bundle as ZIP.
+- **Preview & download**: Images, video, audio, PDF, and plain text preview inline. Other formats are downloadable. Downloads preserve the original filename.
 - **Audio player**: Audio assets open in a full-featured player showing format, duration, BPM, and native playback controls.
 - **Image tools**: Full-screen image viewer with zoom-to-fit, fit-to-window, and zoom-in controls. Video/audio use native browser controls.
-- **Multi-select**: Select assets to copy links or download as ZIP. Touch-friendly on mobile.
+- **Multi-select**: Select assets and copy their links. Touch-friendly on mobile.
 - **Previous / next navigation**: Inspector supports ← / → keyboard shortcuts to cycle through assets.
 - **Share**: Copy asset links from Inspector, context menu, mobile long-press, and full-screen preview.
 - **Manual index refresh**: One-click reload from the toolbar — no server restart needed to pick up new NAS content.
@@ -165,7 +165,6 @@ The frontend uses vanilla HTML/CSS/JS — no framework. The backend is FastAPI. 
 | GET | `/api/items/{item_id}/file` | Original file (preview) |
 | GET | `/api/items/{item_id}/file?download=true` | Original file (download) |
 | POST | `/api/library/reload` | Trigger a full re-scan of the library |
-| POST | `/api/items/batch-download` | Bundle items as ZIP (`Body: ["id1","id2",...]`) |
 
 List endpoints return: `items`, `total`, `offset`, `limit`, `nextOffset`, `hasMore`, plus endpoint-specific fields (`subfolders`, `tag`, `query`, `days`).
 

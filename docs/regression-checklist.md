@@ -47,6 +47,7 @@
 
 - Inspector shows: preview, format, dimensions, file size, folder path, tags, source URL, Eagle notes, and asset ID.
 - Inspector supports previous / next navigation; closing returns to and highlights the current asset.
+- On desktop, clicking empty space in the main gallery closes the Inspector without affecting cards or toolbar controls.
 - Preview, copy link, and download are accessible from the Inspector.
 - Fullscreen preview supports previous / next navigation for previewable assets in the current view.
 - Image zoom-to-fit, fit-to-window, and zoom-in work correctly; video/audio native player controls work.
@@ -57,7 +58,7 @@
 - Selection and deselection work correctly without accidentally opening details.
 - Batch bar shows count, total size, type breakdown, and thumbnail previews.
 - Batch bar does **not** show: pending review, done markers, workspaces, or queue management.
-- Copy links and ZIP download work; no Markdown/HTML reference, CSV/JSON export, or image comparison surface.
+- Multi-select copy links work; no batch download, Markdown/HTML reference, CSV/JSON export, or image comparison surface.
 
 ## Mobile
 
@@ -77,7 +78,7 @@
 - Manifest quick links only include: All Items and Search Vault.
 - Service Worker upgrade fetches the latest static assets without blocking current sheets.
 - Only the static shell is cached; no offline data management or snapshot UI is shown.
-- Cache does **not** include any `/api` requests, thumbnails, originals, or batch downloads.
+- Cache does **not** include any `/api` requests, thumbnails, or originals.
 - When the remote Vault reconnects, the current view refreshes gracefully.
 
 ## Refresh & Cache
