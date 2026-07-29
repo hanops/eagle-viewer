@@ -2,6 +2,29 @@
 
 ---
 
+## 4.1.0 - 2026-07-29
+
+### Features
+- Introduced a curatorial remote-library visual system across desktop and mobile, with a stronger collection header, clearer navigation hierarchy, refined warm gallery surfaces, and higher-contrast dark workbench styling.
+- Increased the default desktop asset density from 164 px to 184 px so names, metadata, and previews remain readable during remote browsing.
+- Refined the iPhone shell with larger top controls, search, asset labels, and bottom navigation while preserving full safe-area coverage.
+
+**中文**：桌面端和移动端统一升级为“策展式远程资料库”视觉系统，强化资料库标题、导航层级、暖色画廊质感和深色工作台对比度；桌面素材默认尺寸由 164 px 调整为 184 px；同步放大 iPhone 顶部控件、搜索、素材标题和底部导航，并保持安全区域完整覆盖。
+
+### Fixes
+- Improved muted text and card-border contrast in dark themes so secondary information remains legible.
+- Kept asset names and metadata visible below image cards instead of relying on hover-only context.
+- Removed the temporary Figma capture scripts and moved the desktop version badge into the persistent toolbar.
+
+**中文**：提升深色主题下次级文字和卡片边框的可读性；图片卡片持续显示名称与元数据，不再依赖悬停；清理临时 Figma 采集脚本，并将桌面版本号固定显示在工具栏。
+
+### Maintenance
+- Advanced the static asset revision to `1.108` and the Service Worker shell cache to `eagle-viewer-shell-v54`.
+
+**中文**：静态资源修订号更新至 `1.108`，Service Worker shell 缓存更新至 `eagle-viewer-shell-v54`。
+
+---
+
 ## 4.0.1 - 2026-07-28
 
 ### Fixes

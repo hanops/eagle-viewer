@@ -644,3 +644,106 @@ body {
 .kv .v {
   font-family:var(--ui);
 }
+
+/* ===== Curatorial archive refinement (v4 mobile) ===== */
+body {
+  background:
+    radial-gradient(110% 55% at 50% -12%,color-mix(in srgb,var(--accent) 10%,transparent),transparent 66%),
+    var(--bg);
+}
+.top {
+  min-height:62px;
+  padding:calc(env(safe-area-inset-top) + 10px) 15px 10px;
+  border-bottom-color:var(--line);
+}
+.top h2 {
+  font-size:24px;
+  font-weight:650;
+  letter-spacing:-.025em;
+}
+.top .theme,
+.top .lang {
+  height:40px;
+  border-radius:13px;
+  box-shadow:0 1px 2px rgba(45,33,21,.04);
+}
+.top .theme {width:40px;}
+.top .lang {
+  min-width:46px;
+  font-size:12px;
+}
+.pad {padding:14px 15px 28px;}
+.srch {
+  min-height:52px;
+  padding:0 14px;
+  border-radius:15px;
+  box-shadow:0 1px 2px rgba(46,34,22,.05),0 10px 26px rgba(46,34,22,.035);
+}
+.srch input {
+  min-height:50px;
+  font-size:16px;
+}
+.strip {
+  min-height:54px;
+  margin-top:10px;
+  padding:9px 12px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:color-mix(in srgb,var(--bg2) 82%,transparent);
+}
+.strip .nm {font-size:14px;}
+.strip .mono {font-size:11.5px;}
+.lbl {
+  margin:23px 2px 11px;
+  font-size:12.5px;
+  font-weight:700;
+  letter-spacing:.06em;
+}
+.mas {column-gap:10px;}
+.th {
+  margin-bottom:10px;
+  border-radius:16px;
+  box-shadow:0 1px 2px rgba(38,29,20,.08),0 12px 30px rgba(38,29,20,.065);
+}
+.th .im {min-height:112px;}
+.mobile-file-tile {
+  min-height:164px;
+  padding:17px;
+}
+.th .ext {
+  top:9px;
+  left:9px;
+  padding:4px 7px;
+  border-radius:7px;
+  font-size:10px;
+}
+.th .nm {
+  padding:32px 11px 10px;
+  font-size:14px;
+  font-weight:600;
+}
+.tabs {
+  min-height:66px;
+  border-top:1px solid var(--line);
+}
+.tb {
+  min-height:66px;
+  padding-bottom:max(5px,env(safe-area-inset-bottom));
+  font-size:11.5px;
+}
+.tb svg {
+  width:22px;
+  height:22px;
+}
+.tb.active::before {
+  width:28px;
+  height:3px;
+}
+[data-theme="dark"] .strip,
+[data-theme="dark"] .srch {
+  border-color:rgba(255,240,222,.12);
+}
+[data-theme="dark"] .th {
+  border-color:rgba(255,240,222,.12);
+  box-shadow:0 1px 2px rgba(0,0,0,.45),0 14px 34px rgba(0,0,0,.2);
+}

@@ -4,13 +4,14 @@
 > 与 `CHANGELOG.md`（记录“已发布了什么”）、`AGENTS.md`（通用结构与命令）互补。
 > 每次做出会影响后续迭代的决策或踩到新坑，请追加到此文件。
 
-最后更新：2026-07-24 · 当前版本：**3.0.0（待发布）**
+最后更新：2026-07-29 · 当前版本：**4.1.0**
 
 ---
 
 ## 1. 当前状态
 
-- **v3.0.0 待发布**：主版本跳升。本轮为开源准备 + i18n 语言切换 + 移动端底部导航完整修复。含：全英文文档（README / CONTRIBUTING / CODE_OF_CONDUCT / regression-checklist / release 等）、GitHub Actions CI 工作流、Issue/PR 模板、i18n 框架（右上角语言按钮 + `data-i18n` 基础设施 + zh/en 双语数据）、隐私说明、Eagle 官网链接、Docker Compose 镜像版本更新。`AGENTS.md` 加入 gitignore。新增 `GOVERNANCE.md` / `docs/logo.svg` / `docs/screenshots/README.md`。后端 `APP_VERSION` 回退改为读 `pyproject.toml` 避免 `vdev` 问题。SW shell 缓存升至 `eagle-viewer-shell-v45`。
+- **v4.1.0 发布**：桌面端和移动端统一为“策展式远程资料库”视觉系统，强化资料库标题、搜索、侧栏和卡片信息层级；默认桌面素材密度由 164 px 调整为 184 px；深色主题提升次级文字和边框对比度；iPhone 顶部、搜索和底部导航扩大并保持安全区域完整覆盖。静态资源 revision 升至 `1.108`、SW shell 缓存升至 `eagle-viewer-shell-v54`。
+- **v4.0.1 已发布**：移除批量 ZIP 下载，修复点击桌面空白处关闭详情面板，并进一步优化小屏布局和版本/cache 同步。
 - **v2.0.5 已发布**：tag `v2.0.5` 已推送，GitHub Release 已建。本轮为移动端底部导航修复（`100dvh` 覆盖 `100vh` 导致浏览器工具栏遮挡）、清理死 CSS（`.mobile-continue-*` 选择器级剥离）以及集合系统死代码彻底清除。静态资源 revision 升至 `1.98`、SW shell 缓存升至 `eagle-viewer-shell-v44`。
 - 版本号一致性由 `make check` 的 version-check 保证，**只比对三处**：`pyproject.toml`、`README.md`、`app/web/core.js`。改版本号时这三处必须同步（`uv.lock` 里项目自身版本也需一致，`uv sync` 会带出）。
 - 工作树中 `docs/mockups/web-desktop-redesign.html` 是**有意保留**的设计参考稿（untracked），不是临时文件，勿删。

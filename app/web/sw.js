@@ -1,4 +1,4 @@
-const CACHE_NAME = 'eagle-viewer-shell-v53';
+const CACHE_NAME = 'eagle-viewer-shell-v54';
 const STATIC_URLS = [
   '/',
   '/index.html',
@@ -8,14 +8,14 @@ const STATIC_URLS = [
   '/static/apple-touch-icon.png',
   '/static/icon-192.png',
   '/static/icon-512.png',
-  '/static/styles.css?v=1.105',
-  '/static/core.js?v=1.105',
-  '/static/render.js?v=1.105',
-  '/static/api.js?v=1.105',
-  '/static/interactions.js?v=1.105',
-  '/static/bootstrap.js?v=1.105',
-  '/static/mobile.css?v=1.105',
-  '/static/mobile.js?v=1.105',
+  '/static/styles.css?v=1.108',
+  '/static/core.js?v=1.108',
+  '/static/render.js?v=1.108',
+  '/static/api.js?v=1.108',
+  '/static/interactions.js?v=1.108',
+  '/static/bootstrap.js?v=1.108',
+  '/static/mobile.css?v=1.108',
+  '/static/mobile.js?v=1.108',
 ];
 
 self.addEventListener('install', function(event) {

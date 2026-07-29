@@ -8,18 +8,18 @@ var interactionModule = EagleViewer.modules.interactions = EagleViewer.modules.i
 // Shared by the desktop masonry/justified layout and the mobile density buttons.
 // Kept as a JS variable (no DOM element) so layout sizing works without the
 // removed canvas-settings panel.
-var gridDensity = 164;
+var gridDensity = 184;
 var gridDensityStorageKey = 'eagle-viewer-grid-density';
 
 function loadGridDensity() {
   try {
     var saved = localStorage.getItem(gridDensityStorageKey);
-    if (saved) gridDensity = Math.max(116, Math.min(260, Number(saved) || 164));
+    if (saved) gridDensity = Math.max(116, Math.min(260, Number(saved) || 184));
   } catch (e) {}
 }
 
 function setCanvasDensity(value) {
-  gridDensity = Math.max(116, Math.min(260, Number(value) || 164));
+  gridDensity = Math.max(116, Math.min(260, Number(value) || 184));
   try { localStorage.setItem(gridDensityStorageKey, String(gridDensity)); } catch (e) {}
   if (render && render.refreshMasonryLayout) render.refreshMasonryLayout();
 }
