@@ -30,6 +30,9 @@ jobs:
       - name: Install dependencies
         run: uv sync
 
+      - name: Version consistency
+        run: uv run python scripts/check_versions.py
+
       - name: Lint
         run: uv run ruff check app tests scripts
 
@@ -40,4 +43,7 @@ jobs:
         run: uv run python -m compileall app
 
       - name: JS syntax check
-        run: node --check app/web/core.js app/web/render.js app/web/api.js app/web/interactions.js app/web/bootstrap.js app/web/mobile.js app/web/sw.js
+        run: |
+          for file in app/web/*.js; do
+            node --check "$file"
+          done

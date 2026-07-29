@@ -5,16 +5,21 @@
 1. Update version values in:
    - `pyproject.toml`
    - `README.md`
+   - `README.zh.md`
    - `app/web/core.js`
+   - `docker-compose.yml`
+   - `docker-compose.remote.example.yml`
+   - `uv.lock`
    - `app/web/sw.js` cache name when static assets change
 2. Update `CHANGELOG.md`.
-3. Run:
+3. When desktop static assets are added, removed, or split, keep their load order aligned in `app/web/index.html`, `app/web/sw.js`, and `tests/test_pwa_restore_contract.py`.
+4. Run:
 
 ```bash
 make check
 ```
 
-4. If the release changes UI behavior, run the manual checklist in
+5. If the release changes UI behavior, run the manual checklist in
    `docs/regression-checklist.md` and save notes under `docs/regression-results-vX.Y.Z.md`.
 
 ## Publish

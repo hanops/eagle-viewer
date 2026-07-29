@@ -8,7 +8,7 @@ dev:
 
 check: version-check lint test
 	uv run python -m compileall app
-	node --check app/web/core.js app/web/render.js app/web/api.js app/web/interactions.js app/web/bootstrap.js app/web/mobile.js app/web/sw.js
+	@for file in app/web/*.js; do node --check "$$file"; done
 
 test:
 	uv run pytest

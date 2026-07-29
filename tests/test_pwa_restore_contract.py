@@ -5,24 +5,86 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
+DESKTOP_STYLE_ASSETS = (
+    "styles.css",
+    "styles-collection.css",
+    "styles-detail.css",
+    "styles-desktop.css",
+    "styles-mobile-shell.css",
+    "styles-mobile-search.css",
+    "styles-mobile-preview.css",
+    "styles-mobile-actions.css",
+    "styles-formats.css",
+    "styles-polish.css",
+)
+RENDER_ASSETS = (
+    "render.js",
+    "render-selection.js",
+    "render-inspector.js",
+    "render-collection.js",
+    "render-content.js",
+    "render-preview.js",
+    "render-preview-media.js",
+    "render-preview-navigation.js",
+    "render-preview-documents.js",
+    "render-hover.js",
+)
+INTERACTION_ASSETS = (
+    "interactions.js",
+    "interactions-filters.js",
+    "interactions-layout.js",
+    "interactions-mobile.js",
+    "interactions-remote.js",
+    "interactions-install.js",
+    "interactions-items.js",
+    "interactions-actions.js",
+    "interactions-bindings.js",
+)
+
 
 def read(path: str) -> str:
     return (ROOT / path).read_text(encoding="utf-8")
+
+
+def read_web_assets(names: tuple[str, ...]) -> str:
+    return "\n".join(read(f"app/web/{name}") for name in names)
 
 
 def test_static_shell_uses_one_asset_revision():
     index = read("app/web/index.html")
     service_worker = read("app/web/sw.js")
     mobile = read("app/web/mobile.html")
-    for asset in ("styles.css", "core.js", "render.js", "api.js", "interactions.js", "bootstrap.js"):
-        versioned = f"/static/{asset}?v=1.108"
+    desktop_assets = DESKTOP_STYLE_ASSETS + RENDER_ASSETS + INTERACTION_ASSETS + (
+        "core.js",
+        "api.js",
+        "bootstrap.js",
+    )
+    for asset in desktop_assets:
+        versioned = f"/static/{asset}?v=1.111"
         assert versioned in index
         assert versioned in service_worker
     for asset in ("mobile.css", "mobile.js"):
-        versioned = f"/static/{asset}?v=1.108"
+        versioned = f"/static/{asset}?v=1.111"
         assert versioned in mobile
         assert versioned in service_worker
-    assert "eagle-viewer-shell-v54" in service_worker
+    assert "eagle-viewer-shell-v57" in service_worker
+
+
+def test_desktop_asset_order_preserves_cascade_and_classic_script_dependencies():
+    index = read("app/web/index.html")
+    stylesheets = re.findall(r'<link rel="stylesheet" href="/static/([^"?]+)', index)
+    scripts = re.findall(r'<script src="/static/([^"?]+)', index)
+
+    assert stylesheets == list(DESKTOP_STYLE_ASSETS)
+    assert scripts == [
+        "core.js",
+        *RENDER_ASSETS,
+        "api.js",
+        *INTERACTION_ASSETS,
+        "bootstrap.js",
+    ]
+    for asset in (*DESKTOP_STYLE_ASSETS, *RENDER_ASSETS, *INTERACTION_ASSETS):
+        assert (ROOT / "app" / "web" / asset).is_file()
 
 
 def test_mobile_shell_declares_its_favicon():
@@ -101,7 +163,7 @@ def test_navigation_exposes_only_basic_product_surfaces():
 
 def test_layout_preferences_are_limited_to_grid_and_list():
     api = read("app/web/api.js")
-    interactions = read("app/web/interactions.js")
+    interactions = read_web_assets(INTERACTION_ASSETS)
     assert "stored === 'list' ? 'list' : 'grid'" in api
     assert "['grid', 'list'].indexOf(mode)" in interactions
 
@@ -109,7 +171,7 @@ def test_layout_preferences_are_limited_to_grid_and_list():
 def test_search_is_plain_keyword_search():
     index = read("app/web/index.html")
     api = read("app/web/api.js")
-    interactions = read("app/web/interactions.js")
+    interactions = read_web_assets(INTERACTION_ASSETS)
     assert 'placeholder="搜索名称、标签或备注"' in index
     assert "搜索名称、标签或备注" in interactions
     assert "q.charAt(0) === '#'" not in interactions
@@ -119,7 +181,7 @@ def test_search_is_plain_keyword_search():
 
 def test_preview_surface_is_limited_to_browser_native_formats():
     core = read("app/web/core.js")
-    render = read("app/web/render.js")
+    render = read_web_assets(RENDER_ASSETS)
     items_api = read("app/api/items.py")
     assert "PREVIEW_IMAGE_EXTS" in core
     assert "PREVIEW_VIDEO_EXTS" in core
@@ -134,7 +196,7 @@ def test_preview_surface_is_limited_to_browser_native_formats():
 
 
 def test_image_preview_toolbar_is_basic():
-    render = read("app/web/render.js")
+    render = read_web_assets(RENDER_ASSETS)
     simplified = render.split("// Keep the remote preview deliberately small", 1)[1]
     simplified = simplified.split("async function previewItem", 1)[0]
     assert 'data-preview-tool="zoom-out"' in simplified
@@ -175,7 +237,7 @@ def test_manifest_keeps_only_basic_shortcuts():
 
 def test_theme_and_mobile_navigation_remain_available():
     index = read("app/web/index.html")
-    interactions = read("app/web/interactions.js")
+    interactions = read_web_assets(INTERACTION_ASSETS)
     # 右上角三主题切换器（Gallery / Workbench / Carbon）
     assert 'id="themeSwitcher"' in index
     assert 'class="theme-switcher"' in index
@@ -190,7 +252,7 @@ def test_theme_and_mobile_navigation_remain_available():
 
 def test_iphone_layout_uses_dynamic_viewport_and_balanced_safe_areas():
     index = read("app/web/index.html")
-    styles = read("app/web/styles.css")
+    styles = read_web_assets(DESKTOP_STYLE_ASSETS)
     assert "viewport-fit=cover, interactive-widget=resizes-content" in index
     assert "height:100dvh" in styles
     assert "--mobile-home-gap:max(8px,calc(env(safe-area-inset-bottom,0px) - 18px))" in styles
@@ -209,7 +271,7 @@ def test_accent_tokens_are_not_self_referential():
     # Regression guard: a sweep that rewrote hardcoded blues into var(--accent)
     # produced `--accent:var(--accent)` cyclic references, which CSS resolves to
     # a guaranteed-invalid value and blanks the global accent across the whole app.
-    styles = read("app/web/styles.css")
+    styles = read_web_assets(DESKTOP_STYLE_ASSETS)
     pattern = re.compile(
         r"^\s*(--accent(?:-text)?)\s*:\s*var\(\1\)\s*;",
         re.MULTILINE,
@@ -221,7 +283,7 @@ def test_accent_tokens_are_not_self_referential():
 def test_accent_tokens_resolve_to_concrete_values():
     # The accent token must never be left blank (`--accent:;`), which would blank
     # the global accent. Concrete colors and references to *other* tokens are fine.
-    styles = read("app/web/styles.css")
+    styles = read_web_assets(DESKTOP_STYLE_ASSETS)
     bad = []
     for m in re.finditer(r"(--accent(?:-text)?)\s*:\s*([^;]+);", styles):
         value = m.group(2).strip()

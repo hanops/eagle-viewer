@@ -53,3 +53,15 @@ def test_api_info_declares_native_capabilities(monkeypatch):
         "protectedFolders",
     }
     assert "sharedState" not in info["features"]
+
+
+def test_security_headers_are_applied_to_health_and_static_pages():
+    client = TestClient(main.app)
+
+    for path in ("/health", "/"):
+        response = client.get(path)
+        assert response.headers["x-content-type-options"] == "nosniff"
+        assert response.headers["x-frame-options"] == "DENY"
+        assert response.headers["referrer-policy"] == "no-referrer"
+        assert response.headers["permissions-policy"] == "camera=(), microphone=(), geolocation=()"
+        assert response.headers["cross-origin-resource-policy"] == "same-origin"

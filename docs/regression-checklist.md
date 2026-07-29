@@ -70,7 +70,7 @@
 - Mobile Inspector and fullscreen preview do **not** show: pending/done markers, workspaces, Viewer notes, or review markers.
 - Sheets close on swipe-down; Inspector supports half-screen / full-screen toggle, left/right swipe, and safe-area insets.
 - No horizontal overflow; bottom actions are not obscured by the Home Indicator.
-- Safari and home-screen standalone mode fill the viewport with dynamic viewport sizing; the top search and navigation have sufficient touch height; the four-tab bottom bar leaves no excess whitespace after Home Indicator avoidance.
+- Safari and home-screen standalone mode fill the viewport with dynamic viewport sizing; the top search and navigation have sufficient touch height; the three-tab bottom bar leaves no excess whitespace after Home Indicator avoidance.
 - Paginated directory and search results (>120 items) hydrate thumbnails correctly on scroll, never showing a blank canvas (verify `setupInfinite` does not kill the lazy-hydration observer `__hio`).
 
 ## PWA & Cache

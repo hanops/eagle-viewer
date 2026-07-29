@@ -28,6 +28,16 @@ def main() -> None:
             (ROOT / "app" / "web" / "core.js").read_text(encoding="utf-8"),
             "app/web/core.js",
         ),
+        "docker-compose.yml": expect(
+            r"image:\s*eagle-viewer:v([^\s]+)",
+            (ROOT / "docker-compose.yml").read_text(encoding="utf-8"),
+            "docker-compose.yml",
+        ),
+        "docker-compose.remote.example.yml": expect(
+            r"image:\s*eagle-viewer:v([^\s]+)",
+            (ROOT / "docker-compose.remote.example.yml").read_text(encoding="utf-8"),
+            "docker-compose.remote.example.yml",
+        ),
     }
     mismatches = {path: found for path, found in checks.items() if found != version}
     if mismatches:

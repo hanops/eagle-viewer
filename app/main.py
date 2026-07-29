@@ -69,6 +69,36 @@ class AuthMiddleware:
         return
 
 
+class SecurityHeadersMiddleware:
+    """Apply conservative browser security headers to every HTTP response."""
+
+    headers = (
+        (b"x-content-type-options", b"nosniff"),
+        (b"x-frame-options", b"DENY"),
+        (b"referrer-policy", b"no-referrer"),
+        (b"permissions-policy", b"camera=(), microphone=(), geolocation=()"),
+        (b"cross-origin-resource-policy", b"same-origin"),
+    )
+
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: dict, receive, send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        async def send_with_security_headers(message: dict) -> None:
+            if message["type"] == "http.response.start":
+                response_headers = list(message.get("headers") or [])
+                existing = {name.lower() for name, _value in response_headers}
+                response_headers.extend((name, value) for name, value in self.headers if name not in existing)
+                message["headers"] = response_headers
+            await send(message)
+
+        await self.app(scope, receive, send_with_security_headers)
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     try:
@@ -85,6 +115,7 @@ if VIEWER_PASSWORD or VIEWER_API_TOKEN:
     app.add_middleware(AuthMiddleware)
 if VIEWER_PASSWORD:
     app.add_middleware(SessionMiddleware, secret_key=VIEWER_SECRET_KEY or "eagle-viewer-session")
+app.add_middleware(SecurityHeadersMiddleware)
 
 app.include_router(folders_router)
 app.include_router(items_router)
@@ -146,7 +177,7 @@ def login_submit(request: Request, password: str = Form(default="")):
     """校验密码并写入 session，成功后跳转首页。"""
     if not VIEWER_PASSWORD:
         return RedirectResponse(url="/", status_code=302)
-    if password == VIEWER_PASSWORD:
+    if hmac.compare_digest(password, VIEWER_PASSWORD):
         request.session["logged_in"] = True
         return RedirectResponse(url="/", status_code=302)
     return RedirectResponse(url="/login?error=1", status_code=302)

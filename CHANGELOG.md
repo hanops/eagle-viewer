@@ -2,6 +2,39 @@
 
 ---
 
+## 4.1.1 - 2026-07-29
+
+### Security
+- Added conservative browser security headers to every HTTP response and changed password verification to constant-time comparison.
+- Removed the Google Fonts dependency so the web shell remains self-contained and does not make third-party runtime requests.
+
+**中文**：为所有 HTTP 响应增加保守的浏览器安全头，并将密码校验改为恒定时间比较；移除 Google Fonts 依赖，确保 Web 外壳完全自包含且运行时不访问第三方资源。
+
+### Fixes
+- Fixed the desktop appearance popover stacking context so all three theme controls remain visible and clickable above the content toolbar.
+- Kept the static asset, Service Worker, and classic-script load order synchronized after the frontend split.
+
+**中文**：修复桌面外观菜单的层级问题，确保三套主题按钮都能在内容工具栏上方正常点击；前端拆分后同步静态资源、Service Worker 与经典脚本加载顺序。
+
+### Refactor
+- Split the monolithic desktop stylesheet, renderer, and interaction layer into focused files while preserving the original cascade and execution order.
+- Updated local and CI JavaScript checks to validate every frontend module individually.
+
+**中文**：将超大的桌面样式、渲染层和交互层按职责拆分，并保持原始级联与执行顺序；本地和 CI 现在会逐个校验所有前端模块。
+
+### Infrastructure
+- Added a hardened Docker build context, pinned the multi-platform Python base image, and aligned Compose image tags with the release version.
+- Added CI version checks and regression contracts for Docker dependencies, private build-context exclusions, external runtime assets, response headers, and frontend asset ordering.
+
+**中文**：增加安全的 Docker 构建上下文、固定多架构 Python 基础镜像，并让 Compose 镜像标签与发布版本一致；新增 CI 版本校验及 Docker 依赖、隐私文件排除、外部资源、安全响应头和前端加载顺序回归契约。
+
+### Maintenance
+- Advanced the static asset revision to `1.111` and the Service Worker shell cache to `eagle-viewer-shell-v57`.
+
+**中文**：静态资源修订号更新至 `1.111`，Service Worker shell 缓存更新至 `eagle-viewer-shell-v57`。
+
+---
+
 ## 4.1.0 - 2026-07-29
 
 ### Features
