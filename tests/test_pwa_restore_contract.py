@@ -290,3 +290,52 @@ def test_accent_tokens_resolve_to_concrete_values():
         if value == "":
             bad.append(m.group(0).strip())
     assert bad == [], f"blank accent token definitions: {bad}"
+
+
+def _css_rule_bodies(css: str, selector: str) -> list[str]:
+    # Brace-balanced extractor for top-level rule bodies of an exact selector.
+    # Used to scope assertions to one rule block (so e.g. `.tb` does not match
+    # `.tb svg` / `.tb.active::before`). CSS has no nested rules here, so a plain
+    # depth counter is sufficient.
+    bodies: list[str] = []
+    for m in re.finditer(re.escape(selector) + r"\s*\{", css):
+        depth = 1
+        i = m.end()
+        while i < len(css) and depth:
+            ch = css[i]
+            if ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+            i += 1
+        bodies.append(css[m.end() : i - 1])
+    return bodies
+
+
+def test_pwa_tabbar_applies_home_indicator_inset_once():
+    # Regression guard for v4.1.2: on iPhone the bottom tab bar stacked the
+    # home-indicator safe-area inset twice — once on the `.tabs` container and
+    # again on each `.tb` button (v4.1.0). The doubling left a blank band below
+    # the tab labels and shrank the button content box enough that the icon+label
+    # stack overflowed upward into the top divider line. The inset must be
+    # reserved exactly once, on the container; the buttons keep only visual
+    # padding. This pins both directions so neither half can silently regress.
+    css = read("app/web/mobile.css")
+
+    tab_bodies = _css_rule_bodies(css, ".tabs")
+    assert tab_bodies, "expected a top-level `.tabs` rule in mobile.css"
+    assert any("env(safe-area-inset-bottom)" in b for b in tab_bodies), (
+        "`.tabs` must reserve the home-indicator inset exactly once on the container"
+    )
+
+    leaking: list[str] = []
+    for sel in (".tb",):
+        for body in _css_rule_bodies(css, sel):
+            if "env(safe-area-inset-bottom)" in body:
+                leaking.append(body.strip())
+    assert not leaking, (
+        f"`{sel}` must not re-apply env(safe-area-inset-bottom); the container "
+        f"`.tabs` already reserves it once. Re-applying it on the button doubles "
+        f"the bottom blank band and squeezes the tab content into the divider line. "
+        f"Offending block(s): {leaking}"
+    )
