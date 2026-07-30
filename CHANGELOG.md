@@ -2,6 +2,20 @@
 
 ---
 
+## 4.1.2 - 2026-07-31
+
+### Fixes
+- Fixed the iPhone PWA bottom tab bar applying the home-indicator safe-area inset twice (on both the `.tabs` container and each `.tb` button). On devices with a home indicator this left a doubled blank band below the tab labels and squeezed the icon+label stack upward into the top divider line. The inset is now reserved once on the container while each button keeps only visual padding.
+
+**中文**：修复 iPhone PWA 底部导航栏把 home indicator 安全区内边距重复应用两次的问题（`.tabs` 容器与每个 `.tb` 按钮各加了一次）。在有 home indicator 的机型上，这会在标签下方留下一条翻倍的空白带，并把图标+文字向上挤压、顶到顶部分割线。现改为只在容器上预留一次安全区，按钮仅保留视觉内边距。
+
+### Maintenance
+- Advanced the static asset revision to `1.112` and the Service Worker shell cache to `eagle-viewer-shell-v58` so installed PWAs pick up the layout fix.
+
+**中文**：静态资源修订号更新至 `1.112`，Service Worker shell 缓存更新至 `eagle-viewer-shell-v58`，确保已安装的 PWA 能加载到本次布局修复。
+
+---
+
 ## 4.1.1 - 2026-07-29
 
 ### Security

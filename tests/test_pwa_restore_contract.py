@@ -60,14 +60,14 @@ def test_static_shell_uses_one_asset_revision():
         "bootstrap.js",
     )
     for asset in desktop_assets:
-        versioned = f"/static/{asset}?v=1.111"
+        versioned = f"/static/{asset}?v=1.112"
         assert versioned in index
         assert versioned in service_worker
     for asset in ("mobile.css", "mobile.js"):
-        versioned = f"/static/{asset}?v=1.111"
+        versioned = f"/static/{asset}?v=1.112"
         assert versioned in mobile
         assert versioned in service_worker
-    assert "eagle-viewer-shell-v57" in service_worker
+    assert "eagle-viewer-shell-v58" in service_worker
 
 
 def test_desktop_asset_order_preserves_cascade_and_classic_script_dependencies():

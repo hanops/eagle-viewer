@@ -728,7 +728,10 @@ body {
 }
 .tb {
   min-height:66px;
-  padding-bottom:max(5px,env(safe-area-inset-bottom));
+  /* safe-area-inset-bottom 已在 .tabs 容器上整体留白一次，此处仅留视觉内边距；
+     若再叠加 env() 会与容器 padding 重复，导致底部空白翻倍且内容框被压到 ~32px，
+     使图标+文字向上溢出撞上 border-top 分割线。 */
+  padding-bottom:5px;
   font-size:11.5px;
 }
 .tb svg {
