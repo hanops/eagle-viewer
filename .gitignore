@@ -11,7 +11,7 @@ htmlcov/
 .DS_Store
 /vault/
 /data/
-images/
+/images/
 *.egg-info/
 dist/
 build/
