@@ -1,4 +1,4 @@
-.PHONY: setup dev check test lint version-check deploy-check
+.PHONY: setup dev check test lint version-check deploy-check deploy release
 
 setup:
 	uv sync
@@ -22,3 +22,11 @@ lint:
 
 version-check:
 	uv run python scripts/check_versions.py
+
+deploy:
+	@echo "Run this on the dev box after SSH:"
+	@echo "  sdev && cd ~/docker-build/eagle-viewer && bash scripts/deploy.sh"
+	bash scripts/deploy.sh
+
+release:
+	bash scripts/release.sh
