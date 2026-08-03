@@ -2,6 +2,20 @@
 
 ---
 
+## 4.1.4 - 2026-08-03
+
+### Infrastructure
+- Added `scripts/release.sh` and `scripts/deploy.sh` to automate the release ritual: read the tag from `docker-compose.yml`, run version/deploy artifact checks, `git pull --ff-only`, build and save the Docker image, copy to `/nas/`, and prune old tars keeping the three newest. `make release` and `make deploy` wrap the scripts; the documented `AGENTS.md` deploy procedure now points at the scripts.
+
+**中文**：新增 `scripts/release.sh` 与 `scripts/deploy.sh` 自动化发布流程——从 `docker-compose.yml` 读取标签、运行版本与部署产物校验、`git pull --ff-only`、构建并保存 Docker 镜像、拷贝到 `/nas/`，并清理旧 tar 仅保留最近三个版本；`make release` 与 `make deploy` 封装脚本，`AGENTS.md` 中的部署流程已改为引用脚本。
+
+### Maintenance
+- Synced the `uv.lock` project version to `4.1.3` so the lockfile matches the released tag.
+
+**中文**：将 `uv.lock` 中的项目版本同步为 `4.1.3`，使锁文件与已发布标签一致。
+
+---
+
 ## 4.1.3 - 2026-08-03
 
 ### Infrastructure
