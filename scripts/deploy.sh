@@ -31,7 +31,12 @@ echo "==> TAG=v${TAG}"
 
 # ── 2. Version alignment check ───────────────────────────────────────────────
 echo "==> Running version-check..."
-make version-check
+if command -v make >/dev/null 2>&1; then
+  make version-check
+else
+  # dev box has no make; check_versions.py only uses the stdlib
+  python3 scripts/check_versions.py
+fi
 
 # ── 3. Pull latest from GitHub ───────────────────────────────────────────────
 echo "==> Pulling latest code..."
