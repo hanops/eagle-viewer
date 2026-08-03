@@ -10,7 +10,7 @@
 
 Vault is always mounted **read-only**. It never modifies files inside the library.
 
-**Current version**: v4.1.2 (2026-07-31) · [Changelog](CHANGELOG.md) · [中文版](README.zh.md)
+**Current version**: v4.1.3 (2026-08-03) · [Changelog](CHANGELOG.md) · [中文版](README.zh.md)
 
 ---
 

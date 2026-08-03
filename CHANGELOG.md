@@ -2,6 +2,31 @@
 
 ---
 
+## 4.1.3 - 2026-08-03
+
+### Infrastructure
+- Added CI regression and deploy gates: a checklist-gate that requires PRs touching UI code to reference `docs/regression-checklist.md`, a deploy-check that verifies the Dockerfile digest pin and HEALTHCHECK and then proves the image builds, and a dedicated frontend-check job pinned to Node.js 22.
+- Added `scripts/verify_deploy.py` and `scripts/check_regression_gate.py`; `make check` now includes the deploy artifact check so local and CI verification stay symmetric.
+
+**中文**：新增 CI 回归与部署门禁——涉及 UI 代码的 PR 必须在描述中引用 `docs/regression-checklist.md` 的 checklist-gate、校验 Dockerfile digest 固定与 HEALTHCHECK 并实际构建镜像的 deploy-check，以及固定 Node.js 22 的独立前端检查 job；新增 `scripts/verify_deploy.py` 与 `scripts/check_regression_gate.py`，`make check` 现包含部署产物校验，本地与 CI 保持一致。
+
+### Tests
+- Added node:test behavior tests for the frontend core.js module (formatting, item classification, i18n, routing state) behind a CommonJS export seam that is a no-op in the browser.
+
+**中文**：为前端 core.js 模块新增 node:test 行为测试（格式化、素材分类、i18n、路由状态），通过浏览器中为 no-op 的 CommonJS 导出缝隙实现。
+
+### Refactor
+- Added structured logging to the vault parser (per-skip warnings plus a load summary) and configured the root logger to INFO so startup summaries are visible under the default uvicorn deployment.
+
+**中文**：为 vault 解析器增加结构化日志（逐条跳过警告与加载汇总），并将 root logger 配置为 INFO，使默认 uvicorn 部署下也能看到启动汇总。
+
+### Maintenance
+- Tracked AGENTS.md in version control with a refreshed frontend module inventory, and ignored local `.qoder/` tool artifacts.
+
+**中文**：将 AGENTS.md 纳入版本控制并刷新前端模块清单，同时忽略本地 `.qoder/` 工具产物。
+
+---
+
 ## 4.1.2 - 2026-07-31
 
 ### Fixes
