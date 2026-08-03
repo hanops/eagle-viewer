@@ -4,6 +4,7 @@ images/*.info/metadata.json (items). Build in-memory cache for API.
 """
 import hashlib
 import json
+import logging
 import threading
 import time
 from pathlib import Path
@@ -12,6 +13,8 @@ from urllib.parse import urlparse
 
 from app.config import VAULT_ROOT
 from app.vault.models import FolderNode, ItemInfo
+
+logger = logging.getLogger(__name__)
 
 # 应用版本（单一来源 = pyproject.toml），用于前端展示。
 try:
@@ -287,29 +290,35 @@ def _load_items(locked_folder_ids: set[str]) -> tuple[dict[str, ItemInfo], dict[
         meta_path = subdir / "metadata.json"
         if not meta_path.exists():
             stats["skipped_missing_metadata"] += 1
+            logger.warning("Skipping item %s: metadata.json missing", subdir.name)
             continue
         try:
             with open(meta_path, "r", encoding="utf-8") as f:
                 meta = json.load(f)
-        except (json.JSONDecodeError, OSError):
+        except (json.JSONDecodeError, OSError) as exc:
             stats["skipped_bad_metadata"] += 1
+            logger.warning("Skipping item %s: unreadable metadata (%s)", subdir.name, exc)
             continue
         if not isinstance(meta, dict) or "id" not in meta:
             stats["skipped_bad_metadata"] += 1
+            logger.warning("Skipping item %s: metadata has no id", subdir.name)
             continue
         if meta.get("isDeleted"):
             stats["skipped_deleted"] += 1
+            logger.debug("Skipping item %s: marked deleted", subdir.name)
             continue
 
         raw_folders = meta.get("folders", [])
         folder_ids = _normalize_item_folder_ids(raw_folders)
         if any(folder_id in locked_folder_ids for folder_id in folder_ids):
             stats["skipped_locked_items"] += 1
+            logger.debug("Skipping item %s: belongs to locked folder", subdir.name)
             continue
 
         main_path, thumb_path = _find_main_file(subdir, meta)
         if not main_path:
             stats["skipped_missing_file"] += 1
+            logger.warning("Skipping item %s: no main file found", subdir.name)
             continue
         item = ItemInfo(
             id=meta["id"],
@@ -475,6 +484,15 @@ def load_vault() -> None:
     items_by_tag, tag_summary = _build_tag_index(items_by_id)
     folder_counts = _compute_folder_counts(folder_tree, items_by_folder)
     elapsed_ms = int((time.time() - started) * 1000)
+    logger.info(
+        "Vault loaded: %d folders, %d items, %d tags, %d locked folders in %dms (skipped: %s)",
+        len(folder_by_id),
+        len(items_by_id),
+        len(items_by_tag),
+        len(locked_folder_ids),
+        elapsed_ms,
+        ", ".join(f"{k}={v}" for k, v in load_stats.items() if v),
+    )
     cache_stats = {
         "folders": len(folder_by_id),
         "items": len(items_by_id),

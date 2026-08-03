@@ -16,5 +16,5 @@ htmlcov/
 dist/
 build/
 .codebuddy/
-AGENTS.md
+.qoder/
 docs/mockups/web-desktop-redesign.html

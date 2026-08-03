@@ -758,3 +758,29 @@ function applyStaticI18n(root) {
   var langBtn = document.getElementById('langBtn');
   if (langBtn) langBtn.textContent = getLang() === 'zh' ? I18N_DATA.zh.lang_name : I18N_DATA.en.lang_name;
 }
+
+// Expose helpers for automated behavior tests (Node only; a no-op in the browser).
+// Some helpers read EagleViewer.state / localStorage, so they are not pure functions.
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    config: EagleViewer.config,
+    state: EagleViewer.state,
+    getState: EagleViewer.getState,
+    formatSize: formatSize,
+    getItemKind: getItemKind,
+    isPreviewable: isPreviewable,
+    isItemPreviewable: isItemPreviewable,
+    isImageExt: isImageExt,
+    isVideoExt: isVideoExt,
+    canCopyImage: canCopyImage,
+    escapeHtml: escapeHtml,
+    getLang: getLang,
+    setLang: setLang,
+    t: t,
+    tFmt: tFmt,
+    getRouteHistoryIdentity: getRouteHistoryIdentity,
+    applyStateFromHash: applyStateFromHash,
+    buildListQuery: buildListQuery,
+    applyStaticI18n: applyStaticI18n,
+  };
+}
