@@ -2,6 +2,33 @@
 
 ---
 
+## 4.2.0 - 2026-08-07
+
+### Added
+- README Screenshots section filled with captures generated from the sample library (desktop gallery/workbench/carbon themes, inspector, and the four mobile surfaces); see `docs/screenshots/` for the naming convention.
+- mobile.html search empty state now shows popular tag chips (top tags by count, tap to search), with zh/en copy.
+- Enriched `tests/fixtures/sample.library` from 6 to 18 items across three folder levels, including a parent folder that only contains subfolders, and image/document/audio/video coverage for realistic UI and regression checks.
+
+**中文**：README 的 Screenshots 小节用示例库生成的截图补齐（桌面三主题、Inspector、移动端四个界面），命名约定见 `docs/screenshots/`；mobile.html 搜索空态展示热门标签 chip（按数量取前 8，点按即搜），中英文文案齐全；测试 fixture 从 6 个素材丰富到 18 个，覆盖三级文件夹（含仅含子文件夹的父文件夹）与图片/文档/音频/视频类型。
+
+### Fixed
+- Narrow-window shell (<768px, pointer devices): the toolbar search box no longer truncates to a few characters; dangling SORT/TYPE labels are hidden together with their selects; the remote status pill collapses to its dot at ≤480px (full label kept as tooltip); the duplicated view header is gone; selection checkboxes only appear in batch-selection mode instead of as permanent gray dots.
+- The redirect to `mobile.html` now targets touch devices only, and the viewport meta is parsed before the redirect script, so narrow no-touch loads and resized windows land on the same responsive shell.
+- Hover preview no longer pops up while the Inspector is open.
+- Folder views that only contain subfolders now show a hint line instead of a bare grid with a confusing "0 items" pill.
+- List view: tagless rows render an empty cell instead of "—", and row actions get larger tap targets.
+
+**中文**：窄窗口外壳（<768px、无触摸）修复——顶栏搜索框不再截断；SORT/TYPE 悬空标签随控件一起隐藏；≤480px 时远程状态 pill 折叠为圆点（完整文案保留为 tooltip）；重复的视图标题移除；选择框仅在批量选择模式显示，不再是常驻灰点。重定向改为仅触摸设备跳转 mobile.html，且 viewport meta 提前到重定向脚本之前，窄窗直开与宽窗拉窄体验一致。Inspector 打开期间不再弹出 hover 浮层。仅含子文件夹的视图显示提示行。列表视图无标签行留白替代 "—"，操作列热区加大。
+
+### Changed
+- Toolbar sort/filter selects use a custom chevron style aligned with the segmented quick filters.
+- Mobile card titles wrap to two lines instead of a single truncated line.
+- Chinese UI copy polish across the shell and PWA surfaces; service-worker shell cache bumped to v59.
+
+**中文**：工具栏排序/筛选 select 换成与分段过滤器一致的自定义箭头样式；移动端卡片标题改为两行换行；中文文案整体润色，PWA shell 缓存升级到 v59。
+
+---
+
 ## 4.1.4 - 2026-08-03
 
 ### Infrastructure
