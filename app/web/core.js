@@ -550,11 +550,15 @@ var I18N_DATA = {
     view_list: '列表视图',
     // Theme
     theme_group_aria: '主题切换',
-    theme_gallery: '画廊（浅色）',
-    theme_workbench: '工作台（深色蓝）',
-    theme_carbon: '碳工作室（深色绿）',
+    theme_gallery: '画廊浅色',
+    theme_workbench: '工作台深色',
+    theme_carbon: '碳黑深色',
+    // Chrome copy
+    appearance_title: '外观',
+    sidebar_mount: '远程挂载 · 只读',
+    mobile_search_heading: '搜索资源库',
     // Remote status
-    remote_online: 'Remote Vault Online',
+    remote_online: '远程资源库已连接',
     remote_readonly: 'Eagle Vault · 只读挂载',
     remote_retry: '重连',
     // PWA
@@ -578,19 +582,21 @@ var I18N_DATA = {
     mobile_tab_more: '更多',
     mobile_search_title: '移动搜索',
     mobile_search_close: '关闭搜索',
-    mobile_more_settings: 'Remote Vault Settings',
-    mobile_more_install: 'Add to Home Screen',
-    mobile_more_checking: 'Checking connection…',
+    mobile_more_settings: '远程资源库设置',
+    mobile_more_install: '添加到主屏幕',
+    mobile_more_install_desc: '在 iPhone Safari 点“分享”→“添加到主屏幕”，下次就像 App 一样全屏打开。',
+    mobile_more_sub: '浏览、显示和外观',
+    mobile_more_checking: '检查连接中…',
     // Density
     density_small: '小',
     density_medium: '中',
     density_large: '大',
     // Sync status
-    sync_local: 'Local',
-    sync_synced: 'Synced',
-    sync_pending: 'Pending sync',
-    sync_syncing: 'Syncing…',
-    sync_conflict: 'Merging',
+    sync_local: '本地',
+    sync_synced: '已同步',
+    sync_pending: '待同步',
+    sync_syncing: '同步中…',
+    sync_conflict: '合并中',
     // Canvas
     canvas_grid: '网格视图',
     canvas_list: '列表视图',
@@ -641,9 +647,13 @@ var I18N_DATA = {
     view_list: 'List View',
     // Theme
     theme_group_aria: 'Theme',
-    theme_gallery: 'Gallery (Light)',
-    theme_workbench: 'Workbench (Dark Blue)',
-    theme_carbon: 'Carbon (Dark Green)',
+    theme_gallery: 'Gallery Light',
+    theme_workbench: 'Workbench Dark',
+    theme_carbon: 'Carbon Dark',
+    // Chrome copy
+    appearance_title: 'Appearance',
+    sidebar_mount: 'Remote mount · Read-only',
+    mobile_search_heading: 'Search Vault',
     // Remote status
     remote_online: 'Remote Vault Online',
     remote_readonly: 'Eagle Vault · Read-only',
@@ -671,6 +681,8 @@ var I18N_DATA = {
     mobile_search_close: 'Close Search',
     mobile_more_settings: 'Remote Vault Settings',
     mobile_more_install: 'Add to Home Screen',
+    mobile_more_install_desc: 'In iPhone Safari tap Share → “Add to Home Screen” to open full-screen like an app.',
+    mobile_more_sub: 'Browse, display & appearance',
     mobile_more_checking: 'Checking connection…',
     // Density
     density_small: 'Small',

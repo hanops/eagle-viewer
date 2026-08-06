@@ -1,0 +1,16 @@
+{
+  "id": "item-mp4",
+  "name": "Product clip",
+  "ext": "mp4",
+  "folders": [
+    "screens"
+  ],
+  "tags": [
+    "Screenshot"
+  ],
+  "size": 32,
+  "btime": 1784299992721,
+  "modificationTime": 1784303592721,
+  "width": 1280,
+  "height": 720
+}

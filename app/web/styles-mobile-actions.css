@@ -96,7 +96,7 @@
 .quick-action-section-title em {
         min-width:0;
         color:#737b88;
-        font-size:9px;
+        font-size:10px;
         font-style:normal;
         white-space:nowrap;
         overflow:hidden;
@@ -216,8 +216,8 @@
         padding:0 15px;
         border:1px solid rgba(255,255,255,.1);
         border-radius:8px;
-        background:var(--accent);
-        color:white;
+        background:var(--accent-solid);
+        color:var(--accent-solid-fg);
         font:inherit;
         font-size:12px;
       }

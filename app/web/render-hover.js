@@ -2,6 +2,8 @@
 
 // ===== Hover preview =====
 function showHoverPreview(url, ev, previewType) {
+  // The Inspector already shows this asset; a floating preview would just cover the grid.
+  if (state.inspectorItem) return;
   if (state.hoverPreviewEl) renderModule.hideHoverPreview();
   state.hoverPreviewEl = document.createElement('div');
   state.hoverPreviewEl.className = 'hover-preview';

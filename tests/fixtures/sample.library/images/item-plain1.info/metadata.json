@@ -1,0 +1,14 @@
+{
+  "id": "item-plain1",
+  "name": "Plain snapshot one",
+  "ext": "png",
+  "folders": [
+    "boards"
+  ],
+  "tags": [],
+  "size": 2315,
+  "btime": 1785595992721,
+  "modificationTime": 1785599592721,
+  "width": 800,
+  "height": 600
+}

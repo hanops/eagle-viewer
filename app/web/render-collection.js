@@ -262,7 +262,7 @@ function renderListRow(item, tbody) {
   tagsCell.className = 'col-tags';
   tagsCell.innerHTML = (item.tags && item.tags.length) ? item.tags.slice(0, 5).map(function(tag) {
     return '<button type="button" class="list-tag-chip" data-item-tag="' + escapeHtml(tag) + '" title="打开标签：' + escapeHtml(tag) + '">#' + escapeHtml(tag) + '</button>';
-  }).join('') : '—';
+  }).join('') : '';
   tr.appendChild(tagsCell);
 
   var actionsCell = document.createElement('td');
@@ -555,7 +555,7 @@ function updateMobileWorkbar() {
       '<strong title="' + escapeHtml(getMobileWorkbarTitle()) + '">' + escapeHtml(getMobileWorkbarTitle()) + '</strong>' +
       '<small>' + escapeHtml(getMobileWorkbarMeta()) + '</small>' +
     '</div>' +
-    '<div class="mobile-workbar-status" data-state="' + escapeHtml(remote.state) + '">' +
+    '<div class="mobile-workbar-status" title="' + escapeHtml(remote.label) + '" data-state="' + escapeHtml(remote.state) + '">' +
       '<span></span>' + escapeHtml(remote.label) +
     '</div>' +
     '<div class="mobile-workbar-actions">' +

@@ -2,8 +2,24 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#f7f3ec" />
+  <script>
+    // Apply saved desktop theme before first paint to avoid a light/dark flash.
+    (function () {
+      try {
+        var map = {
+          gallery: ['light', 'terra'],
+          workbench: ['dark', 'blue'],
+          carbon: ['dark', 'green']
+        };
+        var name = localStorage.getItem('eagle-viewer-theme');
+        var pair = map[name] || (window.matchMedia('(prefers-color-scheme: dark)').matches ? ['dark', 'terra'] : ['light', 'terra']);
+        document.documentElement.setAttribute('data-theme', pair[0]);
+        document.documentElement.setAttribute('data-accent', pair[1]);
+      } catch (e) {}
+    })();
+  </script>
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="mobile-web-app-capable" content="yes" />
@@ -11,7 +27,7 @@
   <link rel="icon" href="/static/icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="/static/icon-192.png" />
   <title>Eagle Vault Viewer</title>
-  <link rel="stylesheet" href="/static/mobile.css?v=1.112" />
+  <link rel="stylesheet" href="/static/mobile.css?v=1.113" />
 </head>
 <body>
   <div id="app">
@@ -72,6 +88,6 @@
     </div>
   </div>
 
-  <script src="/static/mobile.js?v=1.112"></script>
+  <script src="/static/mobile.js?v=1.113"></script>
 </body>
 </html>

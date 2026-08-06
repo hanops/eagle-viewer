@@ -184,7 +184,7 @@
         height:20px;
         padding:0 7px;
         border:1px solid rgba(255,255,255,.08);
-        font-size:9px;
+        font-size:10px;
         font-weight:720;
         line-height:18px;
         background:rgba(255,255,255,.075);
@@ -232,7 +232,7 @@
       }
 .preview-remote-notice small {
         max-width:100%;
-        font-size:9px;
+        font-size:10px;
       }
 .preview-remote-notice button {
         height:28px;
@@ -554,7 +554,7 @@ body:has(.batch-bar.visible) .toast-stack {
         position:fixed;
         top:calc(env(safe-area-inset-top) + 46px);
         left:50%;
-        z-index:430;
+        z-index:var(--z-sheet);
         min-width:108px;
         height:32px;
         padding:0 12px;
@@ -596,7 +596,7 @@ body:has(.batch-bar.visible) .toast-stack {
 .quick-action-overlay {
         position:fixed;
         inset:0;
-        z-index:933;
+        z-index:var(--z-sheet-preview);
         display:block;
         opacity:0;
         pointer-events:none;

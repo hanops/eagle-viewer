@@ -1,0 +1,16 @@
+{
+  "id": "item-svg",
+  "name": "Vector icon sample",
+  "ext": "svg",
+  "folders": [
+    "mobile"
+  ],
+  "tags": [
+    "UI"
+  ],
+  "size": 310,
+  "btime": 1785250392721,
+  "modificationTime": 1785253992721,
+  "width": 512,
+  "height": 512
+}

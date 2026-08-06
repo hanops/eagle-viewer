@@ -22,7 +22,7 @@
         display:grid;
       }
 html {
-        background:#191a1d;
+        background:var(--wb-3);
         height:100%;
       }
 body {
@@ -41,7 +41,7 @@ body {
 .return-current-item {
         right:12px;
         bottom:calc(74px + env(safe-area-inset-bottom));
-        z-index:415;
+        z-index:var(--z-fab-raised);
         height:36px;
         max-width:154px;
         padding:0 11px;
@@ -57,7 +57,7 @@ body.inspector-open .return-current-item, body.preview-open .return-current-item
         left:0;
         right:0;
         bottom:0;
-        z-index:420;
+        z-index:var(--z-tabbar);
         display:grid;
         grid-template-columns:repeat(4,minmax(0,1fr));
         gap:2px;
@@ -110,10 +110,10 @@ body.inspector-open .return-current-item, body.preview-open .return-current-item
         display:inline-flex;
         align-items:center;
         justify-content:center;
-        background:var(--accent);
-        color:white;
+        background:var(--accent-solid);
+        color:var(--accent-solid-fg);
         font-style:normal;
-        font-size:9px;
+        font-size:10px;
         line-height:14px;
         box-shadow:0 0 0 2px rgba(29,30,34,.96);
       }
@@ -170,7 +170,7 @@ body.inspector-open .return-current-item, body.preview-open .return-current-item
         left:10px;
         right:10px;
         bottom:calc(72px + env(safe-area-inset-bottom));
-        z-index:418;
+        z-index:var(--z-sheet-backdrop);
         min-height:74px;
         padding:10px 42px 10px 10px;
         display:grid;
@@ -410,8 +410,8 @@ body.app-standalone .toolbar {
         height:36px;
         border:0;
         border-radius:11px;
-        background:var(--accent);
-        color:white;
+        background:var(--accent-solid);
+        color:var(--accent-solid-fg);
         font:inherit;
         font-size:12px;
         font-weight:680;
@@ -696,7 +696,7 @@ body.app-standalone .toolbar {
 .mobile-search-quick-title em {
         min-width:0;
         color:#7d8491;
-        font-size:9px;
+        font-size:10px;
         font-style:normal;
         white-space:nowrap;
         overflow:hidden;

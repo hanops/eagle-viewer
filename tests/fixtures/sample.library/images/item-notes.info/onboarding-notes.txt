@@ -1,0 +1,6 @@
+Onboarding notes
+
+Fixture plain text document used to exercise the text preview surface.
+
+- read-only vault
+- incremental loading

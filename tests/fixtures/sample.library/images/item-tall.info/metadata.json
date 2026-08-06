@@ -1,0 +1,16 @@
+{
+  "id": "item-tall",
+  "name": "Tall mobile capture",
+  "ext": "png",
+  "folders": [
+    "screens"
+  ],
+  "tags": [
+    "UI"
+  ],
+  "size": 6504,
+  "btime": 1785855192721,
+  "modificationTime": 1785858792721,
+  "width": 900,
+  "height": 1600
+}

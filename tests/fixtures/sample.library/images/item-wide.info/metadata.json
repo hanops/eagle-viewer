@@ -1,0 +1,37 @@
+{
+  "id": "item-wide",
+  "name": "Wide dashboard capture",
+  "ext": "png",
+  "folders": [
+    "root"
+  ],
+  "tags": [
+    "Screenshot",
+    "UI"
+  ],
+  "size": 5649,
+  "btime": 1785941592721,
+  "modificationTime": 1785945192721,
+  "width": 1600,
+  "height": 900,
+  "url": "https://example.com/wide",
+  "annotation": "Wide sample",
+  "palettes": [
+    {
+      "color": [
+        52,
+        88,
+        143
+      ],
+      "ratio": 70
+    },
+    {
+      "color": [
+        240,
+        240,
+        240
+      ],
+      "ratio": 30
+    }
+  ]
+}

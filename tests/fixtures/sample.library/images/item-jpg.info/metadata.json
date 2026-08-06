@@ -1,0 +1,16 @@
+{
+  "id": "item-jpg",
+  "name": "Photo sample jpg",
+  "ext": "jpg",
+  "folders": [
+    "boards"
+  ],
+  "tags": [
+    "Moodboard"
+  ],
+  "size": 336,
+  "btime": 1785336792721,
+  "modificationTime": 1785340392721,
+  "width": 1000,
+  "height": 700
+}

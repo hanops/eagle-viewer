@@ -26,9 +26,9 @@ def test_docker_image_includes_pyproject_version_source():
 def test_loads_sample_library(sample_library):
     stats = get_cache_stats()
 
-    assert stats["items"] == 6
-    assert stats["folders"] == 3
-    assert stats["tags"] == 5
+    assert stats["items"] == 18
+    assert stats["folders"] == 6
+    assert stats["tags"] == 7
     assert stats["skipped_bad_metadata"] == 0
 
 
@@ -37,11 +37,19 @@ def test_folder_tag_and_search_indexes(sample_library):
     assert tree[0].id == "root"
     assert tree[0].children[0].id == "screens"
 
-    assert len(get_all_items()) == 6
-    assert {item.id for item in get_items_in_folder("screens")} == {"item-two", "item-three"}
-    assert [tag["name"] for tag in get_all_tags()] == ["Diagram", "Docs", "Legacy", "Planning", "Screenshot"]
-    assert [item.id for item in get_items_by_tag("Screenshot")] == ["item-one"]
-    assert [item.id for item in search_items("txt")] == ["item-three"]
+    assert len(get_all_items()) == 18
+    assert {item.id for item in get_items_in_folder("screens")} == {
+        "item-two", "item-three", "item-tall", "item-square", "item-mp4",
+    }
+    assert {item.id for item in get_items_in_folder("projects")} == set()
+    assert {item.id for item in get_items_in_folder("boards")} == {
+        "item-jpg", "item-longname", "item-plain1", "item-plain2", "item-wav",
+    }
+    assert [tag["name"] for tag in get_all_tags()] == [
+        "Docs", "Screenshot", "UI", "Moodboard", "Diagram", "Legacy", "Planning",
+    ]
+    assert [item.id for item in get_items_by_tag("Screenshot")] == ["item-one", "item-mp4", "item-wide"]
+    assert [item.id for item in search_items("txt")] == ["item-three", "item-notes"]
 
 
 def test_proprietary_asset_keeps_original_and_eagle_thumbnail_separate(sample_library):

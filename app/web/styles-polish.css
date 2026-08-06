@@ -96,6 +96,12 @@ body {
   background:var(--bg3);
   color:var(--text);
   font-size:12px;
+  appearance:none;
+  -webkit-appearance:none;
+  padding:0 26px 0 10px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23898378' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;
+  background-position:right 9px center;
 }
 .quick-filters {
   padding:3px;
@@ -267,7 +273,7 @@ body {
   position:absolute;
   top:calc(100% + 10px);
   right:0;
-  z-index:740;
+  z-index:var(--z-popover);
   width:238px;
   padding:12px;
   border:1px solid var(--border);
@@ -590,7 +596,7 @@ body::before {
   padding:2px 6px;
   border:1px solid var(--border);
   background:transparent;
-  font-size:9px;
+  font-size:10px;
   line-height:15px;
   letter-spacing:.02em;
 }
@@ -682,7 +688,7 @@ body::before {
 }
 .sidebar-item.active {
   border-color:color-mix(in srgb,var(--accent) 44%,transparent);
-  background:var(--accent);
+  background:var(--accent-solid);
   box-shadow:0 8px 22px color-mix(in srgb,var(--accent) 18%,transparent),inset 0 1px rgba(255,255,255,.16);
 }
 .sidebar-item-icon,
@@ -774,7 +780,7 @@ html[data-theme] .content-crumb[aria-current="page"] {
   display:inline-flex;
   align-items:center;
   padding:0 2px 0 5px;
-  font-size:9px;
+  font-size:10px;
   font-weight:700;
   letter-spacing:.1em;
   text-transform:uppercase;
@@ -902,7 +908,17 @@ html[data-theme] .content-crumb[aria-current="page"] {
 }
 
 @media(max-width:768px) {
-  .toolbar-version-badge {display:none;}
+  /* Higher specificity than .version-badge:not(:empty) so the badge actually hides. */
+  .toolbar-left .toolbar-version-badge {display:none;}
+  /* Undo the fixed desktop width so the search box gets the freed space. */
+  .toolbar-left {width:auto;min-width:0;}
+  .content-toolbar > label {display:none;}
   .content-crumb {font-size:18px;}
   .content-toolbar {min-height:auto;}
+}
+
+@media(max-width:480px) {
+  /* Collapse the status pill to its dot; the label stays in the title attribute. */
+  .mobile-workbar-status {font-size:0;gap:0;padding:0 5px;}
+  .mobile-workbar-status span {width:8px;height:8px;}
 }

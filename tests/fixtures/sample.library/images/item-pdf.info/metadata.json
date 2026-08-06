@@ -1,0 +1,14 @@
+{
+  "id": "item-pdf",
+  "name": "Fixture specification",
+  "ext": "pdf",
+  "folders": [
+    "root"
+  ],
+  "tags": [
+    "Docs"
+  ],
+  "size": 596,
+  "btime": 1784991192721,
+  "modificationTime": 1784994792721
+}

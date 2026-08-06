@@ -1,0 +1,15 @@
+{
+  "id": "item-notes",
+  "name": "Onboarding notes",
+  "ext": "txt",
+  "folders": [
+    "mobile"
+  ],
+  "tags": [
+    "Docs"
+  ],
+  "size": 130,
+  "btime": 1785163992721,
+  "modificationTime": 1785167592721,
+  "annotation": "Plain text preview fixture"
+}

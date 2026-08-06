@@ -56,6 +56,7 @@ function renderContent() {
     if (banner) body.insertAdjacentHTML('beforeend', banner);
     body.appendChild(wrap);
     renderItemsList(state.currentSubfolders, state.currentItems, wrap, state.currentEmptyMsg);
+    appendSubfoldersHint(wrap);
     setupListMarquee(wrap);
     bindOfflineSnapshotBanner();
   } else if (state.viewMode === 'justified') {
@@ -69,6 +70,7 @@ function renderContent() {
     justifiedWrap.appendChild(gallery);
     state.currentSubfolders.forEach(function(sub) { renderFolderCard(sub, gallery); });
     state.currentItems.forEach(function(item) { renderItemCard(item, gallery); });
+    appendSubfoldersHint(justifiedWrap);
     renderLoadMoreStatus(justifiedWrap);
     bindOfflineSnapshotBanner();
     applyJustifiedLayout(gallery);
@@ -85,12 +87,21 @@ function renderContent() {
     wrap.appendChild(masonry);
     state.currentSubfolders.forEach(function(sub) { renderFolderCard(sub, masonry); });
     state.currentItems.forEach(function(item) { renderItemCard(item, masonry); });
+    appendSubfoldersHint(wrap);
     setupGridMarquee(wrap, masonry);
     bindOfflineSnapshotBanner();
   }
   updateCheckboxesInView();
   focusPendingItemWhenLoaded();
   updateReturnToCurrentItemButton();
+}
+
+function appendSubfoldersHint(container) {
+  if (state.currentView !== 'folder' || state.currentItems.length || !state.currentSubfolders.length) return;
+  var hint = document.createElement('div');
+  hint.className = 'folder-hint';
+  hint.textContent = '此文件夹只包含子文件夹，点击卡片进入';
+  container.appendChild(hint);
 }
 
 function showEmptyState() {

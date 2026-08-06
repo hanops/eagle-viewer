@@ -9,7 +9,27 @@
           "id": "screens",
           "name": "Screens",
           "description": "",
-          "children": []
+          "children": [
+            {
+              "id": "mobile",
+              "name": "Mobile",
+              "description": "",
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "projects",
+          "name": "Projects",
+          "description": "Parent folder without direct items",
+          "children": [
+            {
+              "id": "boards",
+              "name": "Boards",
+              "description": "",
+              "children": []
+            }
+          ]
         },
         {
           "id": "protected",

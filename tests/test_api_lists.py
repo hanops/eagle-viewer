@@ -9,7 +9,7 @@ def test_all_items_pagination_and_type_filter(sample_library):
     first_page = folders_api.api_all_items(limit=2)
     documents = folders_api.api_all_items(type="document")
 
-    assert first_page["total"] == 6
+    assert first_page["total"] == 18
     assert len(first_page["items"]) == 2
     assert first_page["nextOffset"] == 2
     assert first_page["hasMore"] is True
@@ -18,6 +18,8 @@ def test_all_items_pagination_and_type_filter(sample_library):
         "item-xmind",
         "item-doc",
         "item-graffle",
+        "item-pdf",
+        "item-notes",
     }
 
 

@@ -28,10 +28,11 @@
       loadFailed: '加载失败：{error}', connectedChanged: '已连接 · 远程有变更',
       connected: '已连接', disconnected: '未连接', vault: 'Eagle 资源库',
       items: '素材', foldersLabel: '文件夹', tags: '标签',
-      searchPlaceholder: '搜索素材、标签、标注…', recent: '最近添加',
+      searchPlaceholder: '搜索名称、标签或备注…', recent: '最近添加',
       locked: '该文件夹被 Eagle 锁定，无法在远程查看',
       subfolders: '子文件夹', noFolders: '没有文件夹',
       searchStart: '输入关键词开始搜索', searchFailed: '搜索失败：{error}',
+      popularTags: '热门标签',
       results: '{count} 个结果 · {seconds}s', indexedAt: '已索引于',
       remoteChangedTitle: '检测到远程变更',
       remoteChangedBody: '资源库自上次索引后有改动，重新加载以同步。',
@@ -47,10 +48,11 @@
       loadFailed: 'Could not load: {error}', connectedChanged: 'Connected · Remote changes',
       connected: 'Connected', disconnected: 'Disconnected', vault: 'Eagle Vault',
       items: 'Items', foldersLabel: 'Folders', tags: 'Tags',
-      searchPlaceholder: 'Search assets, tags, or notes…', recent: 'Recently added',
+      searchPlaceholder: 'Search name, tags, or notes…', recent: 'Recently added',
       locked: 'This folder is locked in Eagle and cannot be viewed remotely.',
       subfolders: 'Subfolders', noFolders: 'No folders',
       searchStart: 'Enter a keyword to search', searchFailed: 'Search failed: {error}',
+      popularTags: 'Popular tags',
       results: '{count} results · {seconds}s', indexedAt: 'Indexed at',
       remoteChangedTitle: 'Remote changes detected',
       remoteChangedBody: 'The Vault changed after the last index. Reload to sync it.',
@@ -294,11 +296,11 @@
     const media = showPreview
       ? '<img class="im" data-id="' + esc(it.id) + '" data-thumb="/api/items/' + it.id + '/thumbnail" style="' + ar + '" alt="' + esc(it.name) + '" onerror="this.classList.add(\'is-missing\')">'
       : '<div class="mobile-file-tile"><i></i><i></i><i></i></div>';
-    return '<div class="th" data-idx="' + idx + '" data-kind="' + (imageExt ? 'image' : 'file') + '" data-ext="' + esc(ext.toLowerCase()) + '">' +
+    return '<button type="button" class="th" data-idx="' + idx + '" data-kind="' + (imageExt ? 'image' : 'file') + '" data-ext="' + esc(ext.toLowerCase()) + '">' +
       media +
       '<span class="ext">' + esc(ext) + '</span>' +
       '<span class="nm">' + esc(it.name) + '</span>' +
-      '</div>';
+      '</button>';
   }
   function scrollTop() { view.scrollTop = 0; }
   function disconnectIO() {
@@ -504,8 +506,29 @@
       clearTimeout(t);
       t = setTimeout(() => { S.searchQuery = input.value.trim(); doSearch(true); }, 300);
     });
+    document.getElementById('searchMas').addEventListener('click', e => {
+      const chip = e.target.closest('[data-tag]');
+      if (!chip) return;
+      input.value = chip.dataset.tag;
+      S.searchQuery = chip.dataset.tag;
+      doSearch(true);
+    });
     if (S.searchQuery) doSearch(true);
-    else document.getElementById('srHead').textContent = tr('searchStart');
+    else { document.getElementById('srHead').textContent = tr('searchStart'); renderPopularTags(); }
+  }
+
+  async function renderPopularTags() {
+    const mas = document.getElementById('searchMas');
+    if (!mas || S.searchQuery) return;
+    let tags = [];
+    try { tags = ((await API.json('/api/tags')).tags || []).slice(0, 8); }
+    catch (e) { return; }
+    if (!tags.length || S.searchQuery) return;
+    mas.innerHTML =
+      '<div class="pt-head">' + esc(tr('popularTags')) + '</div>' +
+      '<div class="pt-row">' +
+      tags.map(t => '<button class="pt-chip" data-tag="' + esc(t.name) + '">#' + esc(t.name) + '</button>').join('') +
+      '</div>';
   }
 
   async function doSearch(reset) {
@@ -513,7 +536,7 @@
     const q = S.searchQuery;
     const head = document.getElementById('srHead');
     const mas = document.getElementById('searchMas');
-    if (!q) { if (head) head.textContent = tr('searchStart'); if (mas) mas.innerHTML = ''; return; }
+    if (!q) { if (head) head.textContent = tr('searchStart'); if (mas) mas.innerHTML = ''; renderPopularTags(); return; }
     if (reset && mas) mas.innerHTML = '<div class="spinner"></div>';
     const t0 = performance.now();
     let data;

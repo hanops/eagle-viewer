@@ -7,6 +7,7 @@ function openInspector(item) {
     EagleViewer.modules.interactions.rememberViewedItem(item);
   }
   state.inspectorItem = item;
+  renderModule.hideHoverPreview();
   state.pendingItemId = item && item.id ? item.id : '';
   rememberFocusedItem(item);
   var panel = document.getElementById('inspector');

@@ -18,8 +18,19 @@ Vault is always mounted **read-only**. It never modifies files inside the librar
 
 > Screenshots showing the viewer in action. Generated with the sample test library.
 
-<!-- TODO: replace with actual screenshots when available -->
-<!-- Screenshots will be added here. See docs/screenshots/README.md for naming conventions and generation instructions. -->
+### Desktop
+
+| Gallery (light) | Workbench (dark) |
+|:---:|:---:|
+| ![Desktop gallery theme](docs/screenshots/desktop-gallery.png) | ![Desktop workbench theme](docs/screenshots/desktop-workbench.png) |
+| Carbon (dark, folder view) | Inspector |
+| ![Desktop carbon theme](docs/screenshots/desktop-carbon.png) | ![Desktop inspector](docs/screenshots/desktop-inspector.png) |
+
+### Mobile
+
+| Library | Folders | Search | Preview |
+|:---:|:---:|:---:|:---:|
+| ![Mobile library](docs/screenshots/mobile-library.png) | ![Mobile folders](docs/screenshots/mobile-folders.png) | ![Mobile search](docs/screenshots/mobile-search.png) | ![Mobile preview](docs/screenshots/mobile-inspector.png) |
 
 ---
 

@@ -65,7 +65,7 @@
         letter-spacing:.02em;
       }
 .mobile-search-quick button[data-color-quick] span {
-        font-size:9px;
+        font-size:10px;
       }
 .mobile-search-quick button[data-color-quick] em {
         background:rgba(216,180,254,.16);
@@ -186,7 +186,7 @@
         border-radius:8px;
         background:color-mix(in srgb,var(--accent-text) 13%,transparent);
         color:var(--accent-text);
-        font-size:9px;
+        font-size:10px;
         font-weight:760;
         letter-spacing:.08em;
         text-align:center;
@@ -270,7 +270,7 @@
 .mobile-more-overlay {
         position:fixed;
         inset:0;
-        z-index:930;
+        z-index:var(--z-sheet-search);
         display:block;
         opacity:0;
         pointer-events:none;
@@ -402,8 +402,8 @@
         height:34px;
         border:0;
         border-radius:10px;
-        background:var(--accent);
-        color:white;
+        background:var(--accent-solid);
+        color:var(--accent-solid-fg);
         font:inherit;
         font-size:11px;
         font-weight:680;
@@ -479,7 +479,7 @@
         border-radius:999px;
         background:color-mix(in srgb,var(--accent-text) 12%,transparent);
         color:#b9d6ff;
-        font-size:9px;
+        font-size:10px;
         font-weight:820;
         letter-spacing:.08em;
         text-transform:uppercase;
@@ -561,7 +561,7 @@
       }
 .mobile-offline-storage-copy span {
         color:var(--accent-text);
-        font-size:9px;
+        font-size:10px;
         font-weight:820;
         letter-spacing:.1em;
       }
@@ -679,7 +679,7 @@
         text-overflow:ellipsis;
         white-space:nowrap;
         color:#8fa399;
-        font-size:9px;
+        font-size:10px;
       }
 .mobile-offline-view-list svg {
         width:12px;

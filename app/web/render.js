@@ -11,7 +11,8 @@ function renderFolder(f, depth) {
   div.dataset.folderId = f.id;
   div.setAttribute('role', 'treeitem');
   div.setAttribute('aria-expanded', state.folderExpanded[f.id] ? 'true' : 'false');
-  var row = document.createElement('div');
+  var row = document.createElement('button');
+  row.type = 'button';
   row.className = 'sidebar-item folder-row' + (f.locked ? ' locked' : '');
   row.style.paddingLeft = '12px';
   var hasChildren = f.children && f.children.length > 0;

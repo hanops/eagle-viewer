@@ -54,20 +54,23 @@ def test_static_shell_uses_one_asset_revision():
     index = read("app/web/index.html")
     service_worker = read("app/web/sw.js")
     mobile = read("app/web/mobile.html")
+    rev_match = re.search(r"/static/styles\.css\?v=([\w.\-]+)", index)
+    assert rev_match, "index.html must version its stylesheet assets"
+    rev = rev_match.group(1)
     desktop_assets = DESKTOP_STYLE_ASSETS + RENDER_ASSETS + INTERACTION_ASSETS + (
         "core.js",
         "api.js",
         "bootstrap.js",
     )
     for asset in desktop_assets:
-        versioned = f"/static/{asset}?v=1.112"
+        versioned = f"/static/{asset}?v={rev}"
         assert versioned in index
         assert versioned in service_worker
     for asset in ("mobile.css", "mobile.js"):
-        versioned = f"/static/{asset}?v=1.112"
+        versioned = f"/static/{asset}?v={rev}"
         assert versioned in mobile
         assert versioned in service_worker
-    assert "eagle-viewer-shell-v58" in service_worker
+    assert re.search(r"eagle-viewer-shell-v\d+", service_worker)
 
 
 def test_desktop_asset_order_preserves_cascade_and_classic_script_dependencies():

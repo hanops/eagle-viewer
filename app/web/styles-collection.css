@@ -82,8 +82,8 @@
       align-items:center;
       border:1px solid color-mix(in srgb,var(--accent-text) 42%,transparent);
       border-radius:999px;
-      background:var(--accent);
-      color:#fff;
+      background:var(--accent-solid);
+      color:var(--accent-solid-fg);
       box-shadow:0 8px 22px color-mix(in srgb,var(--accent) 28%,transparent);
       font-size:11px;
       font-weight:700;
@@ -330,6 +330,7 @@
 .folder-card:hover {background:var(--bg3);box-shadow:var(--card-shadow-hover);}
 .folder-card-icon svg {color:var(--accent);width:24px;height:24px;}
 .folder-card-name {font-size:13px;font-weight:500;}
+.folder-hint {padding:14px 4px 2px;font-size:12px;color:var(--text-muted);}
 .empty-state {
       display:flex;flex-direction:column;
       align-items:center;justify-content:center;
@@ -528,7 +529,7 @@
 .list-table .col-actions a, .list-table .col-actions button {
       font-size:12px;color:var(--accent-text);
       text-decoration:none;background:none;border:none;
-      cursor:pointer;padding:0;margin-right:8px;
+      cursor:pointer;padding:5px 6px;margin-right:2px;border-radius:6px;
     }
 .list-table .col-actions a:hover, .list-table .col-actions button:hover {text-decoration:underline;}
 .list-table .col-actions button.requires-remote, .list-table .col-actions button:disabled {
@@ -539,15 +540,15 @@
     }
 .list-table tr.folder-row {cursor:pointer;}
 .list-table tr.folder-row .col-name {font-weight:500;}
-.list-table tr.keyboard-focus {background:var(--accent)!important;color:#fff;}
-.list-table tr.keyboard-focus td.col-check {background:var(--accent)!important;}
-.list-table tr.keyboard-focus td.col-name {background:var(--accent)!important;}
+.list-table tr.keyboard-focus {background:var(--accent-solid)!important;color:var(--accent-solid-fg);}
+.list-table tr.keyboard-focus td.col-check {background:var(--accent-solid)!important;}
+.list-table tr.keyboard-focus td.col-name {background:var(--accent-solid)!important;}
 .list-table tr.keyboard-focus .col-meta, .list-table tr.keyboard-focus .col-ext, .list-table tr.keyboard-focus .list-ext-chip, .list-table tr.keyboard-focus .col-path, .list-table tr.keyboard-focus .list-folder-chip, .list-table tr.keyboard-focus .list-folder-more, .list-table tr.keyboard-focus .list-tag-chip, .list-table tr.keyboard-focus .col-actions a, .list-table tr.keyboard-focus .col-actions button {color:rgba(255,255,255,0.9);}
 .list-table input[type="checkbox"] {cursor:pointer;accent-color:var(--accent);}
 /* ===== Item context menu ===== */
     .item-context-menu {
       position:fixed;
-      z-index:680;
+      z-index:var(--z-menu);
       width:224px;
       padding:6px;
       border:1px solid rgba(255,255,255,.10);
