@@ -11,9 +11,9 @@
 #   - /nas/ must be mounted and writable.
 #
 # What it does:
-#   1. Reads TAG from docker-compose.yml (image: eagle-viewer:v<TAG>).
-#   2. Runs version-check to confirm tag alignment.
-#   3. git pull --ff-only.
+#   1. git pull --ff-only (first, so the tag is read from the released compose).
+#   2. Reads TAG from docker-compose.yml (image: eagle-viewer:v<TAG>).
+#   3. Runs version-check to confirm tag alignment.
 #   4. sudo docker build -t eagle-viewer:$TAG .
 #   5. sudo docker save → ./images/eagle-viewer-$TAG.tar.
 #   6. sudo chown → cp to /nas/.
@@ -21,7 +21,13 @@
 
 set -euo pipefail
 
-# ── 1. Read TAG from docker-compose.yml ──────────────────────────────────────
+# ── 1. Pull latest from GitHub ───────────────────────────────────────────────
+# Must happen before reading TAG: a release commit changes the compose tag,
+# and building the pre-pull tag would mislabel the new code.
+echo "==> Pulling latest code..."
+git pull --ff-only
+
+# ── 2. Read TAG from docker-compose.yml ──────────────────────────────────────
 TAG=$(sed -n 's/.*image:\s*eagle-viewer:v\([^\s]*\).*/\1/p' docker-compose.yml | head -1)
 if [ -z "$TAG" ]; then
   echo "ERROR: could not extract tag from docker-compose.yml" >&2
@@ -29,7 +35,7 @@ if [ -z "$TAG" ]; then
 fi
 echo "==> TAG=v${TAG}"
 
-# ── 2. Version alignment check ───────────────────────────────────────────────
+# ── 3. Version alignment check ───────────────────────────────────────────────
 echo "==> Running version-check..."
 if command -v make >/dev/null 2>&1; then
   make version-check
@@ -37,10 +43,6 @@ else
   # dev box has no make; check_versions.py only uses the stdlib
   python3 scripts/check_versions.py
 fi
-
-# ── 3. Pull latest from GitHub ───────────────────────────────────────────────
-echo "==> Pulling latest code..."
-git pull --ff-only
 
 # ── 4. Build image ───────────────────────────────────────────────────────────
 echo "==> Building eagle-viewer:v${TAG}..."
