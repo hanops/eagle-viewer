@@ -2,6 +2,29 @@
 
 ---
 
+## 4.3.1 - 2026-08-07
+
+### Added
+- iOS-style collapsible large title on mobile PWA: a 34px display title sits in the content area and scrolls away, while a 17px compact title fades into the top bar with a hairline border — the signature iOS navigation interaction.
+- Inset grouped cards on mobile: folder lists and the status page key-value table are now wrapped in white rounded-corner cards with inset hairline separators, matching Apple Settings aesthetics.
+
+**中文**：移动端 PWA 新增 iOS 风格可折叠大标题——内容区 34px 大标题随滚动上移，顶栏 17px 紧凑标题淡入并出现发丝底边，还原 iOS 标志性导航交互。文件夹列表与状态页键值表改用白底圆角卡片包裹、内缩发丝分隔线，对齐 Apple Settings 视觉语言。
+
+### Changed
+- Mobile bottom tab bar height switched from JS-driven `--app-h` (visualViewport) to CSS `100dvh`, which iOS Safari/PWA corrects automatically on scroll with zero JS timing dependency.
+- Search promoted to a root tab on mobile (back button removed); status page and folder sub-levels retain back navigation.
+- Mobile palette refined to exact iOS system values: light grouped background `#f2f2f7`, dark pure black `#000` + `#1c1c1e` cards, Apple system blue `#007aff` / `#0a84ff`.
+- SW shell cache bumped v61 → v62; static asset revision 1.115 → 1.116.
+
+**中文**：移动端底栏高度从 JS 驱动的 `--app-h`（visualViewport）改为 CSS `100dvh`，iOS Safari/PWA 滚动时自动校正，零 JS 时序依赖。搜索提升为根 Tab（移除返回键）；状态页与文件夹子级保留返回导航。配色精修到 iOS 系统精确值：浅色分组底 `#f2f2f7`、深色纯黑 `#000` + `#1c1c1e` 卡片、系统蓝 `#007aff` / `#0a84ff`。SW shell 缓存升级 v61 → v62，静态资源版本 1.115 → 1.116。
+
+### Fixed
+- Mobile PWA bottom tab bar renders too high on first paint (iOS Safari), only dropping to the correct position after scrolling. Root cause: `--app-h` was read from `visualViewport` before the first frame, when the value was still incorrect. Replaced with `100dvh` which the browser self-corrects during scroll.
+
+**中文**：修复移动端 PWA 底部导航栏首屏位置偏高、需滚动一下才落位的问题。根因：`--app-h` 在首帧前从 `visualViewport` 取值时仍为错误值，改用 `100dvh` 由浏览器滚动时自动校正。
+
+---
+
 ## 4.3.0 - 2026-08-07
 
 ### Added

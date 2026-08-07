@@ -1,6 +1,6 @@
 services:
   eagle-viewer:
-    image: eagle-viewer:v4.3.0
+    image: eagle-viewer:v4.3.1
     build: .
     container_name: eagle-viewer
     restart: always
