@@ -48,8 +48,8 @@ def test_folder_tag_and_search_indexes(sample_library):
     assert [tag["name"] for tag in get_all_tags()] == [
         "Docs", "Screenshot", "UI", "Moodboard", "Diagram", "Legacy", "Planning",
     ]
-    assert [item.id for item in get_items_by_tag("Screenshot")] == ["item-one", "item-mp4", "item-wide"]
-    assert [item.id for item in search_items("txt")] == ["item-three", "item-notes"]
+    assert [item.id for item in get_items_by_tag("Screenshot")] == ["item-mp4", "item-one", "item-wide"]
+    assert [item.id for item in search_items("txt")] == ["item-notes", "item-three"]
 
 
 def test_proprietary_asset_keeps_original_and_eagle_thumbnail_separate(sample_library):

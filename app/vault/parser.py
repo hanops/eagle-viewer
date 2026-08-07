@@ -283,7 +283,9 @@ def _load_items(locked_folder_ids: set[str]) -> tuple[dict[str, ItemInfo], dict[
     if not images_dir.exists():
         return by_id, by_folder, stats
 
-    for subdir in images_dir.iterdir():
+    # Sorted traversal keeps index order deterministic across filesystems
+    # (APFS vs ext4 enumerate directories differently).
+    for subdir in sorted(images_dir.iterdir(), key=lambda entry: entry.name):
         if not subdir.is_dir() or not subdir.name.endswith(".info"):
             continue
         stats["info_dirs"] += 1
