@@ -181,6 +181,9 @@ test('getItemKind classifies extensions', () => {
 test('isPreviewable / isItemPreviewable / isImageExt / canCopyImage', () => {
   assert.strictEqual(core.isPreviewable('jpg'), true);
   assert.strictEqual(core.isPreviewable('png'), true);
+  assert.strictEqual(core.isPreviewable('svg'), true);
+  assert.strictEqual(core.isPreviewable('webm'), true);
+  assert.strictEqual(core.isPreviewable('mov'), true);
   assert.strictEqual(core.isPreviewable('mp4'), true);
   assert.strictEqual(core.isPreviewable('pdf'), true);
   assert.strictEqual(core.isPreviewable('zip'), false);
@@ -188,8 +191,10 @@ test('isPreviewable / isItemPreviewable / isImageExt / canCopyImage', () => {
   assert.strictEqual(core.isItemPreviewable(null), false);
   assert.strictEqual(core.isItemPreviewable({ ext: 'zip' }), false);
   assert.strictEqual(core.isImageExt('webp'), true);
+  assert.strictEqual(core.isImageExt('bmp'), true);
   assert.strictEqual(core.isImageExt('png'), true);
   assert.strictEqual(core.isImageExt('mp4'), false);
+  assert.strictEqual(core.isVideoExt('m4v'), true);
   assert.strictEqual(core.canCopyImage('jpg'), true);
   assert.strictEqual(core.canCopyImage('svg'), false); // svg is previewable but not copyable
 });

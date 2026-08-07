@@ -86,7 +86,7 @@ function renderItemCard(item, container) {
       '<div class="card-details-meta">' + escapeHtml(meta.join(' · ') || '素材') + '</div>' +
       '<div class="card-details-pills">' +
         (folderLink && folderLink.id ? '<button type="button" class="card-details-folder" data-item-folder="' + escapeHtml(folderLink.id) + '" data-item-focus-id="' + escapeHtml(item.id) + '" title="打开文件夹：' + escapeHtml(folderLink.path || folderLink.label) + '">' + iconFolder() + escapeHtml(folderLink.label) + '</button>' : '') +
-        (item.ext ? '<button type="button" class="card-details-ext" data-item-ext="' + escapeHtml(item.ext) + '" title="筛选格式：.' + escapeHtml(item.ext) + '">.' + escapeHtml(String(item.ext).toUpperCase()) + '</button>' : '') +
+        (item.ext ? '<button type="button" class="card-details-ext" data-item-ext="' + escapeHtml(item.ext) + '" title="筛选格式：' + escapeHtml(item.ext) + '">' + escapeHtml(String(item.ext).toUpperCase()) + '</button>' : '') +
         ((item.tags && item.tags.length) ? '<button type="button" class="card-details-tag" data-item-tag="' + escapeHtml(item.tags[0]) + '" title="打开标签：' + escapeHtml(item.tags[0]) + '"># ' + escapeHtml(item.tags[0]) + '</button>' : '') +
         (sourceDomain ? '<span class="card-details-source">' + iconExternalLink() + escapeHtml(sourceDomain) + '</span>' : '') +
       '</div>';
@@ -465,15 +465,15 @@ function renderViewSummary() {
 function getMobileWorkbarTitle() {
   var crumbs = getViewCrumbs();
   var current = crumbs[crumbs.length - 1];
-  return (current && current.label) || state.currentTitle || '资料库';
+  return (current && current.label) || state.currentTitle || t('library_title');
 }
 
 function getMobileWorkbarKind() {
-  if (state.currentView === 'folder') return '文件夹';
-  if (state.currentView === 'tag') return '标签';
-  if (state.currentView === 'recent') return '最近素材';
-  if (state.currentView === 'search') return '搜索结果';
-  return '资料库';
+  if (state.currentView === 'folder') return t('folder_view');
+  if (state.currentView === 'tag') return t('tag_view');
+  if (state.currentView === 'recent') return t('recent_view');
+  if (state.currentView === 'search') return t('search_results');
+  return t('library_title');
 }
 
 function getMobileWorkbarMeta() {
@@ -481,16 +481,19 @@ function getMobileWorkbarMeta() {
   var subfolders = (state.currentSubfolders || []).length;
   var total = Number(state.currentTotal || 0);
   var parts = [];
-  if (total > 0 && loaded && loaded < total) parts.push('已载入 ' + loaded + '/' + total);
-  else if (loaded || total) parts.push((total || loaded) + ' 项');
-  else parts.push('暂无素材');
-  if (subfolders) parts.push(subfolders + ' 个文件夹');
-  var sortMap = { mtime: '修改时间', btime: '创建时间', name: '名称', size: '大小', ext: '格式' };
-  if (state.sortKey) parts.push((sortMap[state.sortKey] || state.sortKey) + (state.sortDir === 'asc' ? ' ↑' : ' ↓'));
+  if (total > 0 && loaded && loaded < total) parts.push(tFmt('loaded_count', { loaded: loaded, total: total }));
+  else if (loaded || total) parts.push(tFmt('item_count', { n: total || loaded }));
+  else parts.push(t('no_items'));
+  if (subfolders) parts.push(tFmt('folder_count', { n: subfolders }));
+  if (state.sortKey) {
+    var sortKey = 'sort_' + state.sortKey;
+    var directionKey = state.sortDir === 'asc' ? 'sort_asc' : 'sort_desc';
+    parts.push(t(sortKey) + ' · ' + t(directionKey));
+  }
   var filterCount = Object.keys(state.advancedFilters || {}).filter(function(key) {
     return state.advancedFilters[key] !== undefined && state.advancedFilters[key] !== null && state.advancedFilters[key] !== '';
   }).length;
-  if (filterCount) parts.push(filterCount + ' 个筛选');
+  if (filterCount) parts.push(tFmt('filter_count', { n: filterCount }));
   return parts.join(' · ');
 }
 
@@ -726,7 +729,6 @@ function refreshMasonryLayout() {
 }
 
 function useCompactGridLayout() {
-  if (state.currentSubfolders.length) return false;
   if (!state.currentItems.length) return false;
   return state.currentItems.every(function(item) {
     return !(item.hasThumbnail || isImageExt(item.ext));

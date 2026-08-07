@@ -1,5 +1,8 @@
+import asyncio
+
 import pytest
 from fastapi import HTTPException
+from starlette.requests import Request
 
 import app.api.folders as folders_api
 import app.api.items as items_api
@@ -70,3 +73,20 @@ def test_proprietary_asset_thumbnail_and_download_keep_distinct_paths(sample_lib
     assert str(thumbnail.path).endswith("remote-review-workflow_thumbnail.svg")
     assert str(original.path).endswith("remote-review-workflow.graffle")
     assert "remote%20review%20workflow.graffle" in original.headers["content-disposition"].lower()
+
+
+def test_media_file_supports_mobile_ranges_and_pdf_embedding(sample_library):
+    range_request = Request({"type": "http", "headers": [(b"range", b"bytes=0-9")]})
+    media = items_api.api_item_file("item-mp4", request=range_request)
+
+    assert media.status_code == 206
+    assert media.headers["content-range"] == "bytes 0-9/32"
+    assert media.headers["accept-ranges"] == "bytes"
+    async def collect_body():
+        return b"".join([chunk async for chunk in media.body_iterator])
+
+    assert asyncio.run(collect_body()) == (sample_library / "images" / "item-mp4.info" / "product-clip.mp4").read_bytes()[:10]
+
+    pdf = items_api.api_item_file("item-pdf")
+    assert pdf.headers["x-frame-options"] == "SAMEORIGIN"
+    assert pdf.headers["content-security-policy"] == "frame-ancestors 'self'"

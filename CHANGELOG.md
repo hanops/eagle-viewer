@@ -2,6 +2,30 @@
 
 ---
 
+## 4.3.2 - 2026-08-07
+
+### Added
+- Added byte-range media delivery for reliable iPhone and iPad video playback and seeking.
+- Added explicit mobile preview fallback states, previous/next controls, and connection-state access from the Eagle brand mark.
+
+**中文**：新增视频分段响应，提升 iPhone 与 iPad 播放和拖动稳定性；移动端新增不支持格式提示、预览切换按钮，并可从 Eagle 品牌入口访问连接状态。
+
+### Fixed
+- Fixed same-origin PDF iframe preview being blocked by the global frame-deny security header.
+- Fixed stale mobile navigation and search responses overwriting the active view.
+- Fixed failed Service Worker precaching deleting the last known-good offline shell.
+- Fixed mobile status failure hiding usable recent items, unsupported formats opening blank previews, and English workbar sort labels remaining in Chinese.
+- Fixed iPad gallery ordering and desktop compact-grid behavior when folders and files coexist.
+
+**中文**：修复 PDF 预览被安全响应头阻断、移动端旧请求覆盖当前页面、Service Worker 缓存失败删除旧版本、状态请求失败连带隐藏最近素材、非预览格式出现空白预览、英文排序文案残留中文，以及 iPad 排序和文件夹混排布局问题。
+
+### Performance
+- Reduced repeated mobile gallery rebuilds and throttled thumbnail-cache eviction; large share operations now fall back safely instead of eagerly buffering oversized files.
+
+**中文**：减少移动端分页重复重建和缩略图缓存扫描，超大分享文件改为安全回退，降低 iPhone/iPad 内存压力。
+
+---
+
 ## 4.3.1 - 2026-08-07
 
 ### Added

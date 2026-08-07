@@ -3,7 +3,7 @@
 var EagleViewer = window.EagleViewer = window.EagleViewer || {};
 
 var API = '';
-var VERSION = '4.3.1';
+var VERSION = '4.3.2';
 var VERSION_DATE = '2026-08-07';
 var PREVIEW_IMAGE_EXTS = ['jpg','jpeg','png','gif','webp','svg','bmp'];
 var PREVIEW_VIDEO_EXTS = ['mp4','webm','mov','m4v'];
@@ -554,7 +554,6 @@ var I18N_DATA = {
     theme_dark: '深色',
     // Chrome copy
     appearance_title: '外观',
-    sidebar_mount: '远程挂载 · 只读',
     mobile_search_heading: '搜索资源库',
     // Remote status
     remote_online: '远程资源库已连接',
@@ -575,6 +574,20 @@ var I18N_DATA = {
     inspector_prev: '上一项',
     inspector_next: '下一项',
     inspector_title: '详情',
+    library_title: '资料库',
+    breadcrumb_location: '当前位置',
+    breadcrumb_tag: '标签',
+    breadcrumb_search: '搜索',
+    recent_days: '最近 {n} 天',
+    folder_view: '文件夹',
+    tag_view: '标签',
+    recent_view: '最近素材',
+    search_results: '搜索结果',
+    loaded_count: '已载入 {loaded}/{total}',
+    item_count: '{n} 项',
+    folder_count: '{n} 个文件夹',
+    no_items: '暂无素材',
+    filter_count: '{n} 个筛选',
     // Mobile tabbar & sheets (desktop responsive)
     mobile_tab_library: '资料库',
     mobile_tab_search: '搜索',
@@ -650,7 +663,6 @@ var I18N_DATA = {
     theme_dark: 'Dark',
     // Chrome copy
     appearance_title: 'Appearance',
-    sidebar_mount: 'Remote mount · Read-only',
     mobile_search_heading: 'Search Vault',
     // Remote status
     remote_online: 'Remote Vault Online',
@@ -671,6 +683,20 @@ var I18N_DATA = {
     inspector_prev: 'Previous',
     inspector_next: 'Next',
     inspector_title: 'Details',
+    library_title: 'Library',
+    breadcrumb_location: 'Current location',
+    breadcrumb_tag: 'Tags',
+    breadcrumb_search: 'Search',
+    recent_days: 'Last {n} days',
+    folder_view: 'Folder',
+    tag_view: 'Tag',
+    recent_view: 'Recent assets',
+    search_results: 'Search results',
+    loaded_count: 'Loaded {loaded}/{total}',
+    item_count: '{n} items',
+    folder_count: '{n} folders',
+    no_items: 'No assets',
+    filter_count: '{n} filters',
     // Mobile tabbar & sheets (desktop responsive)
     mobile_tab_library: 'Library',
     mobile_tab_search: 'Search',

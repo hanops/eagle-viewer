@@ -6,7 +6,7 @@
 
 > 把 Eagle 素材库挂到服务器上，浏览器远程浏览、搜索、预览和下载 —— 手机和平板也能用。
 
-[English README](README.md) · **当前版本**：v4.3.1 (2026-08-07) · [更新日志](CHANGELOG.md)
+[English README](README.md) · **当前版本**：v4.3.2 (2026-08-07) · [更新日志](CHANGELOG.md)
 
 ---
 

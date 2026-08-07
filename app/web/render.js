@@ -187,17 +187,17 @@ function findFolderTrailById(folderId, nodes, trail) {
 }
 
 function getViewCrumbs() {
-  var crumbs = [{ label: '资料库', action: 'all' }];
+  var crumbs = [{ label: t('library_title'), action: 'all' }];
   if (state.currentView === 'folder' && state.currentFolderId) {
     var trail = findFolderTrailById(state.currentFolderId, state.treeData, []) || [];
     trail.forEach(function(folder) { crumbs.push({ label: folder.name, folderId: folder.id }); });
   } else if (state.currentView === 'tag' && state.currentTagName) {
-    crumbs.push({ label: '标签', action: 'tag-root' });
+    crumbs.push({ label: t('breadcrumb_tag'), action: 'tag-root' });
     crumbs.push({ label: state.currentTagName, tag: state.currentTagName });
   } else if (state.currentView === 'recent') {
-    crumbs.push({ label: '最近 ' + (state.recentDays || 7) + ' 天', recentDays: state.recentDays || 7 });
+    crumbs.push({ label: tFmt('recent_days', { n: state.recentDays || 7 }), recentDays: state.recentDays || 7 });
   } else if (state.currentView === 'search') {
-    crumbs.push({ label: '搜索', action: 'search-root' });
+    crumbs.push({ label: t('breadcrumb_search'), action: 'search-root' });
     if (state.searchQuery) crumbs.push({ label: state.searchQuery, search: state.searchQuery });
   } else if (state.currentTitle && state.currentView !== 'all') {
     crumbs.push({ label: state.currentTitle, action: state.currentView });

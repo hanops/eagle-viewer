@@ -17,6 +17,8 @@
   const pvDownload = document.getElementById('pvDownload');
   const pvSave = document.getElementById('pvSave');
   const pvClose = document.getElementById('pvClose');
+  const pvPrev = document.getElementById('pvPrev');
+  const pvNext = document.getElementById('pvNext');
   const pvShare = document.getElementById('pvShare');
   const pvStage = document.getElementById('pvStage');
 
@@ -25,9 +27,9 @@
     zh: {
       library: '资源库', folders: '目录', search: '搜索', status: '连接状态',
       tabLibrary: '资料库', tabFolders: '文件夹', tabSearch: '搜索',
-      close: '关闭', share: '分享', download: '下载', saveAlbum: '保存相册',
+      close: '关闭', share: '分享', back: '返回', download: '下载', saveAlbum: '保存相册',
       loadFailed: '加载失败：{error}', connectedChanged: '已连接 · 远程有变更',
-      connected: '已连接', disconnected: '未连接', vault: 'Eagle 资源库',
+      connected: '已连接', disconnected: '未连接', statusUnknown: '连接状态未知', vault: 'Eagle 资源库',
       items: '素材', foldersLabel: '文件夹', tags: '标签',
       searchPlaceholder: '搜索名称、标签或备注…', recent: '最近添加',
       locked: '该文件夹被 Eagle 锁定，无法在远程查看',
@@ -38,16 +40,17 @@
       remoteChangedTitle: '检测到远程变更',
       remoteChangedBody: '资源库自上次索引后有改动，重新加载以同步。',
       reload: '重新加载索引', loading: '加载中…', reloadFailed: '重新加载失败',
-      downloaded: '已下载到「文件」，可在相册中查看', saveFailed: '保存失败',
+      downloaded: '已下载到「文件」，可在相册中查看', saveFailed: '保存失败', unsupportedPreview: '此格式不支持在线预览，请下载后打开', videoUnavailable: '当前视频无法在此设备上播放，请下载查看',
+      previous: '上一个', next: '下一个',
       copied: '链接已复制', shareUnavailable: '分享不可用', language: 'English',
       lightTheme: '切换到浅色', darkTheme: '切换到深色'
     },
     en: {
       library: 'Library', folders: 'Folders', search: 'Search', status: 'Connection',
       tabLibrary: 'Library', tabFolders: 'Folders', tabSearch: 'Search',
-      close: 'Close', share: 'Share', download: 'Download', saveAlbum: 'Save to Photos',
+      close: 'Close', share: 'Share', back: 'Back', download: 'Download', saveAlbum: 'Save to Photos',
       loadFailed: 'Could not load: {error}', connectedChanged: 'Connected · Remote changes',
-      connected: 'Connected', disconnected: 'Disconnected', vault: 'Eagle Vault',
+      connected: 'Connected', disconnected: 'Disconnected', statusUnknown: 'Connection unknown', vault: 'Eagle Vault',
       items: 'Items', foldersLabel: 'Folders', tags: 'Tags',
       searchPlaceholder: 'Search name, tags, or notes…', recent: 'Recently added',
       locked: 'This folder is locked in Eagle and cannot be viewed remotely.',
@@ -58,7 +61,8 @@
       remoteChangedTitle: 'Remote changes detected',
       remoteChangedBody: 'The Vault changed after the last index. Reload to sync it.',
       reload: 'Reload index', loading: 'Loading…', reloadFailed: 'Reload failed',
-      downloaded: 'Downloaded to Files. You can open it in Photos.',
+      downloaded: 'Downloaded to Files. You can open it in Photos.', unsupportedPreview: 'This format cannot be previewed here. Download it to open.', videoUnavailable: 'This video cannot play on this device. Download it to view.',
+      previous: 'Previous', next: 'Next',
       saveFailed: 'Could not save', copied: 'Link copied',
       shareUnavailable: 'Sharing is unavailable', language: '中文',
       lightTheme: 'Use light theme', darkTheme: 'Use dark theme'
@@ -85,6 +89,8 @@
     document.getElementById('pvSaveLabel').textContent = tr('saveAlbum');
     pvClose.setAttribute('aria-label', tr('close'));
     pvShare.setAttribute('aria-label', tr('share'));
+    document.getElementById('pvPrev').setAttribute('aria-label', tr('previous'));
+    document.getElementById('pvNext').setAttribute('aria-label', tr('next'));
   }
 
   // ---------- 跟随桌面端主题选择，并允许手机端独立切换明暗 ----------
@@ -131,6 +137,7 @@
     const STORE = 'blobs';
     const MAX = 500;
     let dbp = null;
+    let evictTimer = null;
     function ok() { return typeof indexedDB !== 'undefined' && indexedDB; }
     function open() {
       if (!ok()) return Promise.resolve(null);
@@ -165,7 +172,10 @@
           tx.objectStore(STORE).put({ blob: blob, ts: Date.now() }, id);
           tx.oncomplete = resolve; tx.onerror = resolve;
         });
-      }).then(evict);
+      }).then(() => {
+        if (evictTimer) return;
+        evictTimer = setTimeout(() => { evictTimer = null; evict(); }, 750);
+      });
     }
     function clear() {
       return open().then((db) => {
@@ -261,6 +271,7 @@
     folderItems: [], folderSubfolders: [], folderOffset: 0, folderHasMore: false, folderLoading: false,
     recents: [],
     searchQuery: '', searchItems: [], searchOffset: 0, searchHasMore: false, searchTotal: 0, searchElapsed: 0, searchLoading: false,
+    viewGeneration: 0, folderRequest: 0, searchRequest: 0,
     status: null,
     currentGallery: [],
     preview: { list: [], index: 0, open: false, pushed: false },
@@ -299,7 +310,8 @@
     const media = showPreview
       ? '<img class="im" data-id="' + esc(it.id) + '" data-thumb="/api/items/' + it.id + '/thumbnail" style="' + ar + '" alt="' + esc(it.name) + '" onerror="this.classList.add(\'is-missing\')">'
       : '<div class="mobile-file-tile"><i></i><i></i><i></i></div>';
-    return '<button type="button" class="th" data-idx="' + idx + '" data-kind="' + (imageExt ? 'image' : 'file') + '" data-ext="' + esc(ext.toLowerCase()) + '">' +
+    const previewable = imageExt || isVideoExt(ext) || normExt(ext) === 'pdf';
+    return '<button type="button" class="th' + (previewable ? '' : ' is-download-only') + '" data-idx="' + idx + '" data-previewable="' + previewable + '" data-kind="' + (imageExt ? 'image' : 'file') + '" data-ext="' + esc(ext.toLowerCase()) + '">' +
       media +
       '<span class="ext">' + esc(ext) + '</span>' +
       '<span class="nm">' + esc(it.name) + '</span>' +
@@ -309,6 +321,12 @@
   function disconnectIO() {
     if (window.__io) { window.__io.disconnect(); window.__io = null; }
     if (window.__hio) { window.__hio.disconnect(); window.__hio = null; }
+  }
+  function releaseThumbObjectUrls(container) {
+    if (!container) return;
+    container.querySelectorAll('img').forEach(img => {
+      if (img.src && img.src.indexOf('blob:') === 0) URL.revokeObjectURL(img.src);
+    });
   }
   function fmtSize(b) {
     if (!b) return '';
@@ -329,17 +347,27 @@
     } else if (S.view === 'search') {
       title = tr('search');                            // 搜索改为根 Tab，不再有返回键
     } else {
-      title = tr('library');
+      title = tr('vault');
     }
 
     let html = '';
-    if (showBack) html += '<button class="back" id="backBtn">' + backSVG + '</button>';
+    if (showBack) html += '<button class="back" id="backBtn" aria-label="' + esc(tr('back')) + '" title="' + esc(tr('back')) + '">' + backSVG + '</button>';
     if (S.view === 'folders' && S.folderStack.length) {
       html += '<div class="crumb">' + S.folderStack.map((s, i) =>
         '<span class="seg ' + (i === S.folderStack.length - 1 ? 'cur' : '') + '">' + esc(s.name) + '</span>' +
         (i < S.folderStack.length - 1 ? '<span class="sep">/</span>' : '')).join('') + '</div>';
     } else if (title) {
-      html += '<span class="ctitle">' + esc(title) + '</span>';
+      if (S.view === 'library') {
+        const statusClass = !S.status ? 'unknown' : (!S.status.ok ? 'offline' : (S.status.changed ? 'changed' : 'online'));
+        const statusLabel = !S.status ? tr('statusUnknown') : (!S.status.ok ? tr('disconnected') : (S.status.changed ? tr('connectedChanged') : tr('connected')));
+        html += '<button type="button" class="mobile-brand ' + statusClass + '" id="mobileBrandBtn" aria-label="' + esc(statusLabel) + '">' +
+          '<span class="mobile-brand-mark" aria-hidden="true"><svg viewBox="0 0 28 28" focusable="false"><rect class="ev-tile" x="1.5" y="1.5" width="25" height="25" rx="8"/><path d="M8 18.6 13.4 10 16.6 14.4 19 11.4 20.5 18.6Z" fill="#fff" fill-opacity="0.95"/></svg></span>' +
+          '<span class="mobile-brand-copy"><strong>Eagle</strong><span>' + esc(tr('library')) + '</span></span>' +
+          '<i class="mobile-brand-status" aria-hidden="true"></i>' +
+        '</button>';
+      } else {
+        html += '<span class="ctitle">' + esc(title) + '</span>';
+      }
     }
 
     var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
@@ -355,6 +383,8 @@
       else if (S.view === 'folders' && S.folderStack.length) { S.folderStack.pop(); renderFolders(); }
     };
     topbar.querySelector('#themeBtn').onclick = toggleMobileTheme;
+    const brand = topbar.querySelector('#mobileBrandBtn');
+    if (brand) brand.onclick = goStatus;
     topbar.querySelector('#langBtn').onclick = () => {
       lang = lang === 'zh' ? 'en' : 'zh';
       try { localStorage.setItem('eagle-viewer-lang', lang); } catch (e) {}
@@ -372,58 +402,63 @@
     tabs.querySelectorAll('.tb').forEach(t => t.classList.toggle('active', t.dataset.view === v));
   }
 
+  tabs.addEventListener('pointerdown', (event) => {
+    const button = event.target.closest('.tb');
+    if (button) button.classList.add('pointer-focus');
+  });
+  tabs.addEventListener('keydown', (event) => {
+    if (event.key === 'Tab') tabs.querySelectorAll('.tb').forEach(t => t.classList.remove('pointer-focus'));
+  });
+
   function switchTab(v) {
+    S.viewGeneration++;
     S.view = v;
     setTabActive(v);
     disconnectIO();
-    if (v === 'library') renderLibrary();
-    else if (v === 'folders') renderFolders();
+    if (v === 'library') renderLibrary(S.viewGeneration);
+    else if (v === 'folders') renderFolders(S.viewGeneration);
     else if (v === 'search') renderSearch();
     scrollTop();
   }
 
   // ---------- 首页（LIBRARY） ----------
-  async function renderLibrary() {
+  async function renderLibrary(token = S.viewGeneration) {
     renderTop();
+    releaseThumbObjectUrls(viewBody);
     viewBody.innerHTML = '<div class="spinner"></div>';
-    let status, recent;
-    try {
-      [status, recent] = await Promise.all([API.status(false), API.recent()]);
-    } catch (e) { if (e.message === 'unauthorized') return; viewBody.innerHTML = '<div class="errbox">' + esc(tr('loadFailed', { error: e.message })) + '</div>'; return; }
+    const results = await Promise.allSettled([API.status(false), API.recent()]);
+    if (token !== S.viewGeneration || S.view !== 'library') return;
+    const status = results[0].status === 'fulfilled' ? results[0].value : null;
+    const recent = results[1].status === 'fulfilled' ? results[1].value : null;
+    if (!recent) {
+      const error = results[1].reason;
+      if (error && error.message === 'unauthorized') return;
+      viewBody.innerHTML = '<div class="errbox">' + esc(tr('loadFailed', { error: error && error.message })) + '</div>';
+      return;
+    }
     S.recents = recent.items || [];
     S.status = status;
-    if (status.revision) {
+    if (status && status.revision) {
       const saved = localStorage.getItem('ev:thumbRev');
       if (saved && saved !== status.revision) Thumbs.clear();
       localStorage.setItem('ev:thumbRev', status.revision);
     }
-    const changed = !!status.changed;
-    const connected = !!status.ok;
-    const dotCls = !connected ? 'bad' : (changed ? 'warn' : '');
-    const connText = connected ? (changed ? tr('connectedChanged') : tr('connected')) : tr('disconnected');
-    const verText = status.version ? ' v' + esc(status.version) : '';
+    renderTop();
     viewBody.innerHTML =
-      '<div class="lt">' + esc(tr('library')) + '</div>' +
       '<div class="srch library-search" id="srchEntry">' + searchSVG + '<input id="srchInput" placeholder="' + esc(tr('searchPlaceholder')) + '" /></div>' +
-      '<div class="strip ' + (changed ? 'changed' : '') + '" id="strip">' +
-        '<span class="dot ' + dotCls + '"></span>' +
-        '<div class="meta">' +
-          '<span class="nm">' + tr('vault') + '</span>' +
-          '<span class="mono">' + connText + verText + '</span>' +
-        '</div>' + chevSVG +
-      '</div>' +
       '<div class="lbl">' + tr('recent') + '</div>' +
       '<div class="mas" id="recentMas">' + S.recents.map(thumbItem).join('') + '</div>';
     S.currentGallery = S.recents;
     bindThumbs(viewBody);
     hydrateThumbs(viewBody);
-    document.getElementById('strip').onclick = () => goStatus();
     const si = document.getElementById('srchInput');
     si.addEventListener('keydown', e => { if (e.key === 'Enter') { S.searchQuery = si.value.trim(); switchTab('search'); } });
   }
 
   // ---------- 目录（FOLDERS） ----------
-  async function renderFolders() {
+  async function renderFolders(token = S.viewGeneration) {
+    const requestId = ++S.folderRequest;
+    const folderKey = S.folderStack.map(item => item.id).join('/');
     renderTop();
     disconnectIO();
     const atRoot = S.folderStack.length === 0;
@@ -441,11 +476,13 @@
         offset = data.nextOffset || 0;
       }
     } catch (e) {
+      if (token !== S.viewGeneration || S.view !== 'folders' || requestId !== S.folderRequest || folderKey !== S.folderStack.map(item => item.id).join('/')) return;
       if (e.message === 'unauthorized') return;
       const msg = e.message === 'HTTP 423' ? tr('locked') : tr('loadFailed', { error: e.message });
       viewBody.innerHTML = '<div class="errbox">' + msg + '</div>';
       return;
     }
+    if (token !== S.viewGeneration || S.view !== 'folders' || requestId !== S.folderRequest || folderKey !== S.folderStack.map(item => item.id).join('/')) return;
     S.folderSubfolders = subfolders;
     S.folderItems = items;
     S.folderHasMore = hasMore; S.folderOffset = offset;
@@ -470,12 +507,13 @@
       html += '<div class="lbl">' + tr('items') + '</div><div class="mas" id="folderMas">' + items.map(thumbItem).join('') + '</div>';
       if (hasMore) html += '<div class="sentinel" id="folderSentinel"></div>';
     }
+    releaseThumbObjectUrls(viewBody);
     viewBody.innerHTML = html;
 
     viewBody.querySelectorAll('.fr').forEach(b => b.onclick = () => {
       if (b.dataset.locked) { toast(tr('locked')); return; }
       S.folderStack.push({ id: b.dataset.fid, name: b.dataset.fname });
-      renderFolders();
+      renderFolders(S.viewGeneration);
       scrollTop();
     });
     S.currentGallery = S.folderItems;
@@ -489,15 +527,30 @@
     S.folderLoading = true;
     setListLoader(true);
     const fid = S.folderStack.length ? S.folderStack[S.folderStack.length - 1].id : null;
+    const requestId = S.folderRequest;
+    const folderKey = S.folderStack.map(item => item.id).join('/');
     let data;
     try { data = await API.folderItems(fid, S.folderOffset); }
-    catch (e) { S.folderLoading = false; setListLoader(false); if (e.message === 'unauthorized') return; return; }
-    S.folderItems = S.folderItems.concat(data.items || []);
+    catch (e) {
+      S.folderLoading = false;
+      setListLoader(false);
+      if (requestId !== S.folderRequest || folderKey !== S.folderStack.map(item => item.id).join('/') || S.view !== 'folders') return;
+      if (e.message === 'unauthorized') return;
+      return;
+    }
+    if (requestId !== S.folderRequest || folderKey !== S.folderStack.map(item => item.id).join('/') || S.view !== 'folders') {
+      S.folderLoading = false;
+      setListLoader(false);
+      return;
+    }
+    const previousLength = S.folderItems.length;
+    const newItems = data.items || [];
+    S.folderItems = S.folderItems.concat(newItems);
     S.folderOffset = data.nextOffset || 0;
     S.folderHasMore = !!data.hasMore;
     const mas = document.getElementById('folderMas');
     if (mas) {
-      mas.innerHTML = S.folderItems.map(thumbItem).join('');
+      mas.insertAdjacentHTML('beforeend', newItems.map((item, index) => thumbItem(item, previousLength + index)).join(''));
       S.currentGallery = S.folderItems;
       bindThumbs(viewBody);
       hydrateThumbs(viewBody);
@@ -513,12 +566,14 @@
   function renderSearch() {
     renderTop();
     disconnectIO();
+    releaseThumbObjectUrls(viewBody);
     viewBody.innerHTML =
-      '<div class="lt">' + esc(tr('search')) + '</div>' +
-      '<div class="srch">' + searchSVG + '<input id="srchInput2" placeholder="' + esc(tr('searchPlaceholder')) + '" value="' + esc(S.searchQuery) + '" autofocus /></div>' +
+      '<div class="search-page">' +
+      '<div class="srch search-field">' + searchSVG + '<input id="srchInput2" placeholder="' + esc(tr('searchPlaceholder')) + '" value="' + esc(S.searchQuery) + '" autofocus /></div>' +
       '<div class="sr-head" id="srHead"></div>' +
-      '<div class="mas" id="searchMas"></div>' +
-      '<div class="sentinel" id="searchSentinel" style="display:none"></div>';
+      '<div class="search-results" id="searchMas"></div>' +
+      '<div class="sentinel" id="searchSentinel" style="display:none"></div>' +
+      '</div>';
     const input = document.getElementById('srchInput2');
     let t;
     input.addEventListener('input', () => {
@@ -538,37 +593,51 @@
 
   async function renderPopularTags() {
     const mas = document.getElementById('searchMas');
-    if (!mas || S.searchQuery) return;
+    if (!mas || S.view !== 'search' || S.searchQuery) return;
     let tags = [];
     try { tags = ((await API.json('/api/tags')).tags || []).slice(0, 8); }
     catch (e) { return; }
-    if (!tags.length || S.searchQuery) return;
+    if (!tags.length || S.view !== 'search' || S.searchQuery) return;
     mas.innerHTML =
-      '<div class="pt-head">' + esc(tr('popularTags')) + '</div>' +
+      '<section class="popular-tags"><div class="pt-head">' + esc(tr('popularTags')) + '</div>' +
       '<div class="pt-row">' +
       tags.map(t => '<button class="pt-chip" data-tag="' + esc(t.name) + '">#' + esc(t.name) + '</button>').join('') +
-      '</div>';
+      '</div></section>';
   }
 
   async function doSearch(reset) {
-    if (reset) { S.searchOffset = 0; S.searchItems = []; S.searchHasMore = false; }
+    const requestId = ++S.searchRequest;
+    if (reset) { S.searchOffset = 0; S.searchItems = []; S.searchHasMore = false; S.searchLoading = false; }
     const q = S.searchQuery;
     const head = document.getElementById('srHead');
     const mas = document.getElementById('searchMas');
-    if (!q) { if (head) head.textContent = tr('searchStart'); if (mas) mas.innerHTML = ''; renderPopularTags(); return; }
+    if (!q) { if (head) head.textContent = tr('searchStart'); if (mas) { releaseThumbObjectUrls(mas); mas.classList.remove('mas'); mas.innerHTML = ''; } renderPopularTags(); return; }
+    if (mas) mas.classList.add('mas');
     if (reset && mas) mas.innerHTML = '<div class="spinner"></div>';
     const t0 = performance.now();
     let data;
-    try { data = await API.search(q, S.searchOffset); }
-    catch (e) { if (e.message === 'unauthorized') return; if (head) head.textContent = tr('searchFailed', { error: e.message }); return; }
+    const offset = S.searchOffset;
+    try { data = await API.search(q, offset); }
+    catch (e) {
+      if (requestId !== S.searchRequest || q !== S.searchQuery || S.view !== 'search') return;
+      if (e.message === 'unauthorized') return;
+      if (head) head.textContent = tr('searchFailed', { error: e.message });
+      return;
+    }
+    if (requestId !== S.searchRequest || q !== S.searchQuery || S.view !== 'search' || (!reset && offset !== S.searchOffset)) return;
+    const previousLength = S.searchItems.length;
     if (reset) S.searchItems = [];
-    S.searchItems = S.searchItems.concat(data.items || []);
+    const newItems = data.items || [];
+    S.searchItems = S.searchItems.concat(newItems);
     S.searchOffset = data.nextOffset || 0;
     S.searchHasMore = !!data.hasMore;
     S.searchTotal = data.total || 0;
     S.searchElapsed = performance.now() - t0;
     if (head) head.innerHTML = tr('results', { count: '<b>' + S.searchTotal + '</b>', seconds: (S.searchElapsed / 1000).toFixed(2) });
-    if (mas) mas.innerHTML = S.searchItems.map(thumbItem).join('');
+    if (mas) {
+      if (reset) mas.innerHTML = newItems.map((item, index) => thumbItem(item, index)).join('');
+      else mas.insertAdjacentHTML('beforeend', newItems.map((item, index) => thumbItem(item, previousLength + index)).join(''));
+    }
     const sent = document.getElementById('searchSentinel');
     if (sent) sent.style.display = S.searchHasMore ? 'block' : 'none';
     S.currentGallery = S.searchItems;
@@ -605,13 +674,15 @@
 
   // ---------- 状态页 ----------
   async function goStatus() {
+    const token = ++S.viewGeneration;
     S.view = 'status';
     setTabActive('library');
     renderTop();
     disconnectIO();
     viewBody.innerHTML = '<div class="spinner"></div>';
     let st;
-    try { st = await API.status(true); } catch (e) { if (e.message === 'unauthorized') return; viewBody.innerHTML = '<div class="errbox">' + esc(tr('loadFailed', { error: e.message })) + '</div>'; return; }
+    try { st = await API.status(true); } catch (e) { if (e.message === 'unauthorized') return; if (token === S.viewGeneration && S.view === 'status') viewBody.innerHTML = '<div class="errbox">' + esc(tr('loadFailed', { error: e.message })) + '</div>'; return; }
+    if (token !== S.viewGeneration || S.view !== 'status') return;
     S.status = st;
     view.scrollTop = 0;
     const fmtTime = ms => ms ? new Date(ms).toLocaleString(lang === 'en' ? 'en-US' : 'zh-CN', { hour12: false }) : '—';
@@ -637,7 +708,8 @@
 
   // ---------- 缩略图点击 → 预览 ----------
   function bindThumbs(container) {
-    container.querySelectorAll('.th').forEach(t => {
+    container.querySelectorAll('.th:not([data-bound])').forEach(t => {
+      t.dataset.bound = '1';
       t.onclick = () => openPreview(parseInt(t.dataset.idx, 10));
     });
   }
@@ -661,6 +733,10 @@
     overlay.classList.remove('show', 'immersive');
     overlay.setAttribute('aria-hidden', 'true');
     document.body.style.overflow = '';
+    clearPreviewMedia();
+    pvImg.onerror = null;
+    pvImg.src = '';
+    pvImg.style.display = '';
     pvImg.style.transform = '';
     overlay.style.background = '#000';
     g.scale = 1;
@@ -675,7 +751,34 @@
     if (!it) return;
     g.scale = 1;
     pvIndex.textContent = (i + 1) + ' / ' + list.length;
-    pvImg.src = '/api/items/' + it.id + '/file';
+    const ext = normExt(it.ext);
+    const mediaUrl = '/api/items/' + it.id + '/file';
+    const image = isImageExt(ext);
+    const video = isVideoExt(ext);
+    const pdf = ext === 'pdf';
+    clearPreviewMedia();
+    pvImg.style.display = image ? '' : 'none';
+    if (!image && !video && !pdf) {
+      showPreviewUnavailable(tr('unsupportedPreview'));
+    } else if (image) {
+      pvImg.src = mediaUrl;
+      pvImg.onerror = () => showPreviewUnavailable(tr('unsupportedPreview'));
+    } else if (video) {
+      const player = document.createElement('video');
+      player.className = 'pv-media pv-video';
+      player.controls = true;
+      player.playsInline = true;
+      player.preload = 'metadata';
+      player.addEventListener('error', () => showPreviewUnavailable(tr('videoUnavailable')), { once: true });
+      player.src = mediaUrl;
+      pvStage.appendChild(player);
+    } else if (pdf) {
+      const frame = document.createElement('iframe');
+      frame.className = 'pv-media pv-pdf';
+      frame.src = mediaUrl;
+      frame.title = it.name || 'PDF Preview';
+      pvStage.appendChild(frame);
+    }
     pvImg.style.transition = '';
     pvImg.style.transform = g.scale > 1 ? 'scale(' + g.scale + ')' : '';
     pvName.textContent = it.name || '';
@@ -684,15 +787,34 @@
     pvMeta.textContent = dims + (it.ext || '').toUpperCase() + (sz ? ' · ' + sz : '');
     pvDownload.href = '/api/items/' + it.id + '/file?download=true';
     // 图片/视频才显示「保存到相册」（iOS 只能通过分享面板「存储到照片」写入相册）。
-    pvSave.style.display = (isImageExt(it.ext) || isVideoExt(it.ext)) ? '' : 'none';
+    pvSave.style.display = (image || video) ? '' : 'none';
+    pvPrev.disabled = i <= 0;
+    pvNext.disabled = i >= list.length - 1;
     updatePeeks();
     preloadAdjacent();
   }
+  function clearPreviewMedia() {
+    pvStage.querySelectorAll('.pv-unavailable').forEach(el => el.remove());
+    pvStage.querySelectorAll('.pv-video, .pv-pdf').forEach(el => {
+      if (el.pause) el.pause();
+      el.remove();
+    });
+  }
+  function showPreviewUnavailable(message) {
+    pvImg.style.display = 'none';
+    pvStage.querySelectorAll('.pv-unavailable').forEach(el => el.remove());
+    const box = document.createElement('div');
+    box.className = 'pv-unavailable';
+    box.textContent = message;
+    pvStage.appendChild(box);
+    pvSave.style.display = 'none';
+  }
   function normExt(ext) { return (ext || '').toLowerCase().replace(/^\./, ''); }
   function isImageExt(ext) { return ['bmp', 'gif', 'heic', 'heif', 'ico', 'jpeg', 'jpg', 'png', 'svg', 'tif', 'tiff', 'webp', 'avif', 'jfif', 'jxl'].includes(normExt(ext)); }
-  function isVideoExt(ext) { return ['mp4', 'mov', 'avi', 'mkv', 'webm', 'm4v', 'mpg', 'mpeg', 'wmv', 'flv', '3gp'].includes(normExt(ext)); }
+  function isVideoExt(ext) { return ['mp4', 'mov', 'webm', 'm4v', '3gp'].includes(normExt(ext)); }
   // 取文件 Blob 并通过 Web Share API 以 File 形式分享——iOS 分享面板才会提供「存储到照片 / 存储视频」。
   async function shareFile(it) {
+    if (it.size && it.size > 200 * 1024 * 1024) throw new Error('too-large-to-share');
     const url = location.origin + '/api/items/' + it.id + '/file';
     const resp = await fetch(url);
     if (!resp.ok) throw new Error('fetch-failed');
@@ -714,7 +836,7 @@
     if (!list || !list.length) return;
     for (const j of [i - 1, i + 1, i + 2]) {
       const it = list[j];
-      if (it) { const im = new Image(); im.decoding = 'async'; im.src = '/api/items/' + it.id + '/file'; }
+      if (it && isImageExt(it.ext)) { const im = new Image(); im.decoding = 'async'; im.src = '/api/items/' + it.id + '/file'; }
     }
   }
   function showPreviewItemAnimated(dir) {
@@ -731,6 +853,7 @@
   function dist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
 
   pvStage.addEventListener('pointerdown', e => {
+    if (e.target.closest('video, iframe')) return;
     pvStage.setPointerCapture(e.pointerId);
     g.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (g.pointers.size === 2) {
@@ -795,6 +918,16 @@
   pvStage.addEventListener('pointercancel', endPointer);
 
   pvClose.onclick = closePreview;
+  pvPrev.onclick = () => {
+    if (S.preview.index <= 0) return;
+    S.preview.index--;
+    showPreviewItem();
+  };
+  pvNext.onclick = () => {
+    if (S.preview.index >= S.preview.list.length - 1) return;
+    S.preview.index++;
+    showPreviewItem();
+  };
   pvDownload.onclick = (e) => {
     // 用 Blob 方式触发下载：强制浏览器弹出「存储为…」保存窗口，避免 Safari 把文件内联预览（Finder/Quick Look）。
     e.preventDefault();

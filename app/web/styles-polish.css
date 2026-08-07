@@ -716,6 +716,7 @@ body::before {
 }
 
 .main {
+  container-type:inline-size;
   background:
     radial-gradient(70% 45% at 46% -10%,color-mix(in srgb,var(--accent) 7%,transparent),transparent 70%),
     var(--bg);
@@ -838,6 +839,12 @@ html[data-theme] .content-crumb[aria-current="page"] {
   font-size:14px;
   font-weight:650;
   line-height:1.35;
+  min-height:2.7em;
+  display:-webkit-box;
+  -webkit-box-orient:vertical;
+  -webkit-line-clamp:2;
+  overflow:hidden;
+  overflow-wrap:anywhere;
 }
 .card-details-meta {
   font-size:11.5px;
@@ -864,6 +871,74 @@ html[data-theme] .content-crumb[aria-current="page"] {
 .file-cover.office.xmind .file-cover-excerpt {
   font-size:12px;
   line-height:1.55;
+}
+
+/* Non-image assets use quiet format surfaces. The format badge and icon carry
+   the semantic color, so the card remains calm when many file types sit next
+   to image thumbnails. */
+.file-cover.pdf {background:#f6ebe8;}
+.file-cover.text {background:#efedf6;}
+.file-cover.document {background:#edf2f8;}
+.file-cover.other {background:#ececee;}
+[data-theme="dark"] .file-cover.pdf {background:#2d2424;}
+[data-theme="dark"] .file-cover.text {background:#292635;}
+[data-theme="dark"] .file-cover.document {background:#222c38;}
+[data-theme="dark"] .file-cover.other {background:#292a2e;}
+
+/* Keep the update affordance out of the bottom action zone and reduce it to a
+   compact utility notice that does not cover the current asset. */
+.pwa-update-card {
+  top:66px;
+  right:18px;
+  bottom:auto;
+  width:min(390px,calc(100vw - 36px));
+  min-height:0;
+  padding:9px 10px;
+  grid-template-columns:28px minmax(0,1fr) auto;
+  gap:9px;
+  border-radius:12px;
+}
+.pwa-update-mark {width:28px;height:28px;border-radius:8px;}
+.pwa-update-mark::before {width:12px;height:12px;border-width:1.5px;}
+.pwa-update-mark span {margin:0 0 9px 9px;border-left-width:3px;border-right-width:3px;border-bottom-width:5px;}
+.pwa-update-copy {gap:1px;}
+.pwa-update-copy > span {font-size:9px;letter-spacing:.12em;}
+.pwa-update-copy strong {font-size:12px;}
+.pwa-update-copy small {display:none;}
+.pwa-update-actions button {height:30px;padding:0 9px;border-radius:8px;font-size:10px;}
+
+@media(min-width:769px) {
+  [data-theme="dark"] .inspector-spec span {font-size:11px;line-height:1.2;}
+  [data-theme="dark"] .inspector-field-label {font-size:11px;line-height:1.5;}
+  [data-theme="dark"] .inspector-field-value {font-size:11.5px;line-height:1.5;}
+  [data-theme="dark"] .inspector-field-value code,
+  [data-theme="dark"] .inspector-note {font-size:11px;line-height:1.5;}
+}
+
+/* When the inspector narrows the main workbench, keep the toolbar in one
+   horizontally scrollable row instead of creating a second filter tier. */
+@container (max-width:700px) {
+  .content-toolbar {
+    min-height:68px;
+    padding:12px 16px;
+    flex-wrap:nowrap;
+    overflow-x:auto;
+    scrollbar-width:none;
+  }
+  .content-toolbar::-webkit-scrollbar {display:none;}
+  .content-context {
+    order:0;
+    flex:0 0 auto;
+    width:auto;
+    margin:0 4px 0 0;
+  }
+  .content-crumbs {max-width:190px;}
+  .content-crumb {font-size:18px;white-space:nowrap;}
+  .content-title {display:none;}
+  .content-toolbar > label {flex:0 0 auto;}
+  .content-toolbar select {flex:0 0 auto;}
+  .quick-filters {flex:0 0 auto;flex-wrap:nowrap;}
+  .quick-filter {flex:0 0 auto;white-space:nowrap;}
 }
 
 [data-theme="dark"] .toolbar,
@@ -912,6 +987,14 @@ html[data-theme] .content-crumb[aria-current="page"] {
   .content-toolbar > label {display:none;}
   .content-crumb {font-size:18px;}
   .content-toolbar {min-height:auto;}
+  .card-details-name {
+    min-height:0;
+    display:block;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .pwa-update-card {top:58px;right:10px;width:calc(100vw - 20px);}
 }
 
 @media(max-width:480px) {
@@ -919,3 +1002,202 @@ html[data-theme] .content-crumb[aria-current="page"] {
   .mobile-workbar-status {font-size:0;gap:0;padding:0 5px;}
   .mobile-workbar-status span {width:8px;height:8px;}
 }
+
+/* ===== Button and navigation system: editorial archive console ===== */
+:root {
+  --ui-accent:#ad5d3d;
+  --ui-accent-strong:#91482f;
+  --ui-accent-soft:color-mix(in srgb,var(--ui-accent) 11%,transparent);
+  --ui-control-bg:color-mix(in srgb,var(--bg2) 72%,var(--bg3));
+  --ui-control-border:color-mix(in srgb,var(--border) 88%,transparent);
+  --ui-control-radius:9px;
+}
+[data-theme="dark"] {
+  --ui-accent:#d28a63;
+  --ui-accent-strong:#e4a27d;
+  --ui-accent-soft:color-mix(in srgb,var(--ui-accent) 14%,transparent);
+  --ui-control-bg:color-mix(in srgb,var(--bg2) 86%,var(--bg3));
+  --ui-control-border:color-mix(in srgb,var(--border) 94%,transparent);
+}
+.toolbar {
+  background:color-mix(in srgb,var(--bg2) 96%,transparent);
+  box-shadow:0 1px 0 color-mix(in srgb,var(--ui-accent) 12%,transparent),0 12px 28px -28px rgba(0,0,0,.7);
+}
+.brand-mark svg .ev-tile { fill:var(--ui-accent); }
+.brand-name b { color:var(--ui-accent); }
+.search-box {
+  border-color:var(--ui-control-border);
+  background:var(--ui-control-bg);
+  box-shadow:inset 0 1px rgba(255,255,255,.22);
+}
+.search-box:focus-within {
+  border-color:var(--ui-accent);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--ui-accent) 16%,transparent),inset 0 1px rgba(255,255,255,.24);
+}
+.toolbar-right {
+  gap:2px;
+  padding:3px;
+  border:1px solid var(--ui-control-border);
+  border-radius:11px;
+  background:var(--ui-control-bg);
+}
+.tb-btn {
+  width:36px;
+  height:36px;
+  border:1px solid transparent;
+  border-radius:var(--ui-control-radius);
+  color:var(--text-muted);
+  background:transparent;
+  box-shadow:none;
+  transition:background .14s ease,color .14s ease,border-color .14s ease,transform .12s ease;
+}
+.tb-btn:hover { border-color:var(--ui-control-border); background:var(--bg2); color:var(--text); box-shadow:none; transform:none; }
+.tb-btn.active { border-color:var(--ui-accent); background:var(--ui-accent); color:#fff; box-shadow:none; }
+.tb-btn:active { transform:scale(.95); }
+.sidebar-section-title { color:var(--ui-accent); letter-spacing:.14em; }
+.sidebar-section-title::before { background:var(--ui-accent); }
+.sidebar-item { border-color:transparent; border-radius:var(--ui-control-radius); transition:background .14s ease,color .14s ease,box-shadow .14s ease; }
+.sidebar-item:hover { border-color:transparent; background:var(--ui-accent-soft); }
+.sidebar-item.active { border-color:transparent; background:var(--ui-accent-soft); color:var(--text); box-shadow:inset 2px 0 0 var(--ui-accent); }
+.sidebar-item.active .sidebar-item-icon svg { color:var(--ui-accent); }
+.sidebar-item.active .sidebar-item-count { color:var(--ui-accent); }
+.content-toolbar > label { color:var(--text-muted); }
+.content-toolbar select { border:1px solid var(--ui-control-border); background:var(--ui-control-bg); border-radius:var(--ui-control-radius); }
+.content-toolbar select:hover { border-color:color-mix(in srgb,var(--ui-accent) 45%,var(--border)); }
+.quick-filters { border:1px solid var(--ui-control-border); background:var(--ui-control-bg); }
+.quick-filter { border:1px solid transparent; border-radius:7px; background:transparent; transition:background .14s ease,color .14s ease,border-color .14s ease,transform .12s ease; }
+.quick-filter:hover { border-color:var(--ui-control-border); background:var(--bg2); color:var(--text); }
+.quick-filter.active { border-color:var(--ui-accent); background:var(--ui-accent); color:#fff; box-shadow:none; }
+.quick-filter:active { transform:scale(.97); }
+
+/* Type has one clear entry point: keep the select and remove the duplicate rail. */
+@media(min-width:769px) {
+  .quick-filters { display:none; }
+  .content-toolbar select#ctTypeSelect {
+    min-width:92px;
+    border-color:var(--ui-accent);
+    background:var(--ui-accent-soft);
+    color:var(--ui-accent-strong);
+    font-weight:650;
+  }
+}
+.inspector-nav-btn,
+.inspector-close { width:34px; height:34px; border:1px solid transparent; border-radius:var(--ui-control-radius); transition:background .14s ease,color .14s ease,border-color .14s ease,transform .12s ease; }
+.inspector-nav-btn:hover,
+.inspector-close:hover { border-color:var(--ui-control-border); background:var(--ui-accent-soft); color:var(--ui-accent); }
+.inspector-nav-btn:active,
+.inspector-close:active { transform:scale(.95); }
+
+/* Hover metadata is a quiet caption, not a row of floating badges. */
+.card-details-pills {
+  display:flex;
+  align-items:center;
+  gap:0;
+  max-height:0;
+  margin-top:0;
+  padding-top:0;
+  border-top:1px solid transparent;
+  overflow:hidden;
+  opacity:0;
+  transform:translateY(-2px);
+  transition:max-height .16s ease,margin .16s ease,padding .16s ease,opacity .16s ease,transform .16s ease;
+}
+.card:hover .card-details-pills,
+.card:focus-within .card-details-pills {
+  max-height:28px;
+  margin-top:3px;
+  padding-top:6px;
+  border-top-color:var(--border);
+  opacity:1;
+  transform:none;
+}
+.card-details-pills button,
+.card-details-source {
+  min-width:0;
+  height:18px;
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+  padding:0;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  color:var(--text-muted);
+  font:inherit;
+  font-size:10.5px;
+  line-height:1;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  appearance:none;
+  -webkit-appearance:none;
+}
+.card-details-pills button {
+  box-shadow:none !important;
+  outline:0;
+}
+.card-details-folder {
+  flex:1 1 auto;
+  justify-content:flex-start;
+  text-align:left;
+}
+.card-details-folder svg { width:11px; height:11px; flex:0 0 auto; opacity:.72; }
+.card-details-folder:hover { color:var(--ui-accent); }
+.card-details-ext {
+  flex:0 0 auto;
+  margin-left:8px;
+  padding-left:0 !important;
+  border:0 !important;
+  background:transparent !important;
+  color:var(--ui-accent) !important;
+  font-family:var(--mono) !important;
+  font-size:9px !important;
+  font-weight:700;
+  letter-spacing:.08em;
+}
+.card-details-ext:hover { color:var(--ui-accent-strong) !important; }
+.card-details-tag,
+.card-details-source { display:none !important; }
+
+@media(max-width:768px) {
+  .mobile-tabbar { gap:0; padding:5px 7px calc(5px + env(safe-area-inset-bottom)); background:color-mix(in srgb,var(--bg2) 96%,transparent); border-top:1px solid var(--ui-control-border); box-shadow:0 -12px 28px -25px rgba(0,0,0,.6); backdrop-filter:blur(18px) saturate(1.08); }
+  .mobile-tab { border-radius:var(--ui-control-radius); color:var(--text-muted); transition:transform .12s ease,color .14s ease,background .14s ease; }
+  .mobile-tab::after { display:none; }
+  .mobile-tab:hover { color:var(--text); background:var(--ui-accent-soft); }
+  .mobile-tab:active { transform:scale(.96); }
+  .mobile-tab.active { color:var(--ui-accent); background:transparent; }
+  .mobile-tab.active span:first-child { color:var(--ui-accent); }
+  .mobile-tab.active::before { width:28px; height:2px; border-radius:0; background:var(--ui-accent); box-shadow:none; }
+}
+
+/* Let the artwork and border define the card. Keep the utility group tight. */
+.card,
+.folder-card,
+.card:hover,
+.folder-card:hover { box-shadow:none; }
+.toolbar-right {
+  width:auto;
+  min-width:0;
+  padding:2px;
+}
+.card-overlay { background:transparent; }
+.card-overlay-name { text-shadow:none; }
+.file-cover-type,
+.file-cover.office .file-cover-type {
+  display:none !important;
+}
+.folder-rail {
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  margin:0 0 20px;
+}
+.folder-rail .folder-card {
+  flex:1 1 190px;
+  min-width:170px;
+  min-height:72px;
+  margin:0;
+  padding:12px 14px;
+  justify-content:flex-start;
+}
+.folder-rail + .masonry { margin-top:0; }

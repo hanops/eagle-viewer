@@ -479,11 +479,11 @@ body {font-size:14px;}
     min-height:100%;
     background:var(--bg);
   }
-  @supports(height:100dvh){
+  @supports(height:100svh){
     html,
     body{
-      height:100dvh;
-      min-height:100dvh;
+      height:100svh;
+      min-height:100svh;
     }
   }
   body{

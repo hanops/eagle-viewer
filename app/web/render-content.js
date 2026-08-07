@@ -80,12 +80,17 @@ function renderContent() {
     var bannerHtml = getOfflineSnapshotBannerHtml();
     if (bannerHtml) body.insertAdjacentHTML('beforeend', bannerHtml);
     body.appendChild(wrap);
+    if (state.currentSubfolders.length) {
+      var folderRail = document.createElement('div');
+      folderRail.className = 'folder-rail';
+      state.currentSubfolders.forEach(function(sub) { renderFolderCard(sub, folderRail); });
+      wrap.appendChild(folderRail);
+    }
     var masonry = document.createElement('div');
     masonry.className = 'masonry';
     if (useCompactGridLayout()) masonry.classList.add('compact-grid');
-    applyMasonryColumnCount(masonry, state.currentSubfolders.length + state.currentItems.length);
+    applyMasonryColumnCount(masonry, state.currentItems.length);
     wrap.appendChild(masonry);
-    state.currentSubfolders.forEach(function(sub) { renderFolderCard(sub, masonry); });
     state.currentItems.forEach(function(item) { renderItemCard(item, masonry); });
     appendSubfoldersHint(wrap);
     setupGridMarquee(wrap, masonry);

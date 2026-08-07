@@ -190,6 +190,9 @@ function bindEvents() {
       var newLang = getLang() === 'zh' ? 'en' : 'zh';
       setLang(newLang);
       applyStaticI18n();
+      if (EagleViewer.modules.render && EagleViewer.modules.render.updateMobileWorkbar) {
+        EagleViewer.modules.render.updateMobileWorkbar();
+      }
       // Update toolbar buttons with data-i18n-title
       document.querySelectorAll('[data-i18n-title]').forEach(function(el) {
         el.setAttribute('title', t(el.getAttribute('data-i18n-title')));

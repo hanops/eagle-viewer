@@ -115,6 +115,20 @@ def test_mobile_shell_supports_shared_chinese_english_preference():
     assert "applyLanguage();" in script
 
 
+def test_mobile_preview_and_async_navigation_contracts():
+    mobile = read("app/web/mobile.js")
+    service_worker = read("app/web/sw.js")
+
+    assert "Promise.allSettled" in mobile
+    assert "viewGeneration" in mobile
+    assert "searchRequest" in mobile
+    assert "data-previewable" in mobile
+    assert "unsupportedPreview" in mobile
+    assert 'id="pvPrev"' in read("app/web/mobile.html")
+    assert "cache.addAll" in service_worker
+    assert ".catch(function() {})" not in service_worker
+
+
 def test_service_worker_only_caches_the_app_shell():
     service_worker = read("app/web/sw.js")
     assert "url.pathname.startsWith('/api/')" in service_worker
@@ -253,11 +267,14 @@ def test_theme_and_mobile_navigation_remain_available():
         assert f'id="{element_id}"' in index
 
 
-def test_iphone_layout_uses_dynamic_viewport_and_balanced_safe_areas():
+def test_iphone_layout_uses_stable_viewport_and_balanced_safe_areas():
     index = read("app/web/index.html")
     styles = read_web_assets(DESKTOP_STYLE_ASSETS)
     assert "viewport-fit=cover, interactive-widget=resizes-content" in index
-    assert "height:100dvh" in styles
+    # The small viewport is stable on the first iOS Safari paint; using the
+    # dynamic viewport here can temporarily include the browser chrome and
+    # leave the bottom tab bar below the visible viewport.
+    assert "height:100svh" in styles
     assert "--mobile-home-gap:max(8px,calc(env(safe-area-inset-bottom,0px) - 18px))" in styles
     assert "height:calc(64px + env(safe-area-inset-top,0px))" in styles
     assert "height:var(--mobile-tab-height)" in styles
