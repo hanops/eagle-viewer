@@ -3,6 +3,22 @@
 (function () {
   'use strict';
 
+  // ---------- iOS Safari 首屏高度修复 ----------
+  // iOS Safari 首屏 dvh 取值偏小，导致 #app 比可视区矮、.tabs 被顶高。
+  // 用 visualViewport.height 驱动 --app-h，首帧即正确。
+  function syncAppHeight() {
+    var vv = window.visualViewport;
+    if (!vv) return;
+    document.documentElement.style.setProperty('--app-h', vv.height + 'px');
+  }
+  syncAppHeight();
+  if (window.visualViewport) {
+    ['resize', 'scroll'].forEach(function (ev) {
+      window.visualViewport.addEventListener(ev, syncAppHeight);
+    });
+  }
+  window.addEventListener('orientationchange', syncAppHeight);
+
   // ---------- 元素引用 ----------
   const topbar = document.getElementById('topbar');
   const view = document.getElementById('view');
@@ -87,14 +103,16 @@
   }
 
   // ---------- 跟随桌面端主题选择，并允许手机端独立切换明暗 ----------
-  // 桌面端把 gallery/workbench/carbon 存进 localStorage['eagle-viewer-theme']，
+  // 桌面端把 light/dark 存进 localStorage['eagle-viewer-theme']，
   // 这里复用同一把钥匙，让手机端配色与桌面端保持一致（无选择时沿用系统偏好）。
   function applyMobileTheme(name) {
     try {
+      // Migrate legacy keys
+      if (name === 'gallery') name = 'light';
+      if (name === 'workbench' || name === 'carbon') name = 'dark';
       var map = {
-        gallery:   { theme: 'light', accent: 'terra' },
-        workbench: { theme: 'dark',  accent: 'blue'  },
-        carbon:    { theme: 'dark',  accent: 'green' }
+        light: { theme: 'light', accent: 'blue' },
+        dark:  { theme: 'dark',  accent: 'blue'  }
       };
       var t = map[name];
       if (!t) return;
@@ -103,7 +121,7 @@
       root.setAttribute('data-accent', t.accent);
       root.style.colorScheme = t.theme;
       var themeMeta = document.querySelector('meta[name="theme-color"]');
-      if (themeMeta) themeMeta.content = t.theme === 'light' ? '#f7f2ea' : '#1a1816';
+      if (themeMeta) themeMeta.content = t.theme === 'light' ? '#f5f5f7' : '#000000';
       localStorage.setItem('eagle-viewer-theme', name);
     } catch (e) {}
   }
@@ -116,7 +134,7 @@
 
   function toggleMobileTheme() {
     var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-    applyMobileTheme(isDark ? 'gallery' : 'workbench');
+    applyMobileTheme(isDark ? 'light' : 'dark');
     renderTop();
   }
 

@@ -12,7 +12,7 @@ async function init() {
   await interactions.loadLocalData();
   interactions.setViewMode(api.getPreferredViewMode(), true);
 
-  var savedTheme = localStorage.getItem('eagle-viewer-theme') || 'gallery';
+  var savedTheme = localStorage.getItem('eagle-viewer-theme') || 'light';
   interactions.setTheme(savedTheme);
 
   // Apply saved/default language to static DOM

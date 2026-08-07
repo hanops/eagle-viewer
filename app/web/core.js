@@ -550,9 +550,8 @@ var I18N_DATA = {
     view_list: '列表视图',
     // Theme
     theme_group_aria: '主题切换',
-    theme_gallery: '画廊浅色',
-    theme_workbench: '工作台深色',
-    theme_carbon: '碳黑深色',
+    theme_light: '浅色',
+    theme_dark: '深色',
     // Chrome copy
     appearance_title: '外观',
     sidebar_mount: '远程挂载 · 只读',
@@ -647,9 +646,8 @@ var I18N_DATA = {
     view_list: 'List View',
     // Theme
     theme_group_aria: 'Theme',
-    theme_gallery: 'Gallery Light',
-    theme_workbench: 'Workbench Dark',
-    theme_carbon: 'Carbon Dark',
+    theme_light: 'Light',
+    theme_dark: 'Dark',
     // Chrome copy
     appearance_title: 'Appearance',
     sidebar_mount: 'Remote mount · Read-only',

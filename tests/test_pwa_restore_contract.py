@@ -241,10 +241,10 @@ def test_manifest_keeps_only_basic_shortcuts():
 def test_theme_and_mobile_navigation_remain_available():
     index = read("app/web/index.html")
     interactions = read_web_assets(INTERACTION_ASSETS)
-    # 右上角三主题切换器（Gallery / Workbench / Carbon）
+    # 右上角主题切换器（浅色 / 深色，统一 Apple 系统蓝强调色）
     assert 'id="themeSwitcher"' in index
     assert 'class="theme-switcher"' in index
-    for name in ("gallery", "workbench", "carbon"):
+    for name in ("light", "dark"):
         assert f'data-theme-name="{name}"' in index
     # 主题切换仍写入 data-theme / data-accent
     assert "setAttribute('data-theme'" in interactions

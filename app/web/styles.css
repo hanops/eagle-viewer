@@ -26,86 +26,67 @@
       --z-inspector:935;
       --z-compare:1100;
       --z-locked:1800;
+      /* Apple system colors (single blue accent, light/dark baked per theme). */
+      --sys-blue:#007aff;
+      --sys-blue-dark:#0a84ff;
+      --sys-green:#34c759;
+      --sys-red:#ff3b30;
       /* Fixed dark "workbench" surfaces (preview/compare benches stay dark by design) */
-      --wb-0:#0b0c0f;
-      --wb-1:#121317;
-      --wb-2:#17181c;
-      --wb-3:#191a1d;
-      --wb-4:#202125;
-      --wb-5:#24262b;
-      --wb-line:#2b2d32;
-      --wb-line-2:#292b30;
-      --wb-text:#eef0f4;
-      --wb-mut:#8e96a3;
-      --wb-mut-2:#708199;
+      --wb-0:#000000;
+      --wb-1:#1c1c1e;
+      --wb-2:#2c2c2e;
+      --wb-3:#1c1c1e;
+      --wb-4:#2c2c2e;
+      --wb-5:#3a3a3c;
+      --wb-line:rgba(255,255,255,.10);
+      --wb-line-2:rgba(255,255,255,.08);
+      --wb-text:#f5f5f7;
+      --wb-mut:#8e8e93;
+      --wb-mut-2:#6e6e73;
     }
 [data-theme="light"] {
-      --bg:#f7f3ec;
-      --bg2:#fffdfa;
-      --bg3:#ece8df;
-      --bg4:rgba(255,253,250,.94);
-      --border:rgba(53,43,32,.13);
-      --text:#29241f;
-      --text-muted:#70685f;
-      --accent:#c96535;
-      --accent-text:#ad4e25;
-      --accent-solid:#a8501f;
-      --accent-solid-fg:#fffdfa;
-      --hover:rgba(61,47,32,.07);
-      --sidebar-bg:#eeeae2;
-      --card-shadow:0 1px 2px rgba(58,42,25,.08),0 8px 24px rgba(58,42,25,.04);
-      --card-shadow-hover:0 18px 42px rgba(58,42,25,.14);
-      --overlay-bg:rgba(41,31,21,.48);
-      --marquee-bg:rgba(201,101,53,.14);
-      --font-ui:"Avenir Next","SF Pro Text","PingFang SC","Microsoft YaHei",sans-serif;
-      --font-display:"Iowan Old Style","Songti SC","Noto Serif SC",Georgia,serif;
+      --bg:#ffffff;
+      --bg2:#ffffff;
+      --bg3:#f2f2f7;
+      --bg4:rgba(255,255,255,.92);
+      --border:rgba(0,0,0,.08);
+      --text:#1d1d1f;
+      --text-muted:#6e6e73;
+      --accent:#007aff;
+      --accent-text:#0064d6;
+      --accent-solid:#007aff;
+      --accent-solid-fg:#ffffff;
+      --hover:rgba(0,0,0,.04);
+      --sidebar-bg:#f2f2f7;
+      --card-shadow:0 1px 2px rgba(0,0,0,.04),0 1px 3px rgba(0,0,0,.05);
+      --card-shadow-hover:0 4px 12px rgba(0,0,0,.08);
+      --overlay-bg:rgba(0,0,0,.4);
+      --marquee-bg:rgba(0,122,255,.10);
+      --font-ui:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+      --font-display:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
       color-scheme:light;
     }
 [data-theme="dark"] {
-      --bg:#1a1816;
-      --bg2:#26241f;
-      --bg3:#322f29;
-      --bg4:rgba(26,24,22,.94);
-      --border:rgba(255,238,220,.08);
-      --text:#f1ece5;
-      --text-muted:#9a928a;
-      --accent:#5a7aff;
-      --accent-text:#7a9bff;
-      --accent-solid:#3f5bd9;
-      --accent-solid-fg:#fff;
-      --hover:rgba(255,225,200,0.07);
-      --sidebar-bg:#26241f;
-      --card-shadow:0 1px 3px rgba(0,0,0,.38);
-      --card-shadow-hover:0 12px 28px rgba(0,0,0,0.30);
-      --overlay-bg:rgba(20,14,8,0.6);
-      --marquee-bg:rgba(90,122,255,0.16);
-      --font-ui:"Avenir Next","SF Pro Text","PingFang SC","Microsoft YaHei",sans-serif;
-      --font-display:"Iowan Old Style","Songti SC","Noto Serif SC",Georgia,serif;
+      --bg:#000000;
+      --bg2:#1c1c1e;
+      --bg3:#2c2c2e;
+      --bg4:rgba(28,28,30,.92);
+      --border:rgba(255,255,255,.10);
+      --text:#f5f5f7;
+      --text-muted:#8e8e93;
+      --accent:#0a84ff;
+      --accent-text:#64b8ff;
+      --accent-solid:#0a84ff;
+      --accent-solid-fg:#ffffff;
+      --hover:rgba(255,255,255,.06);
+      --sidebar-bg:#1c1c1e;
+      --card-shadow:0 1px 2px rgba(0,0,0,.4);
+      --card-shadow-hover:0 6px 16px rgba(0,0,0,.5);
+      --overlay-bg:rgba(0,0,0,.6);
+      --marquee-bg:rgba(10,132,255,.16);
+      --font-ui:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+      --font-display:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
       color-scheme:dark;
-    }
-[data-accent="terra"] {
-      --accent:#c96535;
-      --accent-text:#ad4e25;
-      --accent-solid:#a8501f;
-      --accent-solid-fg:#fffdfa;
-      --marquee-bg:rgba(201,101,53,.15);
-      --overlay-bg:rgba(41,31,21,.48);
-    }
-[data-accent="blue"] {
-      --accent:#5a7aff;
-      --accent-text:#7a9bff;
-      --accent-solid:#3f5bd9;
-      --accent-solid-fg:#fff;
-      --marquee-bg:rgba(90,122,255,0.16);
-      --overlay-bg:rgba(20,24,40,0.55);
-    }
-[data-accent="green"] {
-      --accent:#34d399;
-      --accent-text:#6ee7b7;
-      --accent-solid:#34d399;
-      --accent-solid-fg:#06231a;
-      --marquee-bg:rgba(52,211,153,0.16);
-      --overlay-bg:rgba(12,28,20,0.55);
     }
 
     /* Dark cards need a hairline + soft shadow to separate from the dark canvas
@@ -116,12 +97,11 @@
 .theme-swatch:hover {transform:scale(1.14);}
 .theme-swatch.active {box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--accent);}
 .theme-swatch:focus-visible {box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--accent);}
-.theme-swatch-gallery {background:linear-gradient(135deg,#fbfaf8 50%,#e07a3d 50%);}
-.theme-swatch-workbench {background:linear-gradient(135deg,#2c2c2e 50%,#5a7aff 50%);}
+.theme-swatch-light {background:linear-gradient(135deg,#f5f5f7 50%,#007aff 50%);}
+.theme-swatch-dark {background:linear-gradient(135deg,#1c1c1e 50%,#0a84ff 50%);}
 .lang-btn {display:inline-flex;align-items:center;justify-content:center;width:28px;height:22px;border:1px solid var(--border);border-radius:6px;background:var(--bg2);color:var(--text-muted);font-size:10px;font-family:var(--font-ui);font-weight:600;cursor:pointer;margin-left:4px;padding:0;line-height:1;transition:background .15s,color .15s;}
 .lang-btn:hover {background:var(--hover);color:var(--text);}
 .lang-btn:focus-visible {outline:2px solid var(--accent);outline-offset:1px;}
-.theme-swatch-carbon {background:linear-gradient(135deg,#15170f 50%,#34d399 50%);}
 .folder-node > .sidebar-item {position:relative;}
 .folder-node.expanded > .sidebar-item .sidebar-item-name {font-weight:600;}
 html, body {height:100%;}

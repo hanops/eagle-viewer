@@ -45,7 +45,7 @@ body {
         height:36px;
         max-width:154px;
         padding:0 11px;
-        background:rgba(35,30,22,.88);
+        background:rgba(0,0,0,.88);
         box-shadow:0 12px 32px rgba(0,0,0,.34), inset 0 1px rgba(255,255,255,.08);
       }
 body.inspector-open .return-current-item, body.preview-open .return-current-item {

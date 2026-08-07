@@ -14,7 +14,7 @@ body {
   gap:18px;
   border-bottom:1px solid var(--border);
   background:color-mix(in srgb,var(--bg2) 94%,transparent);
-  box-shadow:0 10px 30px -28px rgba(42,31,19,.65);
+  box-shadow:0 10px 30px -28px rgba(0,0,0,.65);
   backdrop-filter:blur(18px) saturate(1.08);
 }
 .toolbar-left {min-width:220px;}
@@ -118,7 +118,7 @@ body {
 .quick-filter.active {
   background:var(--bg2);
   color:var(--text);
-  box-shadow:0 1px 3px rgba(40,31,21,.12);
+  box-shadow:0 1px 3px rgba(0,0,0,.12);
 }
 .content-context {margin-left:auto;}
 .content-crumb,
@@ -211,30 +211,30 @@ body {
 [data-theme="dark"] .file-cover-name,
 [data-theme="dark"] .file-cover.office.xmind .file-cover-name {color:var(--text);}
 [data-theme="dark"] .file-cover-meta,
-[data-theme="dark"] .file-cover.office.xmind .file-cover-meta {color:#aaa299;}
+[data-theme="dark"] .file-cover.office.xmind .file-cover-meta {color:var(--text-muted);}
 [data-theme="dark"] .file-cover-excerpt,
-[data-theme="dark"] .file-cover.office.xmind .file-cover-excerpt {color:#c2bbb2;}
+[data-theme="dark"] .file-cover.office.xmind .file-cover-excerpt {color:var(--text-muted);}
 
 [data-theme="light"] .toolbar,
-[data-theme="light"] .content-toolbar {background:rgba(255,253,250,.92);}
+[data-theme="light"] .content-toolbar {background:var(--bg4);}
 [data-theme="light"] .sidebar {
-  background:#eeeae2;
-  border-right-color:rgba(53,43,32,.12);
+  background:var(--sidebar-bg);
+  border-right-color:var(--border);
 }
 [data-theme="light"] .main {
-  background:radial-gradient(90% 55% at 50% -20%,rgba(201,101,53,.07),transparent 62%),var(--bg);
+  background:var(--bg);
 }
 [data-theme="light"] .card {
-  background:#fffdfa;
-  border-color:rgba(53,43,32,.12);
+  background:var(--bg2);
+  border-color:var(--border);
 }
 [data-theme="light"] .inspector {
-  background:#fffdfa;
-  border-left-color:rgba(53,43,32,.12);
+  background:var(--bg2);
+  border-left-color:var(--border);
 }
 [data-theme="light"] .inspector-header,
 [data-theme="light"] .inspector-actions,
-[data-theme="light"] .inspector-identity {background:#fffdfa;}
+[data-theme="light"] .inspector-identity {background:var(--bg2);}
 
 @media(max-width:1100px) and (min-width:769px) {
   .toolbar-left,
@@ -280,7 +280,7 @@ body {
   border-radius:16px;
   background:color-mix(in srgb,var(--bg2) 96%,transparent);
   color:var(--text);
-  box-shadow:0 24px 64px rgba(33,25,17,.24);
+  box-shadow:0 24px 64px rgba(0,0,0,.24);
   backdrop-filter:blur(22px) saturate(1.1);
 }
 .appearance-heading {
@@ -346,23 +346,19 @@ body {
   width:22px;
   height:22px;
   display:block;
-  border:1px solid rgba(30,25,20,.12);
+  border:1px solid rgba(0,0,0,.12);
   border-radius:7px;
   box-shadow:inset 0 1px rgba(255,255,255,.24);
 }
-.appearance-popover .theme-swatch-gallery,
-.appearance-popover .theme-swatch-workbench,
-.appearance-popover .theme-swatch-carbon {
+.appearance-popover .theme-swatch-light,
+.appearance-popover .theme-swatch-dark {
   background:transparent;
 }
-.appearance-popover .theme-swatch-gallery i {
-  background:linear-gradient(135deg,#fffaf3 50%,#c96535 50%);
+.appearance-popover .theme-swatch-light i {
+  background:linear-gradient(135deg,#f5f5f7 50%,#007aff 50%);
 }
-.appearance-popover .theme-swatch-workbench i {
-  background:linear-gradient(135deg,#211e1a 50%,#5a7aff 50%);
-}
-.appearance-popover .theme-swatch-carbon i {
-  background:linear-gradient(135deg,#171914 50%,#34d399 50%);
+.appearance-popover .theme-swatch-dark i {
+  background:linear-gradient(135deg,#1c1c1e 50%,#0a84ff 50%);
 }
 .appearance-footer {
   margin-top:10px;
@@ -523,28 +519,29 @@ html[data-theme] .card-details-meta {
 /* ===== Curatorial archive refinement (v4) =====
    A calm, editorial shell for browsing a remote Eagle library. The interface
    keeps tool density where it earns its place, then gives the collection and
-   assets enough scale to remain readable across a room or remote session. */
+   assets enough scale to remain readable across a room or remote session.
+   Token values aligned to Apple HIG neutral palette + system blue accent. */
 [data-theme="light"] {
-  --bg:#f4f0e8;
-  --bg2:#fffdf9;
-  --bg3:#e9e4db;
-  --bg4:rgba(255,253,249,.9);
-  --border:rgba(55,42,30,.14);
-  --text:#28221c;
-  --text-muted:#71685f;
-  --sidebar-bg:#eae5dc;
-  --card-shadow:0 1px 2px rgba(52,39,27,.06),0 10px 28px rgba(52,39,27,.055);
-  --card-shadow-hover:0 22px 54px rgba(52,39,27,.14);
+  --bg:#f5f5f7;
+  --bg2:#ffffff;
+  --bg3:#f2f2f7;
+  --bg4:rgba(255,255,255,.9);
+  --border:rgba(0,0,0,.08);
+  --text:#1d1d1f;
+  --text-muted:#6e6e73;
+  --sidebar-bg:#f0f0f2;
+  --card-shadow:0 1px 2px rgba(0,0,0,.04),0 10px 28px rgba(0,0,0,.05);
+  --card-shadow-hover:0 22px 54px rgba(0,0,0,.12);
 }
 [data-theme="dark"] {
-  --bg:#171613;
-  --bg2:#211f1b;
-  --bg3:#2d2a24;
-  --bg4:rgba(31,29,25,.9);
-  --border:rgba(255,240,222,.12);
-  --text:#f5efe7;
-  --text-muted:#b2a99f;
-  --sidebar-bg:#1d1c18;
+  --bg:#000000;
+  --bg2:#1c1c1e;
+  --bg3:#2c2c2e;
+  --bg4:rgba(28,28,30,.9);
+  --border:rgba(255,255,255,.10);
+  --text:#f5f5f7;
+  --text-muted:#8e8e93;
+  --sidebar-bg:#161617;
   --card-shadow:0 1px 2px rgba(0,0,0,.48),0 12px 34px rgba(0,0,0,.2);
   --card-shadow-hover:0 22px 54px rgba(0,0,0,.4);
 }
@@ -573,7 +570,7 @@ body::before {
   gap:18px;
   border-bottom:1px solid var(--border);
   background:color-mix(in srgb,var(--bg2) 88%,transparent);
-  box-shadow:0 16px 36px -32px rgba(42,30,18,.72);
+  box-shadow:0 16px 36px -32px rgba(0,0,0,.72);
   backdrop-filter:blur(22px) saturate(1.08);
 }
 .toolbar-left {
@@ -611,13 +608,13 @@ body::before {
   border-color:color-mix(in srgb,var(--border) 85%,transparent);
   border-radius:14px;
   background:color-mix(in srgb,var(--bg3) 66%,var(--bg2));
-  box-shadow:inset 0 1px rgba(255,255,255,.28),0 1px 2px rgba(40,30,20,.04);
+  box-shadow:inset 0 1px rgba(255,255,255,.28),0 1px 2px rgba(0,0,0,.04);
   transition:border-color .18s ease,box-shadow .18s ease,background .18s ease;
 }
 .search-box:focus-within {
   border-color:color-mix(in srgb,var(--accent) 62%,var(--border));
   background:var(--bg2);
-  box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 12%,transparent),0 12px 28px rgba(45,33,21,.08);
+  box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 12%,transparent),0 12px 28px rgba(0,0,0,.08);
 }
 .search-box input {
   font-size:14px;
@@ -730,7 +727,7 @@ body::before {
   align-content:flex-start;
   border-bottom:1px solid var(--border);
   background:color-mix(in srgb,var(--bg2) 78%,transparent);
-  box-shadow:0 16px 30px -34px rgba(45,31,18,.6);
+  box-shadow:0 16px 30px -34px rgba(0,0,0,.6);
   backdrop-filter:blur(18px);
 }
 .content-context {

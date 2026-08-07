@@ -1,47 +1,45 @@
 /* Eagle Vault Viewer — 纯手机端 PWA 样式
-   设计语言：与桌面端同源的暖陶土极简风（terracotta + 衬线 display）、
-   瀑布流签名、深浅双主题；强调色跟随桌面端主题选择。
+   设计语言：Apple HIG（SF Pro + 系统蓝 + 毛玻璃 + 发丝边）、
+   瀑布流签名、浅深双主题；强调色为 Apple 系统蓝。
    token 命名与桌面端 styles.css 对齐（--bg/--bg2/--bg3/--border/--text/
    --text-muted/--accent/--accent-solid/--font-ui/--font-display）。
-   主题由 mobile.html 内联脚本在首帧前写入 data-theme/data-accent，
+   主题由 mobile.html 内联脚本在首帧前写入 data-theme，
    因此本文件只需一层 [data-theme] 定义，无 prefers-color-scheme 回退层。 */
 
 :root {
   /* 结构 token */
   --tab-h:56px;
   --tap:44px;
-  --font-ui:"Avenir Next","SF Pro Text","PingFang SC","Microsoft YaHei",sans-serif;
-  --font-display:"Iowan Old Style","Songti SC","Noto Serif SC",Georgia,serif;
+  --font-ui:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --font-display:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
   --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
   /* 无 data-theme 时的兜底（与 light 一致） */
-  --bg:#f7f3ec; --bg2:#fffdfa; --bg3:#ece8df;
-  --border:rgba(53,43,32,.13);
-  --text:#29241f; --text-muted:#70685f; --mut2:#8a8177;
-  --accent:#c96535; --accent-text:#ad4e25;
-  --accent-solid:#a8501f; --accent-solid-fg:#fffdfa;
-  --ok:#2f8f57; --warn:#b9771a; --bad:#c0493a;
-  --scrim:rgba(35,27,19,.55);
+  --bg:#f5f5f7; --bg2:#ffffff; --bg3:#f2f2f7;
+  --border:rgba(0,0,0,.08);
+  --text:#1d1d1f; --text-muted:#6e6e73; --mut2:#8e8e93;
+  --accent:#007aff; --accent-text:#0064d6;
+  --accent-solid:#007aff; --accent-solid-fg:#ffffff;
+  --ok:#34c759; --warn:#ff9500; --bad:#ff3b30;
+  --scrim:rgba(0,0,0,.4);
 }
 [data-theme="light"] {
-  --bg:#f7f3ec; --bg2:#fffdfa; --bg3:#ece8df;
-  --border:rgba(53,43,32,.13);
-  --text:#29241f; --text-muted:#70685f; --mut2:#8a8177;
-  --accent:#c96535; --accent-text:#ad4e25;
-  --accent-solid:#a8501f; --accent-solid-fg:#fffdfa;
-  --ok:#2f8f57; --warn:#b9771a; --bad:#c0493a;
-  --scrim:rgba(35,27,19,.55);
+  --bg:#f5f5f7; --bg2:#ffffff; --bg3:#f2f2f7;
+  --border:rgba(0,0,0,.08);
+  --text:#1d1d1f; --text-muted:#6e6e73; --mut2:#8e8e93;
+  --accent:#007aff; --accent-text:#0064d6;
+  --accent-solid:#007aff; --accent-solid-fg:#ffffff;
+  --ok:#34c759; --warn:#ff9500; --bad:#ff3b30;
+  --scrim:rgba(0,0,0,.4);
 }
 [data-theme="dark"] {
-  --bg:#1a1816; --bg2:#26241f; --bg3:#322f29;
-  --border:rgba(255,238,220,.10);
-  --text:#f1ece5; --text-muted:#aaa198; --mut2:#8b837a;
-  --accent:#e07a3d; --accent-text:#eda06a;
-  --accent-solid:#a8501f; --accent-solid-fg:#fffdfa;
-  --ok:#3f9d63; --warn:#c8881f; --bad:#cf5b4a;
-  --scrim:rgba(12,10,8,.64);
+  --bg:#000000; --bg2:#1c1c1e; --bg3:#2c2c2e;
+  --border:rgba(255,255,255,.10);
+  --text:#f5f5f7; --text-muted:#8e8e93; --mut2:#6e6e73;
+  --accent:#0a84ff; --accent-text:#64b8ff;
+  --accent-solid:#0a84ff; --accent-solid-fg:#ffffff;
+  --ok:#30d158; --warn:#ff9f0a; --bad:#ff453a;
+  --scrim:rgba(0,0,0,.6);
 }
-[data-accent="blue"]  { --accent:#5a7aff; --accent-text:#7a9bff; --accent-solid:#3f5bd9; --accent-solid-fg:#fff; }
-[data-accent="green"] { --accent:#34d399; --accent-text:#6ee7b7; --accent-solid:#34d399; --accent-solid-fg:#06231a; }
 
 * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 html, body { margin:0; padding:0; height:100%; }
@@ -79,8 +77,8 @@ a { color:var(--accent-text); }
   display:flex;
   flex-direction:column;
   height:100vh;    /* fallback for very old browsers */
-  height:100lvh;  /* large viewport: address bar fully retracted */
   height:100dvh;  /* dynamic viewport: updates on chrome show/hide */
+  height:var(--app-h,100dvh);  /* visualViewport drives this; fixes iOS first-paint tabbar drift */
 }
 
 /* ---------- 顶栏 ---------- */
@@ -111,7 +109,7 @@ a { color:var(--accent-text); }
   border-radius:13px;
   background:var(--bg2);
   color:var(--text-muted);
-  box-shadow:0 1px 2px rgba(45,33,21,.04);
+  box-shadow:0 1px 2px rgba(0,0,0,.04);
 }
 .top .theme {
   width:40px;
@@ -207,7 +205,7 @@ a { color:var(--accent-text); }
   border:1px solid var(--border);
   border-radius:15px;
   background:var(--bg2);
-  box-shadow:0 1px 2px rgba(46,34,22,.05),0 10px 26px rgba(46,34,22,.035);
+  box-shadow:0 1px 2px rgba(0,0,0,.05),0 10px 26px rgba(0,0,0,.035);
   color:var(--text-muted); font-size:13.5px;
 }
 .srch.library-search { margin-top:0; }
@@ -231,7 +229,7 @@ a { color:var(--accent-text); }
   border:1px solid var(--border);
   border-radius:16px;
   background:var(--bg2);
-  box-shadow:0 1px 2px rgba(38,29,20,.08),0 12px 30px rgba(38,29,20,.065);
+  box-shadow:0 1px 2px rgba(0,0,0,.08),0 12px 30px rgba(0,0,0,.065);
   overflow:hidden;
   font:inherit;
   text-align:left;
@@ -276,7 +274,7 @@ a { color:var(--accent-text); }
   text-transform:uppercase;
   backdrop-filter:blur(4px);
 }
-.th[data-kind="file"] .ext { background:color-mix(in srgb,var(--accent) 88%,#402719); }
+.th[data-kind="file"] .ext { background:color-mix(in srgb,var(--accent) 88%,#1c1c1e); }
 .th .nm {
   position:absolute; left:0; right:0; bottom:0;
   padding:32px 11px 10px;

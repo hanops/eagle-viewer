@@ -1,20 +1,23 @@
 'use strict';
 
-// ===== Theme =====
+// ===== Theme (Apple: light/dark + system blue) =====
 var THEMES = {
-  gallery:    { theme: 'light', accent: 'terra',  meta: '#fbfaf8', label: '画廊（浅色）' },
-  workbench:  { theme: 'dark',  accent: 'blue',   meta: '#1c1c1e', label: '工作台（深色蓝）' },
-  carbon:     { theme: 'dark',  accent: 'green',  meta: '#15170f', label: '碳工作室（深色绿）' }
+  light: { theme: 'light', accent: 'blue', meta: '#f5f5f7', label: '浅色' },
+  dark:  { theme: 'dark',  accent: 'blue', meta: '#000000', label: '深色' }
 };
+// Migrate legacy theme keys to the new light/dark system.
+function _migrateThemeName(name) {
+  if (name === 'gallery') return 'light';
+  if (name === 'workbench' || name === 'carbon') return 'dark';
+  return name;
+}
 function currentThemeName() {
   var theme = document.documentElement.getAttribute('data-theme');
-  var accent = document.documentElement.getAttribute('data-accent');
-  if (theme === 'dark' && accent === 'green') return 'carbon';
-  if (theme === 'dark') return 'workbench';
-  return 'gallery';
+  return (theme === 'dark') ? 'dark' : 'light';
 }
 function setTheme(name) {
-  if (!THEMES[name]) name = 'gallery';
+  name = _migrateThemeName(name);
+  if (!THEMES[name]) name = 'light';
   var t = THEMES[name];
   var root = document.documentElement;
   root.setAttribute('data-theme', t.theme);
@@ -61,7 +64,7 @@ function closePanel(id) {
 }
 
 function toggleTheme() {
-  var order = ['gallery', 'workbench', 'carbon'];
+  var order = ['light', 'dark'];
   var idx = order.indexOf(currentThemeName());
   interactionModule.setTheme(order[(idx + 1) % order.length]);
 }
