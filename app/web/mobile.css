@@ -95,6 +95,16 @@ a { color:var(--accent-text); }
   height:100dvh;
 }
 
+/* iOS 主屏启动（standalone）下 WebKit 的 dvh/svh 不含 home indicator 区域，
+   固定高度的容器底部会悬空一条背景色空白（普通 Safari 里该区域被浏览器工具栏
+   占据所以不可见）；100vh 在独立模式下包含安全区。navigator.standalone 仅在
+   iOS 主屏启动时为 true，不影响普通 Safari / Android / 桌面。 */
+.pwa-standalone #app { height:100vh; }
+.pwa-standalone .overlay { bottom:auto; height:100vh; }
+/* 个别 iOS 版本独立模式下 env(safe-area-inset-bottom) 可能报 0，给 home indicator 留兜底 */
+.pwa-standalone .tabs { padding-bottom:max(env(safe-area-inset-bottom), 20px); }
+.pwa-standalone .pv-bottom { padding-bottom:calc(max(env(safe-area-inset-bottom), 20px) + 16px); }
+
 /* ===== 顶栏（iOS 导航条） =====
    44pt 内容 + safe-area 顶部 + 毛玻璃。发丝底边仅在折叠态出现。
    紧凑标题 .ctitle 默认隐藏，内容滚动后淡入，与大标题做交叉过渡。 */
@@ -554,6 +564,8 @@ a { color:var(--accent-text); }
   -webkit-backdrop-filter:blur(10px);
 }
 .pv-top button:active { background:rgba(255,255,255,.2); }
+/* SVG 仅有 viewBox 无固有尺寸时，WebKit 会解析为 0×0，图标不可见；显式给定尺寸 */
+.pv-top button svg { width:18px; height:18px; }
 .pv-stage {
   flex:1; position:relative; overflow:hidden;
   display:flex; align-items:center; justify-content:center;

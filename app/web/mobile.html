@@ -21,6 +21,8 @@
         document.documentElement.setAttribute('data-theme', pair[0]);
         document.documentElement.setAttribute('data-accent', pair[1]);
         document.documentElement.style.colorScheme = pair[0];
+        // iOS 主屏启动标记：独立模式视口高度有 WebKit 缺陷，CSS 需按 .pwa-standalone 校正
+        if (window.navigator.standalone) document.documentElement.classList.add('pwa-standalone');
       } catch (e) {}
     })();
   </script>
@@ -31,7 +33,7 @@
   <link rel="icon" href="/static/icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="/static/icon-192.png" />
   <title>Eagle Vault Viewer</title>
-  <link rel="stylesheet" href="/static/mobile.css?v=1.142" />
+  <link rel="stylesheet" href="/static/mobile.css?v=1.143" />
 </head>
 <body>
   <div id="app">
@@ -94,6 +96,6 @@
     </div>
   </div>
 
-  <script src="/static/mobile.js?v=1.142"></script>
+  <script src="/static/mobile.js?v=1.143"></script>
 </body>
 </html>
