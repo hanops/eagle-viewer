@@ -2,6 +2,31 @@
 
 ---
 
+## 4.3.0 - 2026-08-07
+
+### Added
+- Full Apple HIG visual restyle across desktop and mobile PWA surfaces: SF Pro system font stack, Apple system blue accent (#007aff / #0a84ff), neutral palette (#f5f5f7 / #1d1d1f light, #000000 / #f5f5f7 dark), frosted-glass toolbars and tab bars with `backdrop-filter: blur()`, hairline borders, and refined card shadows.
+- Apple restyle report documenting the theme simplification, navigation fix, token override repair, and warm-color cleanup (`docs/apple-restyle-report.md`).
+
+**中文**：桌面端与移动端 PWA 全面还原 Apple HIG 设计风格——SF Pro 系统字体栈、Apple 系统蓝强调色（#007aff / #0a84ff）、中性色板（浅色 #f5f5f7 / #1d1d1f，深色 #000000 / #f5f5f7）、毛玻璃工具栏与底部导航栏、发丝边框、精炼卡片阴影。新增 Apple 风格还原修复报告（`docs/apple-restyle-report.md`）。
+
+### Changed
+- Theme system simplified from three themes (Gallery / Workbench / Carbon) + two accent colors (Terra / Green) to two themes (Light / Dark) + single Apple system blue accent. Legacy theme keys auto-migrate to the new system.
+- 13 hardcoded warm-tone rgba shadow/border values cleaned to neutral black across `styles-polish.css`, `styles-mobile-shell.css`, `styles-detail.css`, and `mobile.css`. Preview quality notice badge retinted from amber to Apple warning orange (#ff9500).
+- `styles-polish.css` token override block (loaded last in cascade) aligned to Apple HIG neutrals — was overriding `styles.css` Apple tokens with legacy warm values.
+- `manifest.json` theme_color / background_color and `index.html` / `mobile.html` meta theme-color updated to Apple values.
+- SW shell cache bumped v59 → v60; static asset revision 1.113 → 1.114.
+
+**中文**：主题体系从三主题（Gallery / Workbench / Carbon）+ 两强调色（Terra / Green）精简为两主题（浅色 / 深色）+ Apple 系统蓝单一强调色，旧主题键自动迁移。清理 13 处硬编码暖色 rgba 阴影/边框为中性黑，预览质量提示 badge 从琥珀色改为 Apple 警告色（#ff9500）。修复 `styles-polish.css`（层叠最后加载）的 token 覆盖问题——此前将 `styles.css` 的 Apple 中性色覆盖回旧暖色值。manifest.json 与 HTML meta theme-color 同步更新。SW shell 缓存升级 v59 → v60，静态资源版本号 1.113 → 1.114。
+
+### Fixed
+- Mobile bottom tab bar first-paint position drift on iOS Safari: `100dvh` returns an unreliable initial value on first frame, causing the tab bar to render too high. Fixed by driving a `--app-h` CSS variable from `visualViewport.resize` events, with `100dvh` and `100vh` as progressive-enhancement fallbacks.
+- Test assertion `test_theme_and_mobile_navigation_remain_available` updated to check light/dark theme switcher instead of removed gallery/workbench/carbon.
+
+**中文**：修复移动端底部导航栏在 iOS Safari 首屏位置靠上的问题——`100dvh` 在首帧取值不可靠，改用 `visualViewport.resize` 事件驱动 `--app-h` CSS 变量，以 `100dvh` 和 `100vh` 作为渐进增强回退。测试断言同步更新为检查浅色/深色主题切换器。
+
+---
+
 ## 4.2.0 - 2026-08-07
 
 ### Added
