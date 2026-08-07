@@ -1,23 +1,8 @@
 /* Eagle Vault Viewer — 纯手机端 PWA 逻辑
-   自带轻量数据层（复用后端同一套 /api 接口），不依赖桌面端 api.js。 */
+   自带轻量数据层（复用后端同一套 /api 接口），不依赖桌面端 api.js。
+   --app-h 由 mobile.html <head> 内联脚本在首帧前设置。 */
 (function () {
   'use strict';
-
-  // ---------- iOS Safari 首屏高度修复 ----------
-  // iOS Safari 首屏 dvh 取值偏小，导致 #app 比可视区矮、.tabs 被顶高。
-  // 用 visualViewport.height 驱动 --app-h，首帧即正确。
-  function syncAppHeight() {
-    var vv = window.visualViewport;
-    if (!vv) return;
-    document.documentElement.style.setProperty('--app-h', vv.height + 'px');
-  }
-  syncAppHeight();
-  if (window.visualViewport) {
-    ['resize', 'scroll'].forEach(function (ev) {
-      window.visualViewport.addEventListener(ev, syncAppHeight);
-    });
-  }
-  window.addEventListener('orientationchange', syncAppHeight);
 
   // ---------- 元素引用 ----------
   const topbar = document.getElementById('topbar');
@@ -121,7 +106,7 @@
       root.setAttribute('data-accent', t.accent);
       root.style.colorScheme = t.theme;
       var themeMeta = document.querySelector('meta[name="theme-color"]');
-      if (themeMeta) themeMeta.content = t.theme === 'light' ? '#f5f5f7' : '#000000';
+      if (themeMeta) themeMeta.content = t.theme === 'light' ? '#f2f2f7' : '#000000';
       localStorage.setItem('eagle-viewer-theme', name);
     } catch (e) {}
   }
@@ -320,7 +305,7 @@
       '<span class="nm">' + esc(it.name) + '</span>' +
       '</button>';
   }
-  function scrollTop() { view.scrollTop = 0; }
+  function scrollTop() { view.scrollTop = 0; topbar.classList.remove('top-collapsed'); }
   function disconnectIO() {
     if (window.__io) { window.__io.disconnect(); window.__io = null; }
     if (window.__hio) { window.__hio.disconnect(); window.__hio = null; }
@@ -331,24 +316,32 @@
   }
 
   // ---------- 顶栏 ----------
+  // 紧凑标题 .ctitle 默认隐藏，内容滚动后由 scroll 监听淡入（与大标题交叉过渡）。
+  // 大标题 .lt 由各渲染函数放进内容区顶部，随滚动上移——这是 iOS 标志性交互。
   function renderTop() {
-    let html = '';
+    let title = '';
+    let showBack = false;
     if (S.view === 'folders') {
-      if (S.folderStack.length) {
-        html += '<button class="back" id="backBtn">' + backSVG + '</button>';
-        html += '<div class="crumb">' + S.folderStack.map((s, i) =>
-          '<span class="seg ' + (i === S.folderStack.length - 1 ? 'cur' : '') + '">' + esc(s.name) + '</span>' +
-          (i < S.folderStack.length - 1 ? '<span class="sep">/</span>' : '')).join('') + '</div>';
-      } else {
-        html += '<h2>' + tr('folders') + '</h2>';
-      }
-    } else if (S.view === 'search') {
-      html += '<button class="back" id="backBtn">' + backSVG + '</button><h2>' + tr('search') + '</h2>';
+      if (S.folderStack.length) showBack = true;      // 子文件夹：面包屑，无标题
+      else title = tr('folders');                      // 根：大标题
     } else if (S.view === 'status') {
-      html += '<button class="back" id="backBtn">' + backSVG + '</button><h2>' + tr('status') + '</h2>';
+      showBack = true; title = tr('status');
+    } else if (S.view === 'search') {
+      title = tr('search');                            // 搜索改为根 Tab，不再有返回键
     } else {
-      html += '<h2>' + tr('library') + '</h2>';
+      title = tr('library');
     }
+
+    let html = '';
+    if (showBack) html += '<button class="back" id="backBtn">' + backSVG + '</button>';
+    if (S.view === 'folders' && S.folderStack.length) {
+      html += '<div class="crumb">' + S.folderStack.map((s, i) =>
+        '<span class="seg ' + (i === S.folderStack.length - 1 ? 'cur' : '') + '">' + esc(s.name) + '</span>' +
+        (i < S.folderStack.length - 1 ? '<span class="sep">/</span>' : '')).join('') + '</div>';
+    } else if (title) {
+      html += '<span class="ctitle">' + esc(title) + '</span>';
+    }
+
     var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
     var themeLabel = isDark ? tr('lightTheme') : tr('darkTheme');
     var themeIcon = isDark
@@ -358,7 +351,7 @@
     topbar.innerHTML = html;
     const bb = topbar.querySelector('#backBtn');
     if (bb) bb.onclick = () => {
-      if (S.view === 'status' || S.view === 'search') { S.view = 'library'; setTabActive('library'); renderLibrary(); }
+      if (S.view === 'status') { S.view = 'library'; setTabActive('library'); renderLibrary(); }
       else if (S.view === 'folders' && S.folderStack.length) { S.folderStack.pop(); renderFolders(); }
     };
     topbar.querySelector('#themeBtn').onclick = toggleMobileTheme;
@@ -371,6 +364,8 @@
       else if (S.view === 'status') goStatus();
       else renderLibrary();
     };
+    // 新视图从顶部开始，收回紧凑标题
+    topbar.classList.remove('top-collapsed');
   }
 
   function setTabActive(v) {
@@ -408,6 +403,7 @@
     const connText = connected ? (changed ? tr('connectedChanged') : tr('connected')) : tr('disconnected');
     const verText = status.version ? ' v' + esc(status.version) : '';
     viewBody.innerHTML =
+      '<div class="lt">' + esc(tr('library')) + '</div>' +
       '<div class="srch library-search" id="srchEntry">' + searchSVG + '<input id="srchInput" placeholder="' + esc(tr('searchPlaceholder')) + '" /></div>' +
       '<div class="strip ' + (changed ? 'changed' : '') + '" id="strip">' +
         '<span class="dot ' + dotCls + '"></span>' +
@@ -455,14 +451,18 @@
     S.folderHasMore = hasMore; S.folderOffset = offset;
 
     let html = '';
-    if (!atRoot && subfolders.length) html += '<div class="lbl">' + tr('subfolders') + '</div>';
+    if (atRoot) {
+      html += '<div class="lt">' + esc(tr('folders')) + '</div>';
+    }
     if (subfolders.length) {
-      html += subfolders.map(f =>
+      const rows = subfolders.map(f =>
         '<button class="fr' + (f.locked ? ' locked' : '') + '" data-fid="' + esc(f.id) + '" data-fname="' + esc(f.name) + '"' + (f.locked ? ' data-locked="1"' : '') + '>' +
           '<span class="fico">' + folderSVG + '</span>' +
           '<span class="fn">' + esc(f.name) + '</span>' +
           '<span class="ct">' + (f.locked ? lockSVG : (f.count != null ? f.count : '')) + '</span>' + chevSVG +
         '</button>').join('');
+      if (!atRoot) html += '<div class="lbl">' + tr('subfolders') + '</div>';
+      html += '<div class="card">' + rows + '</div>';
     } else if (atRoot) {
       html += '<div class="empty">' + tr('noFolders') + '</div>';
     }
@@ -514,7 +514,8 @@
     renderTop();
     disconnectIO();
     viewBody.innerHTML =
-      '<div class="srch" style="margin-top:4px">' + searchSVG + '<input id="srchInput2" placeholder="' + esc(tr('searchPlaceholder')) + '" value="' + esc(S.searchQuery) + '" autofocus /></div>' +
+      '<div class="lt">' + esc(tr('search')) + '</div>' +
+      '<div class="srch">' + searchSVG + '<input id="srchInput2" placeholder="' + esc(tr('searchPlaceholder')) + '" value="' + esc(S.searchQuery) + '" autofocus /></div>' +
       '<div class="sr-head" id="srHead"></div>' +
       '<div class="mas" id="searchMas"></div>' +
       '<div class="sentinel" id="searchSentinel" style="display:none"></div>';
@@ -612,14 +613,18 @@
     let st;
     try { st = await API.status(true); } catch (e) { if (e.message === 'unauthorized') return; viewBody.innerHTML = '<div class="errbox">' + esc(tr('loadFailed', { error: e.message })) + '</div>'; return; }
     S.status = st;
+    view.scrollTop = 0;
     const fmtTime = ms => ms ? new Date(ms).toLocaleString(lang === 'en' ? 'en-US' : 'zh-CN', { hour12: false }) : '—';
     const stats = st.stats || {};
     viewBody.innerHTML =
+      '<div class="lt">' + esc(tr('status')) + '</div>' +
+      '<div class="card">' +
       '<div class="kv"><span class="k">' + tr('status') + '</span><span class="v ' + (!st.ok ? 'bad' : (st.changed ? 'warn' : 'ok')) + '">' + (st.ok ? (st.changed ? tr('connectedChanged') : tr('connected')) : tr('disconnected')) + '</span></div>' +
       '<div class="kv"><span class="k">' + tr('indexedAt') + '</span><span class="v">' + fmtTime(st.loadedAt) + '</span></div>' +
       '<div class="kv"><span class="k">' + tr('items') + '</span><span class="v">' + (stats.items || 0) + '</span></div>' +
       '<div class="kv"><span class="k">' + tr('foldersLabel') + '</span><span class="v">' + (stats.folders || 0) + '</span></div>' +
       '<div class="kv"><span class="k">' + tr('tags') + '</span><span class="v">' + (stats.tags || 0) + '</span></div>' +
+      '</div>' +
       (st.changed ? '<div class="warnrow"><b>' + tr('remoteChangedTitle') + '</b><br>' + tr('remoteChangedBody') + '</div>' : '') +
       '<button class="actbtn" id="reloadBtn">' + refreshSVG + ' ' + tr('reload') + '</button>';
     const btn = document.getElementById('reloadBtn');
@@ -851,6 +856,11 @@
 
   // ---------- Tab 切换 ----------
   tabs.addEventListener('click', e => { const b = e.target.closest('.tb'); if (b) switchTab(b.dataset.view); });
+
+  // ---------- 大标题折叠：内容滚动时淡入顶栏紧凑标题 ----------
+  view.addEventListener('scroll', () => {
+    topbar.classList.toggle('top-collapsed', view.scrollTop > 4);
+  }, { passive: true });
 
   // ---------- 启动 ----------
   applyLanguage();

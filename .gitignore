@@ -17,4 +17,6 @@ dist/
 build/
 .codebuddy/
 .qoder/
+.trae/
+apple-restyle-preview/
 docs/mockups/web-desktop-redesign.html
