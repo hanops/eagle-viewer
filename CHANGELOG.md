@@ -2,6 +2,16 @@
 
 ---
 
+## 4.3.3 - 2026-08-08
+
+### Fixed
+- Filled the bottom gap of the mobile PWA in iOS home-screen standalone mode so the full-screen preview overlay reaches the physical screen bottom.
+- Restored the close and share icons in the mobile full-screen preview top bar, which WebKit rendered invisibly as zero-size SVGs.
+
+**中文**：修复 iOS 主屏独立模式下移动端 PWA 底部空白，全屏预览遮罩现在贴到物理屏幕底部；恢复预览顶栏关闭/分享图标（WebKit 将无固有尺寸的 SVG 解析为 0×0 导致不可见）。
+
+---
+
 ## 4.3.2 - 2026-08-07
 
 ### Added

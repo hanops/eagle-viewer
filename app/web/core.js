@@ -3,8 +3,8 @@
 var EagleViewer = window.EagleViewer = window.EagleViewer || {};
 
 var API = '';
-var VERSION = '4.3.2';
-var VERSION_DATE = '2026-08-07';
+var VERSION = '4.3.3';
+var VERSION_DATE = '2026-08-08';
 var PREVIEW_IMAGE_EXTS = ['jpg','jpeg','png','gif','webp','svg','bmp'];
 var PREVIEW_VIDEO_EXTS = ['mp4','webm','mov','m4v'];
 var PREVIEW_AUDIO_EXTS = ['mp3','wav','m4a','aac','flac','ogg'];
