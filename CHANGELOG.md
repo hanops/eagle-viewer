@@ -2,6 +2,25 @@
 
 ---
 
+## 4.3.6 - 2026-08-08
+
+### Fixed
+- Reverted the v4.3.4 physical-height sizing in iOS home-screen standalone mode.
+  `screen.height` returns the full screen size (e.g. 932pt on iPhone 15 Pro
+  Max), which is taller than the standalone layout viewport (873pt), so the
+  shell sized by it pushed the tab bar and preview action buttons out of the
+  viewport — they only reappeared while the page was being scrolled and snapped
+  back on release. The shell now keeps viewport-unit height again (tab bar
+  always visible, flush with the layout-viewport bottom), and the strip below
+  the viewport is covered by the html canvas painted in the tab-bar color
+  (black under the preview overlay) via both the `pwa-standalone` class and the
+  `display-mode` media-query fallback.
+- Bumped the asset revision and service-worker cache so installed PWAs fetch the
+  corrected shell on their next launch.
+**中文**：撤销 v4.3.4 在 iOS 主屏独立模式下的物理屏高度撑满方案——`screen.height` 返回物理全屏高度（如 iPhone 15 Pro Max 为 932pt），大于 standalone 布局视口（873pt），按它撑高的外壳会把底部标签栏与预览操作按钮推出视口（仅在滚动时短暂露出、松手回弹消失）。现恢复视口单位高度（底栏始终可见、贴住布局视口底边），视口下方的屏幕条带由 html 画布同色背景覆盖（预览打开时转黑），`pwa-standalone` 类与 `display-mode` 媒体查询双通道生效；同步升级资源版本号与 SW 缓存。
+
+---
+
 ## 4.3.5 - 2026-08-08
 
 ### Fixed

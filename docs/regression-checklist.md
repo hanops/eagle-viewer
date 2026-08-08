@@ -71,8 +71,8 @@
 - Sheets close on swipe-down; Inspector supports half-screen / full-screen toggle, left/right swipe, and safe-area insets.
 - No horizontal overflow; bottom actions are not obscured by the Home Indicator.
 - Safari and home-screen standalone mode fill the viewport with dynamic viewport sizing; the top search and navigation have sufficient touch height; the three-tab bottom bar leaves no excess whitespace after Home Indicator avoidance.
-- In home-screen standalone mode the full-screen preview overlay reaches the physical screen bottom (no blank band under it), and its top close/share buttons show their icons in both themes.
-- After a shell update, relaunching the home-screen PWA still fills the screen bottom: no background-colored band below the tab bar, and the preview Download / Save-to-Album buttons stay fully visible above the Home Indicator.
+- In home-screen standalone mode the full-screen preview overlay covers the viewport edge to edge, and its top close/share buttons show their icons in both themes.
+- After a shell update, relaunching the home-screen PWA shows the bottom tab bar fully visible on launch with no scrolling needed (viewport-unit shell height, not `screen.height`); no background-colored band is visible below the tab bar, and the preview Download / Save-to-Album buttons stay fully visible above the Home Indicator.
 - Paginated directory and search results (>120 items) hydrate thumbnails correctly on scroll, never showing a blank canvas (verify `setupInfinite` does not kill the lazy-hydration observer `__hio`).
 
 ## PWA & Cache
