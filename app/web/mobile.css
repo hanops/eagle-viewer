@@ -95,22 +95,22 @@ a { color:var(--accent-text); }
   height:100dvh;
 }
 
-/* iOS 主屏启动（standalone）下 WebKit 的视口单位不可靠（dvh/svh 不含 home
-   indicator 区域，个别版本 vh 也偏小），固定高度的容器底部会悬空一条背景色
-   空白（普通 Safari 里该区域被浏览器工具栏占据所以不可见）。standalone 时由
-   mobile.html 内联脚本按物理屏幕高度写入 --pwa-h，绕开所有视口单位缺陷；
-   100vh 仅作 JS 未就绪时的回退。navigator.standalone 仅在 iOS 主屏启动时为
-   true，不影响普通 Safari / Android / 桌面。 */
-.pwa-standalone #app { height:var(--pwa-h, 100vh); }
-.pwa-standalone .overlay { bottom:auto; height:var(--pwa-h, 100vh); }
+/* iOS 主屏启动（standalone）下 WebKit 的布局视口比物理屏幕矮（实测矮一个
+   状态栏高度，如 iPhone 15 Pro Max 物理 932pt、布局视口 873pt），视口单位
+   返回的是布局视口高度，容器底部会悬空一条物理屏上的背景色空白（普通 Safari
+   里该区域被浏览器工具栏占据所以不可见）。
+   注意：不要用 screen.height 撑高来"填满"物理屏——它返回物理全屏高度
+   （932pt），大于布局视口（873pt），会把底栏/预览操作条整体推出视口之外
+   （iOS 上表现为滚动时短暂露出、松手回弹后消失）。正确做法是保持视口高度
+   （底栏始终贴住布局视口底边），视口外的屏幕底部交给 html 画布同色背景。
+   navigator.standalone 仅在 iOS 主屏启动时为 true，不影响普通 Safari /
+   Android / 桌面。 */
 /* 个别 iOS 版本独立模式下 env(safe-area-inset-bottom) 可能报 0，给 home indicator 留兜底 */
 .pwa-standalone .tabs { padding-bottom:max(env(safe-area-inset-bottom), 20px); }
 .pwa-standalone .pv-bottom { padding-bottom:calc(max(env(safe-area-inset-bottom), 20px) + 16px); }
 /* display-mode 兜底：bootstrap JS 若未给 <html> 打上 .pwa-standalone（如检测
-   提前抛错），媒体查询仍能命中独立模式，复用同一套物理高度规则。 */
+   提前抛错），媒体查询仍能命中独立模式，复用同一套底部规则与画布配色。 */
 @media (display-mode: standalone), (display-mode: fullscreen) {
-  #app { height:var(--pwa-h, 100vh); }
-  .overlay { bottom:auto; height:var(--pwa-h, 100vh); }
   .tabs { padding-bottom:max(env(safe-area-inset-bottom), 20px); }
   .pv-bottom { padding-bottom:calc(max(env(safe-area-inset-bottom), 20px) + 16px); }
   /* 独立模式视口比物理屏短时，屏幕底部安全区之外只能画到 html 画布；
@@ -118,6 +118,8 @@ a { color:var(--accent-text); }
   html { background:var(--bg2); }
   html.pv-open { background:#0d0c0b; }
 }
+html.pwa-standalone { background:var(--bg2); }
+html.pwa-standalone.pv-open { background:#0d0c0b; }
 
 /* ===== 顶栏（iOS 导航条） =====
    44pt 内容 + safe-area 顶部 + 毛玻璃。发丝底边仅在折叠态出现。

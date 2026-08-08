@@ -23,11 +23,14 @@
         document.documentElement.style.colorScheme = pair[0];
       } catch (e) {}
     })();
-    // iOS 主屏启动标记：独立模式视口单位有 WebKit 缺陷，CSS 需按 .pwa-standalone 校正。
+    // iOS 主屏启动标记：独立模式布局视口比物理屏矮（视口单位返回布局视口
+    // 高度），底栏/预览操作条按视口高度贴底即可始终可见；视口外的屏幕底部
+    // 由 CSS 用 html 画布同色背景填充（见 mobile.css 的 display-mode 规则）。
+    // 注意不要用 screen.height 撑高容器：它是物理全屏高度，大于布局视口，
+    // 会把底栏推出视口之外。
     // 与主题写入分属独立 try，避免 localStorage 受限时拖垮 standalone 检测。
     // 部分 iOS 版本 navigator.standalone 不为 true，用 display-mode 媒体查询兜底
     //（已安装 PWA 可能命中 standalone 或 fullscreen，见 WebKit #264218）。
-    // --pwa-h 取物理屏幕尺寸（不受 dvh/vh bug 影响），横竖屏切换时更新。
     (function () {
       try {
         var isStandalone = window.navigator.standalone ||
@@ -35,14 +38,6 @@
                                  window.matchMedia('(display-mode: fullscreen)').matches));
         if (isStandalone) {
           document.documentElement.classList.add('pwa-standalone');
-          var setPwaH = function () {
-            var land = window.matchMedia('(orientation: landscape)').matches;
-            var h = land ? window.screen.width : window.screen.height;
-            document.documentElement.style.setProperty('--pwa-h', h + 'px');
-          };
-          setPwaH();
-          window.addEventListener('orientationchange', setPwaH);
-          window.addEventListener('resize', setPwaH);
         }
       } catch (e) {}
     })();
@@ -54,7 +49,7 @@
   <link rel="icon" href="/static/icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="/static/icon-192.png" />
   <title>Eagle Vault Viewer</title>
-  <link rel="stylesheet" href="/static/mobile.css?v=1.146" />
+  <link rel="stylesheet" href="/static/mobile.css?v=1.147" />
 </head>
 <body>
   <div id="app">
@@ -117,6 +112,6 @@
     </div>
   </div>
 
-  <script src="/static/mobile.js?v=1.146"></script>
+  <script src="/static/mobile.js?v=1.147"></script>
 </body>
 </html>
