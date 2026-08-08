@@ -22,8 +22,13 @@
         document.documentElement.setAttribute('data-accent', pair[1]);
         document.documentElement.style.colorScheme = pair[0];
         // iOS 主屏启动标记：独立模式视口单位有 WebKit 缺陷，CSS 需按 .pwa-standalone 校正。
+        // 部分 iOS 版本 navigator.standalone 不为 true，用 display-mode 媒体查询兜底
+        //（已安装 PWA 可能命中 standalone 或 fullscreen，见 WebKit #264218）。
         // --pwa-h 取物理屏幕尺寸（不受 dvh/vh bug 影响），横竖屏切换时更新。
-        if (window.navigator.standalone) {
+        var isStandalone = window.navigator.standalone ||
+          (window.matchMedia && (window.matchMedia('(display-mode: standalone)').matches ||
+                                 window.matchMedia('(display-mode: fullscreen)').matches));
+        if (isStandalone) {
           document.documentElement.classList.add('pwa-standalone');
           var setPwaH = function () {
             var land = window.matchMedia('(orientation: landscape)').matches;
@@ -44,7 +49,7 @@
   <link rel="icon" href="/static/icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="/static/icon-192.png" />
   <title>Eagle Vault Viewer</title>
-  <link rel="stylesheet" href="/static/mobile.css?v=1.144" />
+  <link rel="stylesheet" href="/static/mobile.css?v=1.145" />
 </head>
 <body>
   <div id="app">
@@ -107,6 +112,6 @@
     </div>
   </div>
 
-  <script src="/static/mobile.js?v=1.144"></script>
+  <script src="/static/mobile.js?v=1.145"></script>
 </body>
 </html>

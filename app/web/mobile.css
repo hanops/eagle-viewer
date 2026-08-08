@@ -882,7 +882,8 @@ body { letter-spacing:0; }
 .tb.active { color:var(--accent); }
 .tb.active::before { width:26px; background:var(--accent); }
 .overlay { background:#0d0c0b; }
-.pv-top { padding:calc(env(safe-area-inset-top) + 9px) 16px 9px; }
+/* 状态栏与导航按钮之间留足呼吸空间，避免贴脸 */
+.pv-top { padding:calc(env(safe-area-inset-top) + 16px) 16px 9px; }
 .pv-top button { border-radius:10px; }
 .pv-bottom { background:linear-gradient(transparent,rgba(13,12,11,.88)); }
 .pv-actions a, .pv-actions button { border-radius:11px; }
