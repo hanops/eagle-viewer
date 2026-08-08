@@ -2,6 +2,17 @@
 
 ---
 
+## 4.3.4 - 2026-08-08
+
+### Fixed
+- Sized the mobile PWA shell from the physical screen height in iOS home-screen mode, since standalone viewport units (dvh/svh and even vh) under-report the screen and left a blank band below the tab bar and preview overlay.
+- Detected home-screen standalone mode via `display-mode: standalone/fullscreen` media queries as a fallback when `navigator.standalone` is falsy on some iOS builds, so the safe-area paddings and height correction actually apply.
+- Added more breathing room between the iOS status bar and the preview top navigation bar.
+
+**中文**：iOS 主屏模式下改用物理屏幕高度撑满移动端外壳与预览浮层（独立模式的 dvh/svh/vh 视口单位均可能少算，导致底部空白）；部分 iOS 版本 `navigator.standalone` 不为 true，改用 `display-mode` 媒体查询兜底检测，确保安全区留白生效；预览顶栏与状态栏之间增加间距。
+
+---
+
 ## 4.3.3 - 2026-08-08
 
 ### Fixed
