@@ -21,8 +21,19 @@
         document.documentElement.setAttribute('data-theme', pair[0]);
         document.documentElement.setAttribute('data-accent', pair[1]);
         document.documentElement.style.colorScheme = pair[0];
-        // iOS 主屏启动标记：独立模式视口高度有 WebKit 缺陷，CSS 需按 .pwa-standalone 校正
-        if (window.navigator.standalone) document.documentElement.classList.add('pwa-standalone');
+        // iOS 主屏启动标记：独立模式视口单位有 WebKit 缺陷，CSS 需按 .pwa-standalone 校正。
+        // --pwa-h 取物理屏幕尺寸（不受 dvh/vh bug 影响），横竖屏切换时更新。
+        if (window.navigator.standalone) {
+          document.documentElement.classList.add('pwa-standalone');
+          var setPwaH = function () {
+            var land = window.matchMedia('(orientation: landscape)').matches;
+            var h = land ? window.screen.width : window.screen.height;
+            document.documentElement.style.setProperty('--pwa-h', h + 'px');
+          };
+          setPwaH();
+          window.addEventListener('orientationchange', setPwaH);
+          window.addEventListener('resize', setPwaH);
+        }
       } catch (e) {}
     })();
   </script>
@@ -33,7 +44,7 @@
   <link rel="icon" href="/static/icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="/static/icon-192.png" />
   <title>Eagle Vault Viewer</title>
-  <link rel="stylesheet" href="/static/mobile.css?v=1.143" />
+  <link rel="stylesheet" href="/static/mobile.css?v=1.144" />
 </head>
 <body>
   <div id="app">
@@ -96,6 +107,6 @@
     </div>
   </div>
 
-  <script src="/static/mobile.js?v=1.143"></script>
+  <script src="/static/mobile.js?v=1.144"></script>
 </body>
 </html>

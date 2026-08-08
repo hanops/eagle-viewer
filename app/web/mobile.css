@@ -95,12 +95,14 @@ a { color:var(--accent-text); }
   height:100dvh;
 }
 
-/* iOS 主屏启动（standalone）下 WebKit 的 dvh/svh 不含 home indicator 区域，
-   固定高度的容器底部会悬空一条背景色空白（普通 Safari 里该区域被浏览器工具栏
-   占据所以不可见）；100vh 在独立模式下包含安全区。navigator.standalone 仅在
-   iOS 主屏启动时为 true，不影响普通 Safari / Android / 桌面。 */
-.pwa-standalone #app { height:100vh; }
-.pwa-standalone .overlay { bottom:auto; height:100vh; }
+/* iOS 主屏启动（standalone）下 WebKit 的视口单位不可靠（dvh/svh 不含 home
+   indicator 区域，个别版本 vh 也偏小），固定高度的容器底部会悬空一条背景色
+   空白（普通 Safari 里该区域被浏览器工具栏占据所以不可见）。standalone 时由
+   mobile.html 内联脚本按物理屏幕高度写入 --pwa-h，绕开所有视口单位缺陷；
+   100vh 仅作 JS 未就绪时的回退。navigator.standalone 仅在 iOS 主屏启动时为
+   true，不影响普通 Safari / Android / 桌面。 */
+.pwa-standalone #app { height:var(--pwa-h, 100vh); }
+.pwa-standalone .overlay { bottom:auto; height:var(--pwa-h, 100vh); }
 /* 个别 iOS 版本独立模式下 env(safe-area-inset-bottom) 可能报 0，给 home indicator 留兜底 */
 .pwa-standalone .tabs { padding-bottom:max(env(safe-area-inset-bottom), 20px); }
 .pwa-standalone .pv-bottom { padding-bottom:calc(max(env(safe-area-inset-bottom), 20px) + 16px); }
