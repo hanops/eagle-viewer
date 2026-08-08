@@ -2,6 +2,22 @@
 
 ---
 
+## 4.3.5 - 2026-08-08
+
+### Fixed
+- Hardened the iOS home-screen standalone bottom fill: the physical-height rules
+  now also apply through `display-mode: standalone/fullscreen` media queries, so
+  a blank band can no longer appear below the tab bar or under the preview
+  overlay even if the bootstrap JS detection fails early. The html canvas
+  background now matches the tab bar (and turns black while the preview overlay
+  is open), and the theme bootstrap is split from standalone detection so a
+  restricted `localStorage` cannot skip it.
+- Bumped the asset revision and service-worker cache so installed PWAs fetch the
+  corrected shell on their next launch.
+**中文**：加固 iOS 主屏独立模式的底部撑满逻辑：新增 `display-mode` 媒体查询兜底，即使 bootstrap 检测提前失败，标签栏下方与预览浮层底部也不会再露出背景色空白；html 画布底色改为与底栏同色（预览打开时转黑），并将主题写入与 standalone 检测拆分为独立 try，避免受限的 `localStorage` 拖累检测；同步升级资源版本号与 SW 缓存，已安装 PWA 下次启动即可获取修复。
+
+---
+
 ## 4.3.4 - 2026-08-08
 
 ### Fixed
