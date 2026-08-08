@@ -724,6 +724,7 @@
     showPreviewItem();
     overlay.classList.add('show');
     overlay.setAttribute('aria-hidden', 'false');
+    document.documentElement.classList.add('pv-open');
     document.body.style.overflow = 'hidden';
     if (!S.preview.pushed) { history.pushState({ pv: 1 }, ''); S.preview.pushed = true; }
   }
@@ -732,6 +733,7 @@
     S.preview.pushed = false;
     overlay.classList.remove('show', 'immersive');
     overlay.setAttribute('aria-hidden', 'true');
+    document.documentElement.classList.remove('pv-open');
     document.body.style.overflow = '';
     clearPreviewMedia();
     pvImg.onerror = null;

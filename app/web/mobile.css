@@ -106,6 +106,18 @@ a { color:var(--accent-text); }
 /* 个别 iOS 版本独立模式下 env(safe-area-inset-bottom) 可能报 0，给 home indicator 留兜底 */
 .pwa-standalone .tabs { padding-bottom:max(env(safe-area-inset-bottom), 20px); }
 .pwa-standalone .pv-bottom { padding-bottom:calc(max(env(safe-area-inset-bottom), 20px) + 16px); }
+/* display-mode 兜底：bootstrap JS 若未给 <html> 打上 .pwa-standalone（如检测
+   提前抛错），媒体查询仍能命中独立模式，复用同一套物理高度规则。 */
+@media (display-mode: standalone), (display-mode: fullscreen) {
+  #app { height:var(--pwa-h, 100vh); }
+  .overlay { bottom:auto; height:var(--pwa-h, 100vh); }
+  .tabs { padding-bottom:max(env(safe-area-inset-bottom), 20px); }
+  .pv-bottom { padding-bottom:calc(max(env(safe-area-inset-bottom), 20px) + 16px); }
+  /* 独立模式视口比物理屏短时，屏幕底部安全区之外只能画到 html 画布；
+     把画布涂成底栏同色，避免悬空一条页面背景色空白。 */
+  html { background:var(--bg2); }
+  html.pv-open { background:#0d0c0b; }
+}
 
 /* ===== 顶栏（iOS 导航条） =====
    44pt 内容 + safe-area 顶部 + 毛玻璃。发丝底边仅在折叠态出现。
